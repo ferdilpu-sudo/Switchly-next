@@ -62,6 +62,8 @@ Rules:
 - Do not use unsupported flags as a substitute for a documented feature without a decision record.
 - Do not advertise Chrome Web Store compatibility unless a narrowly defined compatibility matrix passes; no general Chrome parity claim is permitted.
 - Engine failure must not cause metadata corruption or silent profile storage sharing.
+- Each profile's `RequestContextSettings.CachePath` must be a **direct child** of `CefSettings.RootCachePath`; deeper paths are silently rejected in Chrome Runtime.
+- Run the browser non-elevated (`asInvoker`). CEF auto-de-elevation (exit code 38 / `ResultCode.NormalExitAutoDeElevated`) indicates an elevated launch; never ship a `do-not-de-elevate` workaround to production.
 
 ## 6. Import/export rules
 

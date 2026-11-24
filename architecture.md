@@ -119,8 +119,9 @@ tests/
 ## 5. Browser profile isolation model
 
 ### 5.1 Profile as isolation boundary
-- Each `BrowserProfile` owns a dedicated storage root under `%LOCALAPPDATA%\SwitchlyNext\Profiles\<profile-guid>`.
-- Each active profile is created with a separate `CefRequestContext` and unique persistent `CachePath`.
+- `CefSettings.RootCachePath` is `%LOCALAPPDATA%\SwitchlyNext\Profiles` (CEF's user-data dir).
+- Each `BrowserProfile` owns a dedicated storage root at `%LOCALAPPDATA%\SwitchlyNext\Profiles\<profile-guid>` — a **direct child** of `RootCachePath` (Chrome Runtime rejects deeper paths and silently falls back to in-memory).
+- Each active profile is created with a separate `CefRequestContext` and a unique persistent `CachePath` equal to that profile directory.
 - Tabs and windows belonging to one profile share that profile request context.
 - A different profile receives a different request context and path.
 - Global CEF settings and global cache are for installation/runtime data only; never use the global context for user web sessions.

@@ -17,6 +17,7 @@
 | ADR-008 | Open | MSIX vs signed setup installer | REQ-014 | Installation/update PoC |
 | ADR-009 | Confirmed scope | No registration for basic use; Pro login only for upgrade/activation | REQ-012, REQ-013 | Product business model evolves |
 | ADR-010 | Confirmed scope | No source cookies/session import | REQ-009 | Product owner explicitly expands scope |
+| ADR-011 | Proposed | Profile dirs are direct children of RootCachePath | REQ-003 | CEF profile-path rules change |
 
 ## 2. ADR-001 — WPF desktop shell
 
@@ -110,7 +111,15 @@
 - **Decision:** Import list includes bookmarks, history, open tabs as URLs, and passwords from a user-exported CSV; an extension inventory may be informative only. Source cookies/session are not imported.
 - **Consequences:** Imported profiles must sign in to websites again. This lowers risk of silently copying device-bound or sensitive sessions.
 
-## 12. Open decisions with impact
+## 12. ADR-011 — Profile storage layout under Chrome Runtime
+
+- **Status:** Proposed.
+- **Context:** CEF 156 runs Chrome Runtime exclusively. In Chrome Runtime, a request context's `CachePath` is accepted only as a **direct child** of `CefSettings.RootCachePath`; a deeper path is rejected (`Cannot create profile at path`) and CEF silently falls back to an in-memory (off-the-record) profile — persistence fails with no obvious error. Verified by the M-001 TASK-002 spike.
+- **Decision:** Set `CefSettings.RootCachePath = %LOCALAPPDATA%\SwitchlyNext\Profiles`; each profile's `RequestContextSettings.CachePath = %LOCALAPPDATA%\SwitchlyNext\Profiles\<profile-guid>` (a direct child). This preserves the documented per-profile path.
+- **Consequences:** `Profiles` doubles as CEF's user-data dir, so it also holds CEF global state (an unused "Default" profile + cache). Backups must copy only `<profile-guid>` directories, never CEF global state. Empty `CachePath` = in-memory only, never for account browsing.
+- **Revisit when:** CEF changes its profile-path rules, or the product prefers a differently-named root (e.g. `BrowserData`).
+
+## 13. Open decisions with impact
 
 | ID | Missing decision | Assumption for draft | Impact | Owner / next step |
 |---|---|---|---|---|

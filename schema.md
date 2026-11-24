@@ -7,7 +7,7 @@
 
 - Database: SQLite, one local application database.
 - Metadata path: `%LOCALAPPDATA%\SwitchlyNext\Data\switchly-next.db`.
-- Browser data: `%LOCALAPPDATA%\SwitchlyNext\Profiles\<profile-guid>\` (one directory per profile).
+- Browser data: `%LOCALAPPDATA%\SwitchlyNext\Profiles\<profile-guid>\` (one directory per profile). `RootCachePath` is `%LOCALAPPDATA%\SwitchlyNext\Profiles`, so each profile directory is a **direct child** of it (required by CEF Chrome Runtime).
 - Backup archives: user-selected folder; encrypted before final write.
 - No cloud synchronization in MVP.
 - Do not query/modify CEF's internal SQLite files directly except through documented read-only import/diagnostic adapters when absolutely needed.

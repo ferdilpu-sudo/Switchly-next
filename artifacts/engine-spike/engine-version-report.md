@@ -76,7 +76,7 @@ var browser = new ChromiumWebBrowser(url) { RequestContext = requestContext };
 Critical rules:
 1. `CachePath` MUST be an absolute path.
 2. Each `ProfileId` → unique `CachePath`.
-3. `CachePath` should be under `CefSettings.RootCachePath`.
+3. `CachePath` must be a **direct child** of `CefSettings.RootCachePath` (deeper paths are rejected in Chrome Runtime).
 4. Do NOT modify `CachePath` files while `CefRequestContext` is active.
 5. Close all CEF handles before deleting a profile path.
 6. Empty/null `CachePath` = incognito (in-memory only).
