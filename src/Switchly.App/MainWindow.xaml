@@ -7,8 +7,8 @@
         WindowStartupLocation="CenterScreen">
     <DockPanel>
         <DockPanel DockPanel.Dock="Top" Margin="6">
-            <Button DockPanel.Dock="Right" Content="Go" Click="OnGo" Padding="16,4" Margin="6,0,0,0"/>
-            <TextBox x:Name="AddressBox" KeyDown="OnAddressKeyDown" VerticalContentAlignment="Center" Padding="4,2"/>
+            <Button DockPanel.Dock="Right" Content="Go" Command="{Binding NavigateCommand}" Padding="16,4" Margin="6,0,0,0"/>
+            <TextBox Text="{Binding Address, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" Padding="4,2"/>
         </DockPanel>
         <cef:ChromiumWebBrowser x:Name="Browser" Address="https://chatgpt.com"/>
     </DockPanel>
