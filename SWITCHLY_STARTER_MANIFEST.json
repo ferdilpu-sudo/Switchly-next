@@ -1,0 +1,29 @@
+{
+  "project": "Switchly Next",
+  "purpose": "Clean-generation project starter and Antigravity + EGM integration",
+  "egm": {
+    "version": "0.1.1",
+    "source_repository": "https://github.com/google/elephant-goldfish-model",
+    "source_commit_from_uploaded_archive": "7d1b721e51448518cc9b0336465041230200dd10",
+    "included_under": ".agents/plugins/egm"
+  },
+  "canonical_docs": [
+    "AGENTS.md",
+    "README.md",
+    "prd.md",
+    "design.md",
+    "architecture.md",
+    "schema.md",
+    "decisions.md",
+    "rules.md",
+    "testing.md",
+    "plan.md"
+  ],
+  "notes": [
+    "This is a specification/configuration starter, not implemented application code.",
+    "The old Switchly WebView2 repository is reference-only.",
+    "WebView2 is excluded; C# WPF + standard CEF/CefSharp is a proposed stack pending M-001 validation.",
+    "Extension support is optional and not an MVP release gate.",
+    "No Antigravity skill execution or EGM subagent review was performed while creating this package."
+  ]
+}

@@ -1,0 +1,26 @@
+# .NET build outputs
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+
+# Local browser/profile data and test secrets
+**/BrowserData/
+**/Profiles/
+**/UserData/
+*.db-wal
+*.db-shm
+*.pfx
+*.p12
+*.key
+.env
+.env.*
+!.env.example
+
+# Local artifacts and diagnostics (generated build output handled by **/bin/ and **/obj/)
+artifacts/*
+!artifacts/engine-spike/
+logs/
+*.dmp
+*.core
