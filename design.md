@@ -1,6 +1,6 @@
 # UX and Interaction Design — Switchly Next
 
-**Status:** DRAFT 0.1 — wireframe behavior specification; visual design belum final  
+**Status:** ACTIVE 0.2 — wireframe behavior specification; visual design belum final; diperbarui sesuai keputusan D1–D5 (2026-11-24)  
 **Platform:** Windows desktop, mouse + keyboard, high-DPI aware
 
 ## 1. Prinsip pengalaman
@@ -32,7 +32,7 @@ Switchly Next
 ├── Profile Details
 │   ├── General
 │   ├── Startup URL
-│   ├── Extensions
+│   ├── Extensions (optional / post-MVP)
 │   ├── Security
 │   └── Storage
 └── App Settings
@@ -48,29 +48,29 @@ Switchly Next
 
 | ID | Layar | Tujuan | Elemen utama | Requirement |
 |---|---|---|---|---|
-| UI-001 | Main Workspace | Mengelola profil dan grup | Sidebar, search, group list, active windows | REQ-001, REQ-004 |
-| UI-002 | Profile Create/Edit | Membuat/menyetel profil | Name, icon, color, group, startup URL | REQ-002, REQ-015 |
+| UI-001 | Main Workspace | Mengelola profil dan grup | Sidebar, search, group list, active windows, resource indicator | REQ-001, REQ-004, REQ-016, REQ-018 |
+| UI-002 | Profile Create/Edit | Membuat/menyetel profil | Name, icon, color, favorite, group, startup URL, session/cookie prefs | REQ-002, REQ-015 |
 | UI-003 | Browser Window | Menjelajah web pada satu profil | Tabs, address bar, back/forward, reload, menu | REQ-001, REQ-005 |
-| UI-004 | Profile Context Menu | Aksi profil | Open, close, duplicate config, archive, delete | REQ-002 |
+| UI-004 | Profile Context Menu | Aksi profil | Open, close, edit, favorite, duplicate config, archive, delete | REQ-002, REQ-015 |
 | UI-005 | Bookmark Manager | Menata bookmark per profil | Tree/list, add/edit/delete, folder | REQ-006 |
 | UI-006 | History View | Mencari riwayat profil | Filter waktu/domain, clear history | REQ-006 |
 | UI-007 | Downloads Panel | Melihat dan mengelola unduhan | Progress, destination, open folder, cancel | REQ-006 |
 | UI-008 | Optional Extension Settings | Mengelola ekstensi bila fitur kelak disetujui | Only runtime-supported sources and permissions | REQ-007 |
 | UI-009 | Import Wizard | Mengimpor data browser | Source, detected profiles, categories, preview, result | REQ-008, REQ-009 |
-| UI-010 | Security & Unlock | Membuka aplikasi/vault | Windows account state, master password, Windows Hello | REQ-010 |
-| UI-011 | Backup & Restore | Melindungi/pindah data | Schedule, destination, passphrase, preview, progress | REQ-011 |
-| UI-012 | Settings | Preferensi aplikasi | Startup, appearance, resource, privacy | REQ-017, REQ-018 |
-| UI-013 | License / Pro | Upgrade dan status entitlements | Sign-in/activation, plan, status | REQ-012, REQ-013 |
+| UI-010 | Security & Unlock | Membuka kunci lokal aplikasi | Windows account state, optional master password, Windows Hello | REQ-010 |
+| UI-011 | Backup & Restore | Backup manual & restore portabel | Destination, passphrase, preview, progress, restart-to-restore *(schedule deferred D2)* | REQ-011 |
+| UI-012 | Settings | Preferensi aplikasi | Startup, appearance, resource, privacy | REQ-018 |
+| UI-013 | License / Pro | Upgrade dan status entitlements | Sign-in/activation, plan, status *(M-009)* | REQ-012, REQ-013 |
 
 ## 4. Interaksi kritis
 
 ### 4.1 Profile sidebar
-- Profil ditampilkan dengan nama, ikon, warna dan indikator status: closed, active, suspended, error.
+- Profil ditampilkan dengan nama, ikon, warna dan indikator status: closed, starting, active, suspending, suspended, error.
 - Klik profil:
   - Jika sudah aktif: fokuskan jendela profil terakhir.
   - Jika tertutup: buat request context dari direktori profil dan buka workspace.
   - Jika suspended: bangunkan sesuai kebutuhan dan pulihkan tab.
-- Context menu memuat open, close, edit, duplicate settings, archive, delete.
+- Context menu memuat open, close, edit, favorite, duplicate settings, archive, delete.
 - Penghapusan profil memerlukan konfirmasi, menjelaskan data yang akan hilang dan opsi backup terlebih dahulu.
 
 ### 4.2 Tabs dan windows
@@ -85,16 +85,15 @@ Switchly Next
 1. Pilih Chrome atau Edge.
 2. Deteksi instalasi/profil lokal; pengguna memilih sumber secara eksplisit.
 3. Tampilkan status: browser harus ditutup bila database sedang terkunci.
-4. Checklist:
+4. Checklist (MVP):
    - Bookmark
    - Riwayat
    - Daftar ekstensi sebagai informasi opsional; reinstall bukan bagian MVP
    - Tab terbuka (URL saja)
-   - Password CSV (file yang dipilih manual)
+   *(Impor Password CSV dan custom password vault ditunda pasca-MVP per D1.)*
 5. Jelaskan bahwa cookies dan sesi login tidak dibawa.
 6. Preview jumlah entri dan duplikat sebelum commit.
 7. Hasil: jumlah berhasil, dilewati, gagal, dan alasan.
-8. Password CSV diurai di memori; tidak masuk log; simpan hanya ke vault terenkripsi profil setelah konfirmasi. Tampilkan peringatan bahwa CSV sumber berisi plaintext.
 
 ### 4.4 Optional extension settings (not MVP)
 - Extension management is deferred and is not part of the first release gate.
@@ -102,13 +101,13 @@ Switchly Next
 - Show source, permissions, and known compatibility limitations before installation.
 - Never silently sideload or claim success when the engine reports failure.
 
-### 4.5 Backup/restore
-- Backup dapat dijalankan manual atau terjadwal.
-- Aplikasi meminta passphrase dan mengonfirmasi lokasi file.
+### 4.5 Backup/restore (manual pada MVP)
+- Backup pada MVP dijalankan **manual** (backup terjadwal otomatis ditunda pasca-MVP per D2).
+- Aplikasi meminta passphrase, memastikan profil target tertutup/flushed, dan mengonfirmasi lokasi file.
 - Progress dapat dibatalkan sebelum finalisasi; file sementara dibersihkan best-effort.
-- Restore menunjukkan versi arsip, jumlah profil, ukuran perkiraan, dan tanggal.
-- Restore tidak menimpa data aktif tanpa konfirmasi; gunakan staged restore dan atomic swap.
-- Passphrase salah, corrupt archive, ruang disk tidak cukup, dan file yang tidak dikenal memiliki error state yang jelas.
+- Restore menunjukkan versi arsip, jumlah profil, ukuran perkiraan, dan tanggal, serta menjelaskan bahwa **cookies/sesi login tidak dibawa lintas komputer** (pengguna perlu login ulang, D3).
+- Restore tidak menimpa data aktif tanpa konfirmasi; gunakan staged restore dan **restart-to-restore swap** sebelum CEF/SQLite membuka file handle.
+- Passphrase salah, corrupt archive, arsip terpotong, ruang disk tidak cukup, dan file yang tidak dikenal memiliki error state yang jelas.
 
 ## 5. Status UI wajib
 

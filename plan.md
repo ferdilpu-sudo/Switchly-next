@@ -1,6 +1,6 @@
 # Implementation Plan — Switchly Next
 
-**Status:** M-002 in progress — M-001 complete and provider sign-in validated (all 4 providers); building desktop foundation  
+**Status:** M-002 Complete — ready to begin M-003 (`TASK-011`: profile CRUD use cases and validation)  
 **Strategy:** prove the browser engine risk before implementing the full product.
 
 ## 1. Delivery strategy
@@ -19,15 +19,15 @@ Key assumptions:
 
 | ID | Goal | Dependencies | Deliverables | Requirements | Exit criteria |
 |---|---|---|---|---|---|
-| M-001 | CEF engine, provider and OS proof-of-concept | None | CefSharp harness, profile isolation demo, priority-provider compatibility matrix, performance baseline | REQ-003, REQ-005, REQ-014 | TEST-003, 004, 006, 016, 017 pass or explicit architecture re-decision |
-| M-002 | Desktop solution foundation | M-001 pass | WPF shell, MVVM, composition, SQLite migration baseline, app lifecycle | REQ-001, REQ-012 | Builds and launches; basic app works without login |
-| M-003 | Profile manager and isolation | M-002 | CRUD, group model, favorites, search/filter, per-profile request context, multiple windows | REQ-002, REQ-003, REQ-004, REQ-005, REQ-015, REQ-016 | TEST-002 to 006, TEST-017, TEST-023, TEST-024 pass |
-| M-004 | Browser essentials | M-003 | Tabs, navigation, bookmarks, history, downloads, session restore | REQ-005, REQ-006 | TEST-006, 007, 021 pass |
-| M-005 | Optional extension support (deferred) | M-001, M-003 | Only a limited extension capability if later approved | REQ-007 | Informative optional gate; not required for MVP release |
-| M-006 | Browser import | M-004 | Chrome/Edge discovery, preview, import adapters, CSV vault import | REQ-008, REQ-009, REQ-010 | TEST-009, 010, 018, 022 pass |
-| M-007 | Security and backup/restore | M-003, M-006 | DPAPI/Hello unlock, encrypted archive, scheduler/retention settings, restore staging | REQ-010, REQ-011, REQ-017 | TEST-011 to 013, 020, 022, 025 pass |
-| M-008 | Performance, stability, accessibility | M-004 to M-007 | Resource manager/indicator, UX hardening, recovery, high-DPI/keyboard QA | REQ-005, REQ-006, REQ-014, REQ-018 | TEST-016, TEST-026 and full acceptance suite pass |
-| M-009 | Freemium and release readiness | M-008 + product decisions | License boundary, installer, signing, notices, support docs | REQ-012, REQ-013, REQ-014 | Product owner approves pricing/Free-Pro/OS policy and beta release gates |
+| M-001 | CEF engine, provider and OS proof-of-concept | None | CefSharp harness, profile isolation demo, priority-provider compatibility matrix, performance baseline | REQ-003, REQ-005, REQ-014 | TEST-003, TEST-004, TEST-016, TEST-017, TEST-021 + provider checks pass on Win11 (Win10 & non-elevated WPF stress carried to M-002/M-008) |
+| M-002 | Desktop solution foundation | M-001 pass | WPF shell, MVVM, DI, strict `Switchly.BrowserHost` isolation (D5), `Directory.Packages.props` (`10.x` LTS), SQLite migration baseline, CI | REQ-001, REQ-012 | Clean build/test green; TEST-001 (Win11 launch), TEST-014 pass; non-elevated WPF launch verified |
+| M-003 | Profile manager and isolation | M-002 | CRUD, duplicate config, group model, favorites, search/filter (profiles/groups), per-profile request context, multiple windows | REQ-002, REQ-003, REQ-004, REQ-005, REQ-015, REQ-016 | TEST-002, TEST-003, TEST-004, TEST-005, TEST-017, TEST-023, TEST-024 (profiles/groups) pass |
+| M-004 | Browser essentials | M-003 | Tabs, navigation, bookmarks, history, downloads, session restore, tab/bookmark search | REQ-005, REQ-006, REQ-016 | TEST-006, TEST-007, TEST-021, TEST-024 (tabs/bookmarks) pass |
+| M-005 | Optional extension support (deferred) | M-001, M-003 | Only a limited extension capability if later approved | REQ-007 | Informative optional gate (`TEST-008`, `TEST-019`); not required for MVP release |
+| M-006 | Browser import | M-004 | Chrome/Edge discovery, preview, bookmark/history/open-tab URL import adapters *(CSV password vault deferred per D1)* | REQ-008, REQ-009 | TEST-009, TEST-018 pass (`TEST-010` deferred post-MVP per D1) |
+| M-007 | Security and manual backup/restore | M-003, M-004 | DPAPI/Hello local unlock, manual chunked AES-256-GCM backup, restart-to-restore staging swap *(scheduled backup deferred per D2)* | REQ-010, REQ-011 | TEST-011, TEST-012, TEST-013, TEST-020, TEST-022 pass (`TEST-025` deferred post-MVP per D2) |
+| M-008 | Performance, stability, accessibility | M-004, M-006, M-007 | Resource manager/indicator, UX hardening, recovery, high-DPI/keyboard QA, Win10/11 matrix | REQ-005, REQ-006, REQ-014, REQ-018 | TEST-001 (Win11+Win10), TEST-016, TEST-026 and full MVP acceptance suite pass |
+| M-009 | Freemium and release readiness | M-008 + product decisions | License boundary, installer (`ADR-008`), signing, notices, support docs | REQ-012, REQ-013, REQ-014 | TEST-001, TEST-014, TEST-015 pass; product owner approves pricing/Free-Pro/OS policy and beta release gates |
 
 ## 3. M-001 — executable work breakdown
 
@@ -70,11 +70,11 @@ Key assumptions:
 ## 4. Later milestone breakdown
 
 ### M-002 — desktop foundation
-- TASK-007: create solution/projects and WPF shell.
-- TASK-008: establish MVVM, DI/composition root and logging.
-- TASK-009: create SQLite context/migrations and health check.
-- TASK-010: create CI build/test baseline.
-- Exit: clean checkout builds and app launches.
+- TASK-007: create solution/projects and WPF shell *(committed `0047a0c`)*.
+- TASK-008: establish MVVM, DI/composition root and logging *(committed `713ac92`)*.
+- TASK-009: create SQLite context/migrations and health check *(committed `5111268`, `9e5680b`; add `IsFavorite`/`IsHidden` & `PersistSessionCookies=true` per D4)*.
+- TASK-010: create CI build/test baseline (`xUnit`), enforce strict `Switchly.BrowserHost` isolation (move `CefSharp.Wpf.NETCore` out of `Switchly.App`), and align `Microsoft.Extensions.*` to `10.x` LTS via `Directory.Packages.props` (D5).
+- Exit: clean checkout builds, `dotnet test` green, non-elevated WPF shell launches cleanly (`TEST-001` Win11, `TEST-014`).
 
 ### M-003 — profile manager
 - TASK-011: profile CRUD use cases and validation.
@@ -104,17 +104,17 @@ Key assumptions:
 - TASK-025: history importer with schema-version handling.
 - TASK-026: open-tab URL importer.
 - TASK-027: optional extension inventory report only if supported and approved.
-- TASK-028: password CSV parser and encrypted vault writer.
-- Exit: preview/partial failure/report behavior validated.
+- TASK-028: *(Deferred post-MVP — D1)* password CSV parser and encrypted vault writer.
+- Exit: preview/partial failure/report behavior validated (`TEST-009`, `TEST-018`).
 
-### M-007 — security and backups
-- TASK-029: local vault key wrapping with DPAPI.
-- TASK-030: master password and Windows Hello unlock UX.
-- TASK-031: backup manifest and authenticated encryption.
-- TASK-032: automatic backup scheduler.
-- TASK-033: staged restore and rollback handling.
-- TASK-033A: backup schedule/retention settings.
-- Exit: cross-device restore and negative security tests pass; TEST-025 passes.
+### M-007 — security and manual backups
+- TASK-029: local DPAPI protection and unlock key handling.
+- TASK-030: optional master password and Windows Hello unlock UX.
+- TASK-031: manual backup manifest and chunked streaming AES-256-GCM encryption (excluding CEF global state and disposable caches per D3).
+- TASK-032: *(Deferred post-MVP — D2)* automatic backup scheduler.
+- TASK-033: restart-to-restore staging swap, cross-device cookie exclusion (D3), and rollback handling.
+- TASK-033A: *(Deferred post-MVP — D2)* backup schedule/retention settings.
+- Exit: cross-device restore and negative security tests pass (`TEST-011`, `TEST-012`, `TEST-013`, `TEST-020`, `TEST-022`).
 
 ### M-008 — hardening
 - TASK-034: resource manager and user warnings.
@@ -147,9 +147,9 @@ Key assumptions:
 
 | Milestone | Status | Evidence |
 |---|---|---|
-| M-001 | Complete | TASK-001..006 done; all tested must-haves PASS; provider sign-in deferred to M-002 first gate |
-| M-002 | In progress | Sign-in gate PASS (all 4 providers, manual); TASK-007..010 remaining |
-| M-002 to M-009 | Not started | No code or test execution has been performed |
+| M-001 | Complete (Win11; Win10 & non-elevated WPF stress carried to M-002/M-008) | `artifacts/engine-spike/engine-version-report.md`, `task-002-results.md` (`TEST-003`/`004`/`017` PASS), `task-003-results.md` (4 providers public + manual sign-in PASS), `task-004-results.md` (`TEST-021` PASS), `task-005-results.md` (`TEST-016` baseline), `task-006-go-nogo.md` |
+| M-002 | Complete | Tier-2 manual sign-in PASS (`task-003-results.md`); `TASK-007`..`010` + D4 migration (`AddProfileFavoritesGroupHiddenAndConstraints`) + D5 `Switchly.BrowserHost` isolation & `Directory.Packages.props` (`10.0.11`) + `app.manifest` (`asInvoker`, `longPathAware`) + CEF `locales\*.pak` (220 files) done; `dotnet format`, `dotnet build -c Release` (0 warnings/0 errors), `dotnet test -c Release` (2/2 PASS), and manual WPF launch (`TEST-001` Win11 / `TEST-014`) confirmed PASS by product owner on 2026-11-24 |
+| M-003 to M-009 | Not started | Blocked on M-002 completion (M-005 optional/deferred) |
 
 ## 7. Milestone definition of done
 

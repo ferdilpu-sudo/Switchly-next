@@ -1,6 +1,6 @@
 # Testing and Quality Plan — Switchly Next
 
-**Status:** DRAFT 0.1 — all tests planned; none have been executed  
+**Status:** ACTIVE 0.2 — M-001 engine spike (`TEST-003`, `004`, `016`, `017`, `021`) & Win11 manual sign-in gate executed (see `artifacts/engine-spike/`); M-002+ application suites planned/in progress  
 **Evidence policy:** no PASS claim without actual run output/evidence.
 
 ## 1. Test strategy
@@ -31,7 +31,7 @@ Test data must be synthetic. Never use a user's real passwords, private browsing
 | Test ID | Requirement | Acceptance | Level | Steps / input | Expected result |
 |---|---|---|---|---|---|
 | TEST-001 | REQ-001, REQ-014 | AC-001, AC-014 | Install/E2E | Install and launch on each supported OS matrix | App starts; unsupported OS state is documented; no false compatibility claim |
-| TEST-002 | REQ-002 | AC-002 | Unit/Integration | Create/edit/archive/delete profile | Metadata and generated directory remain consistent |
+| TEST-002 | REQ-002 | AC-002 | Unit/Integration | Create/edit/duplicate-config/archive/delete profile | Metadata and generated directory remain consistent; duplicate config does not copy cookies/session storage |
 | TEST-003 | REQ-003 | AC-003 | Browser integration | Login to synthetic local test site in Profile A; open Profile B; inspect cookies/storage | Profile B cannot read A's session or local storage |
 | TEST-004 | REQ-003 | AC-004 | Browser integration | Set session/localStorage, close app, restart profile | Persistent storage behaves according to configured cookie/session policy |
 | TEST-005 | REQ-004 | AC-005 | Unit/UI | Create manual groups; visit test domains; refresh auto groups | Membership displays correctly; auto group source remains read-only |
@@ -39,9 +39,9 @@ Test data must be synthetic. Never use a user's real passwords, private browsing
 | TEST-007 | REQ-006 | AC-007 | Integration/E2E | Add bookmark, visit pages, download a fixture, close and reopen | Data is recorded and visible only under correct profile |
 | TEST-008 | REQ-007 | AC-008 | Optional browser integration | If optional extension support is implemented, load one explicitly approved compatible extension and test permission/error reporting | Unsupported API is reported honestly; this test is not an MVP release gate |
 | TEST-009 | REQ-008, REQ-009 | AC-009 | Import integration | Import synthetic Chrome/Edge bookmark/history/tab fixtures | Preview counts are correct; no cookies/session imported |
-| TEST-010 | REQ-008, REQ-010 | AC-010 | Security integration | Import synthetic exported password CSV | Credentials stored encrypted per profile; no plaintext in DB/log/temp output |
-| TEST-011 | REQ-010 | AC-010 | Security/manual | Lock app; attempt unlock using Windows account/master password/Hello if present | Only configured unlock methods are accepted; errors do not leak secrets |
-| TEST-012 | REQ-011 | AC-011 | Integration/E2E | Backup data; restore on second Windows device with correct passphrase | Profiles and metadata restored; archive authenticated |
+| TEST-010 | REQ-008, REQ-010 | AC-010 | *(Deferred post-MVP — D1)* Security integration | If CSV password vault is later enabled, import synthetic exported password CSV | Credentials stored encrypted per profile (unique-nonce AEAD + AAD); no plaintext in DB/log/temp output |
+| TEST-011 | REQ-010 | AC-019 | Security/manual | Lock app; attempt unlock using Windows account/master password/Hello if present | Only configured unlock methods are accepted; errors do not leak secrets |
+| TEST-012 | REQ-011 | AC-011 | Integration/E2E | Create manual chunked AEAD backup; restore via restart-to-restore swap on second Windows device with correct passphrase | Profiles and metadata restored cleanly; device-bound Chromium cookies excluded (user signs in again); archive authenticated |
 | TEST-013 | REQ-011 | AC-011 | Security | Use wrong passphrase, corrupt bytes, archive path traversal and truncated archive | Restore rejects archive; existing profile data stays unchanged |
 | TEST-014 | REQ-012 | AC-012 | E2E | Fresh install; do not register or sign in; create profile and browse | Basic use is available offline after install |
 | TEST-015 | REQ-013 | AC-013 | Unit/UI | Inspect feature gate behavior with no paid entitlement backend | No undocumented feature restrictions appear |
@@ -51,10 +51,10 @@ Test data must be synthetic. Never use a user's real passwords, private browsing
 | TEST-019 | REQ-007 | AC-008 | Optional security integration | If extension support exists, test permission request and an unavailable API | Unsupported capability fails explicitly; optional feature cannot weaken profile isolation |
 | TEST-020 | REQ-011 | AC-011 | Reliability | Cancel backup/restore at supported checkpoints; simulate disk full | Temporary data cleaned best-effort; original data remains valid |
 | TEST-021 | REQ-006 | AC-007 | Browser integration | Popup/new-window/download in correct profile | New windows retain originating profile context |
-| TEST-022 | REQ-010 | AC-010 | Security | Search logs, crash report fixtures and diagnostics after vault/import operations | No secrets, passwords or cookie values appear |
-| TEST-023 | REQ-015 | AC-015 | UI/E2E | Mark profile as favorite and change icon/color | Favorite and appearance persist without changing profile identity or storage path |
-| TEST-024 | REQ-016 | AC-016 | Unit/UI | Search by name/domain and combine supported filters | Only matching profiles/groups appear; no underlying membership is altered |
-| TEST-025 | REQ-017 | AC-017 | Unit/Integration | Change backup schedule and retention, then trigger scheduled run | Valid preferences persist and apply to the next scheduler cycle |
+| TEST-022 | REQ-010 | AC-019 | Security | Search logs, crash report fixtures and diagnostics after security/import/backup operations | No secrets, passwords, query strings, or cookie values appear |
+| TEST-023 | REQ-015 | AC-015 | UI/E2E | Mark profile as favorite and change icon/color/startup URL | Favorite, appearance, and startup URL persist without changing profile identity or storage path |
+| TEST-024 | REQ-016 | AC-016 | Unit/UI | Search by name/domain and combine supported filters across profiles/groups (M-003) and tabs/bookmarks (M-004) | Only matching items appear; no underlying membership or ordering is altered |
+| TEST-025 | REQ-017 | AC-017 | *(Deferred post-MVP — D2)* Unit/Integration | If scheduled backup is later enabled, change schedule and retention, then trigger scheduled run | Valid preferences persist and apply to the next scheduler cycle |
 | TEST-026 | REQ-018 | AC-018 | UI/Performance | Create active/inactive profiles and simulate measured resource pressure | Counts/status are accurate and warning appears without closing tabs or losing data |
 
 ## 4. Browser engine proof-of-concept — release blocker
@@ -111,8 +111,8 @@ Test matrix: 1, 3, 5, 10 concurrently active profiles. Higher counts only if bas
 Planned candidate toolchain:
 - .NET SDK 10.x.
 - Visual Studio 2026 or current supported Visual Studio with WPF/.NET desktop workload.
-- CefSharp WPF package pinned after engine PoC.
-- xUnit or NUnit for tests; choose one during scaffolding.
+- CefSharp WPF package pinned: `CefSharp.Wpf.NETCore 156.0.300` (CEF `156.0.30` / Chromium `156.0.8078.96`).
+- `xUnit` (`xunit 2.9.3`) chosen as test framework.
 - Microsoft.Extensions.Logging.
 - EF Core SQLite.
 

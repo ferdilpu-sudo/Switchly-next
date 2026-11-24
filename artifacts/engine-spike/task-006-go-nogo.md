@@ -35,3 +35,11 @@ not blockers:
 ## Decision needed
 
 Product owner confirms **GO** to begin M-002 (or requests additional evidence first).
+
+---
+
+## Addendum — Post-M-001 Updates (2026-11-24)
+
+- **Tier-2 provider sign-in:** **PASS** — product owner manually signed in to all four priority providers (Google Flow, ChatGPT, Dola, SeaArt) in the embedded WPF browser. See `artifacts/engine-spike/task-003-results.md` (lines 57–61).
+- **Product Owner GO & Decisions D1–D5:** Confirmed on 2026-11-24; `ADR-001`..`004`, `007`, `009`..`011` promoted to `Accepted` in `decisions.md`.
+- **Remaining carried gates:** Non-elevated (`asInvoker`) WPF hosting stability (`M-002`), Windows 10 compatibility validation (`REQ-014` / `M-008`), and installer/packaging PoC (`ADR-008` / `M-009`).

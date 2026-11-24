@@ -1,6 +1,6 @@
 # Software Architecture — Switchly Next
 
-**Status:** DRAFT — candidate stack, gated by M-001 proof-of-concept  
+**Status:** ACTIVE — M-001 validated on Windows 11; M-002 desktop foundation in progress; refined per PO decisions D1–D5 (2026-11-24)  
 **Platform:** Windows desktop x64; Windows 11 primary, Windows 10 compatibility goal  
 **Architecture style:** modular monolith desktop application + embedded browser runtime
 
@@ -19,20 +19,20 @@ Priority provider compatibility targets: Google Flow (https://flow.google), Chat
 - `REQ-012` basic use tanpa registrasi.
 - `NFR-PERF-*` menghindari proses untuk profil idle dan mengukur penggunaan RAM.
 
-## 2. Kandidat stack
+## 2. Technology stack
 
-| Layer | Teknologi kandidat | Alasan | Tradeoff / kondisi | ADR |
+| Layer | Technology | Rationale | Tradeoff / condition | ADR |
 |---|---|---|---|---|
-| Desktop UI | C# + WPF, MVVM | Mature Windows desktop UI; cocok untuk sidebar, multi-window, accessibility | Windows-only; binding ke native browser control | ADR-001 |
-| Runtime | .NET 10 LTS | LTS modern dan tooling matang | Win10 Home/Pro tidak tercantum sebagai supported OS pada matrix .NET 10; perlu policy compatibility | ADR-002 |
-| Embedded browser | CefSharp WPF 156.x / CEF 156.x candidate | Chromium embedded, WPF integration, per-profile request contexts | Chrome Runtime is the only mode in CEF 156+ (Alloy removed); extensions are optional and may have limited compatibility | ADR-003 |
-| Local metadata | SQLite + EF Core 10.x | Local relational data and migrations | DB owns metadata only, not Chromium's internal data | ADR-004 |
-| Local secrets | Windows DPAPI / Windows Hello integration | Local key protection tied to Windows user/device | Cross-device restore must use separate portable archive key | ADR-005 |
-| Backup encryption | AES-256-GCM + password-derived key | Authenticated encryption; portable archive | Passphrase recovery unavailable; KDF parameters need testing | ADR-006 |
-| Logging | Microsoft.Extensions.Logging + rolling local files | Structured diagnostic events | Redact URLs/credentials as needed; opt-in diagnostics policy TBD | ADR-007 |
-| Installer | MSIX or signed installer candidate | Predictable Windows install/update | Select after install/update PoC and signing-cost decision | ADR-008 |
+| Desktop UI | C# + WPF, MVVM | Mature Windows desktop UI; suited for sidebar, multi-window, accessibility | Windows-only; browser hosting isolated behind `Switchly.BrowserHost` | ADR-001 |
+| Runtime | .NET 10 LTS | Modern LTS and mature tooling; aligned `10.x` packages via `Directory.Packages.props` | Win10 Home/Pro not listed as supported OS on .NET 10 matrix; best-effort pending policy | ADR-002 |
+| Embedded browser | `CefSharp.Wpf.NETCore 156.0.300` / CEF `156.0.30` (Chromium `156.0.8078.96`) | Chromium embedded, WPF integration, per-profile request contexts | Chrome Runtime is the only mode since CEF 128 (Alloy removed); extensions optional/deferred; must be isolated in `Switchly.BrowserHost` | ADR-003, ADR-011 |
+| Local metadata | Plain SQLite + EF Core 10.x | Local relational metadata and versioned migrations | Non-secret metadata only; no website passwords in SQLite in MVP; CEF owns internal browser storage | ADR-004 |
+| Local security | Windows DPAPI (`CurrentUser`) + optional master password / Windows Hello | Local protection tied to Windows user/device | Custom password vault (`ENT-009`) deferred post-MVP (D1); portable backup uses separate passphrase key | ADR-005 |
+| Backup encryption | Manual chunked streaming AES-256-GCM + passphrase KDF | Authenticated streaming encryption; portable across Windows PCs | Device-bound Chromium cookies excluded on cross-device restore (D3); scheduled backup deferred post-MVP (D2) | ADR-006 |
+| Logging | `Microsoft.Extensions.Logging` + rolling local files | Structured diagnostic events | Redact URLs/credentials/paths; no cloud telemetry without opt-in | ADR-007 |
+| Installer | MSIX or signed setup installer (open) | Predictable Windows install/update | Select after install/update PoC and signing-cost decision | ADR-008 |
 
-**Package note:** the engine spike (TASK-001) pins `CefSharp.Wpf.NETCore 156.0.300` (CEF 156.0.30 + chromium-156.0.8078.96). The release/CEF runtime version must be pinned together and rechecked before implementation. See [CefSharp package](https://www.nuget.org/packages/CefSharp.Wpf.NETCore/) and [CefSharp repository](https://github.com/cefsharp/CefSharp).
+**Package note:** M-001 `TASK-001` pinned `CefSharp.Wpf.NETCore 156.0.300` (CEF `156.0.30` + `chromium-156.0.8078.96`). All `Microsoft.Extensions.*` and EF Core packages must stay aligned on `10.x` LTS via `Directory.Packages.props` (D5). See [CefSharp package](https://www.nuget.org/packages/CefSharp.Wpf.NETCore/) and [CefSharp repository](https://github.com/cefsharp/CefSharp).
 
 ## 3. System context
 
@@ -74,9 +74,10 @@ src/
   Switchly.Domain/
     Profiles/
     Groups/
+    Tabs/
     Bookmarks/
     History/
-    Extensions/
+    Downloads/
     Import/
     Backup/
     Security/
@@ -89,7 +90,6 @@ src/
     ResourceManagement/
   Switchly.Infrastructure/
     Persistence/
-    BrowserEngine/
     Import/
     Backup/
     Crypto/
@@ -109,11 +109,11 @@ tests/
 
 ### Ownership and dependency direction
 
-- `Switchly.App`: WPF views, viewmodels, navigation and composition root only.
+- `Switchly.App`: WPF views, viewmodels, navigation and composition root only. Must **not** reference `CefSharp.*` NuGet packages directly (D5); hosts browser surfaces strictly through `Switchly.BrowserHost`.
 - `Switchly.Domain`: entities, value objects and policies; no WPF/CEF/SQLite dependency.
 - `Switchly.Application`: use cases and interfaces/ports; coordinates workflows.
-- `Switchly.Infrastructure`: SQLite, filesystem, DPAPI, encryption, import parsers, backup archive adapters.
-- `Switchly.BrowserHost`: encapsulates CefSharp/CEF APIs; exposes narrow interfaces to application layer.
+- `Switchly.Infrastructure`: SQLite, filesystem, DPAPI, encryption, import parsers, backup archive adapters. Does not own browser-engine adapters.
+- `Switchly.BrowserHost`: sole owner of `CefSharp.Wpf.NETCore`/CEF APIs and CEF lifecycle; exposes narrow interfaces to application/UI layers.
 - Dependency direction: App → Application → Domain; Infrastructure and BrowserHost implement application ports. Domain must never depend on CEF, WPF, or persistence packages.
 
 ## 5. Browser profile isolation model
@@ -124,11 +124,11 @@ tests/
 - Each active profile is created with a separate `CefRequestContext` and a unique persistent `CachePath` equal to that profile directory.
 - Tabs and windows belonging to one profile share that profile request context.
 - A different profile receives a different request context and path.
-- Global CEF settings and global cache are for installation/runtime data only; never use the global context for user web sessions.
-- `persist_session_cookies` behavior must be set and verified intentionally; session-cookie persistence is a user-visible privacy/session setting.
-- Browser profile deletion removes its profile directory only after process/context handles are closed and user confirms.
+- Global CEF settings and global state (`Default`, `Local State`, shader/crashpad caches) reside inside `RootCachePath` (`ADR-011`) for installation/runtime data only; never use the global context for user web sessions, and never include CEF global state in profile backups.
+- `persist_session_cookies` defaults to `true` (D4) and is exposed as a user-visible per-profile privacy/session setting.
+- Browser profile deletion removes its profile directory only after process/context handles are closed and user confirms (with a startup deferred-delete tombstone queue if Windows retains a Chromium handle until restart).
 
-CEF exposes per-request-context cache paths; a unique path is the mechanism used to maintain independent persistent storage. See [CEF RequestContextSettings](https://cef-builds.spotifycdn.com/docs/156.0/structcef__request__context__settings__t.html) and [CefRequestContext](https://cef-builds.spotifycdn.com/docs/156.0/classCefRequestContext.html).
+CEF exposes per-request-context cache paths; a unique direct-child path is the mechanism used to maintain independent persistent storage. See [CEF RequestContextSettings](https://cef-builds.spotifycdn.com/docs/156.0/structcef__request__context__settings__t.html) and [CefRequestContext](https://cef-builds.spotifycdn.com/docs/156.0/classCefRequestContext.html).
 
 ### 5.2 Application lifecycle
 - `Closed`: no live CEF browser for the profile.
@@ -137,7 +137,7 @@ CEF exposes per-request-context cache paths; a unique path is the mechanism used
 - `Suspending`: persist tab state, flush DB and close browsers.
 - `Suspended`: no renderer associated with the profile, profile data stays on disk.
 - `Error`: close safely, retain diagnostics without secrets, allow retry.
-- One app instance must prevent simultaneous write access to the same profile cache path. Use per-profile named mutex or lock file with process identity and stale-lock recovery.
+- Because CEF Chrome Runtime enforces a process-wide Chromium `ProcessSingleton` lock on `RootCachePath` (`ADR-011`), Switchly Next enforces an **app-level single-instance guard** (Windows named mutex + IPC focus/argument handoff) *before* `Cef.Initialize()`, combined with in-process per-profile state locks.
 
 ### 5.3 Resource policy
 - Never create a browser process for all saved profiles at startup.
@@ -166,19 +166,19 @@ CEF exposes per-request-context cache paths; a unique path is the mechanism used
 5. Extension install status is recorded per profile.
 6. If extension UI/API limitations block install/update/uninstall, keep the optional feature out of scope; do not build a fake success state.
 
-### Flow C — Backup
-1. Application blocks writes to selected profile or requests profile shutdown for a consistent snapshot.
-2. Repositories checkpoint SQLite; browser profile directories are copied to staging.
+### Flow C — Manual Backup and Staged Restore (MVP)
+1. User initiates a manual backup (scheduled unattended backup is deferred post-MVP per D2). Application ensures target profiles are closed/flushed for a consistent snapshot.
+2. Repositories checkpoint SQLite (`switchly-next.db`); only registered `<profile-guid>` directories are read — **never** CEF global state (`Default`, `Local State`) and excluding regenerable caches (`Cache`, `Code Cache`, `GPUCache`, `GrShaderCache`, `DawnCache`, `Crashpad`) per `ADR-011` and D3.
 3. Archive manifest and file hashes are created.
-4. Backup encryption service derives an archive key from passphrase and encrypts payload with authenticated encryption.
+4. Backup encryption service derives an archive key from user passphrase and stream-encrypts payload using a **chunked AES-256-GCM** format (per-chunk nonces, final-chunk flag, header digest in AAD) without duplicating multi-GB plaintext staging on disk.
 5. Output written to temporary file, then atomically renamed.
-6. Temporary plaintext staging is removed best-effort; diagnostics redact paths with user data.
+6. On restore, archive integrity and passphrase are verified into a staging directory; device-bound Chromium `Cookies` are excluded on cross-device restore (D3); promotion executes via a **restart-to-restore staged directory swap** before `Cef.Initialize()` and EF Core open file handles.
 
 ## 7. Persistence and data contracts
 
-- SQLite owns application metadata: profiles, groups, settings, tab restore metadata, bookmarks, application history projection, optional extension registry, backup jobs, import jobs.
+- SQLite (`switchly-next.db`, plain SQLite protected by Windows user ACLs per `ADR-004` / D4) owns non-secret application metadata: profiles, groups, settings, tab restore metadata, bookmarks, application history projection, download records, backup jobs, import jobs, and (if later approved) optional extension registry.
 - CEF profile directory owns browser runtime storage: cookies, local storage, IndexedDB, cache, service workers and compatible extension storage.
-- Credential vault stores imported CSV credentials in encrypted per-profile records. Do not store secrets as plaintext SQLite values.
+- No website passwords, cookies, or OAuth tokens are stored in `switchly-next.db` in MVP (custom CSV password vault `ENT-009` is deferred post-MVP per D1).
 - See [schema.md](./schema.md) for authoritative entities, constraints and migration strategy.
 
 ## 8. Security boundaries
@@ -209,9 +209,9 @@ Controls:
 - Bookmark importer accepts browser-native JSON or Netscape HTML export.
 - History importer reads supported Chromium SQLite schema with version-tolerant queries.
 - Tab importer reconstructs URLs only from supported source session format; if parsing fails, return unsupported rather than silently skip.
-- Extension importer creates a compatibility report and attempts reinstall only through approved source/runtime support.
-- Password importer accepts user-selected CSV, parses supported Chrome/Edge columns, and sends values directly to vault writer without logs/temp plaintext persistence.
-- No cookies/session importer.
+- Extension importer creates a compatibility report (informational only in MVP; reinstall deferred).
+- Password CSV importer and custom credential vault are deferred to post-MVP (D1).
+- No cookies/session importer (`ADR-010`).
 
 ## 10. Installer, update, and release
 
@@ -233,16 +233,14 @@ Controls:
 | Password CSV is plaintext | User credential exposure | Explicit warning, memory-first parse, encrypted vault, no logs. |
 | Chrome/Edge source schema changes | Import can break | Version-aware adapters + fixtures + partial failure report. |
 
-## 12. Next implementation decision
+## 12. Current implementation gate (M-001 complete on Win11 → M-002 cleanup)
 
-`M-001` is a browser-engine proof-of-concept, not full UI development. It must test:
-- Per-profile isolated `CefRequestContext` directories.
-- Cookie/localStorage separation and persistence across restart.
-- CEF (Chrome Runtime) startup and WPF window hosting.
-- Optional extension loading only if supported by the selected CEF distribution; no Chrome Web Store parity commitment.
-- Extension UI/permissions/update/uninstall are deferred beyond MVP.
-- Download handling and popup/new-window behavior.
-- RAM/CPU baseline for one idle profile, one active profile, and multiple concurrent profiles.
-- Windows 11 and the intended Windows 10 editions.
+`M-001` (`artifacts/engine-spike/`) and the M-002 manual sign-in gate validated on Windows 11:
+- Per-profile isolated `CefRequestContext` direct-child directories (`ADR-011`, `TEST-003`/`004`/`017`).
+- Priority provider public pages and manual sign-in for Google Flow, ChatGPT, Dola, and SeaArt (`task-003-results.md`).
+- Downloads, popups/new windows, renderer crash recovery (`TEST-021`, `task-004-results.md`), and low-RAM resource baseline (`TEST-016`, `task-005-results.md`).
 
-If M-001 cannot meet profile isolation, basic browser stability, or the required website workflows, stop and report the evidence before implementing the full product. Extension limitations alone do not block the MVP.
+Remaining gates before starting `M-003`:
+- Enforce strict `Switchly.BrowserHost` isolation (move `CefSharp.Wpf.NETCore` out of `Switchly.App` behind `IBrowser*` ports) and align NuGet `10.x` LTS packages via `Directory.Packages.props` (D5).
+- Verify non-elevated (`asInvoker`) WPF hosting stability and complete `M-002` `TASK-010` (CI + build/test verification).
+- Keep Windows 10 compatibility checks (`REQ-014`) and installer PoC (`ADR-008`) tracked as explicit release gates.

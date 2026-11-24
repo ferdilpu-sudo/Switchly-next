@@ -1,14 +1,14 @@
 # Data & Interface Schema — Switchly Next
 
-**Status:** DRAFT 0.1  
+**Status:** ACTIVE 0.2 — updated per PO decisions D1–D5 (2026-11-24)  
 **Source of truth:** This document owns local data contracts. Browser engine internal databases remain owned by CEF/Chromium.
 
 ## 1. Persistence overview
 
-- Database: SQLite, one local application database.
+- Database: plain SQLite (`ADR-004` / D4), one local application database for non-secret metadata only (no website passwords, cookies, or OAuth tokens in MVP).
 - Metadata path: `%LOCALAPPDATA%\SwitchlyNext\Data\switchly-next.db`.
-- Browser data: `%LOCALAPPDATA%\SwitchlyNext\Profiles\<profile-guid>\` (one directory per profile). `RootCachePath` is `%LOCALAPPDATA%\SwitchlyNext\Profiles`, so each profile directory is a **direct child** of it (required by CEF Chrome Runtime).
-- Backup archives: user-selected folder; encrypted before final write.
+- Browser data: `%LOCALAPPDATA%\SwitchlyNext\Profiles\<profile-guid>\` (one directory per profile). `RootCachePath` is `%LOCALAPPDATA%\SwitchlyNext\Profiles`, so each profile directory is a **direct child** of it (required by CEF Chrome Runtime, `ADR-011`).
+- Backup archives: user-selected folder; stream-encrypted with chunked AES-256-GCM before final write (`ADR-006`).
 - No cloud synchronization in MVP.
 - Do not query/modify CEF's internal SQLite files directly except through documented read-only import/diagnostic adapters when absolutely needed.
 
@@ -16,7 +16,7 @@
 
 | ID | Entity | Key | Purpose | Requirement |
 |---|---|---|---|---|
-| ENT-001 | BrowserProfile | `ProfileId` GUID | Profile identity and lifecycle metadata | REQ-002, REQ-003 |
+| ENT-001 | BrowserProfile | `ProfileId` GUID | Profile identity and lifecycle metadata | REQ-002, REQ-003, REQ-015 |
 | ENT-002 | ProfileGroup | `GroupId` GUID | Manual and system-derived group metadata | REQ-004 |
 | ENT-003 | ProfileGroupMembership | `(ProfileId, GroupId)` | Many-to-many membership | REQ-004 |
 | ENT-004 | BrowserTabSession | `TabId` GUID | Restorable tab/window metadata | REQ-005, REQ-006 |
@@ -24,9 +24,9 @@
 | ENT-006 | HistoryEntry | `HistoryId` GUID | Profile-scoped history projection | REQ-006 |
 | ENT-007 | DownloadRecord | `DownloadId` GUID | Download status and file metadata | REQ-006 |
 | ENT-008 | ExtensionInstall | `ExtensionInstallId` GUID | Optional extension registry per profile (deferred beyond MVP) | REQ-007 |
-| ENT-009 | VaultCredential | `CredentialId` GUID | Imported credentials encrypted at rest | REQ-008, REQ-010 |
-| ENT-010 | AppSetting | `Key` string | Application settings | REQ-010, REQ-017 |
-| ENT-011 | BackupJob | `BackupJobId` GUID | Backup schedule/run state | REQ-011 |
+| ENT-009 | VaultCredential | `CredentialId` GUID | Imported credentials encrypted at rest (**deferred post-MVP per D1**) | REQ-008, REQ-010 |
+| ENT-010 | AppSetting | `Key` string | Application settings | REQ-010, REQ-017, REQ-018 |
+| ENT-011 | BackupJob | `BackupJobId` GUID | Backup run state (manual in MVP; scheduled deferred per D2) | REQ-011 |
 | ENT-012 | ImportJob | `ImportJobId` GUID | Import history/results | REQ-008 |
 
 ## 3. Field contracts
@@ -39,13 +39,14 @@
 | ColorHex | TEXT | No | `#RRGGBB`; default theme color |
 | IconKey | TEXT | No | Known icon key only |
 | StartupUrl | TEXT | No | Valid absolute http/https URL or null |
-| StorageRelativePath | TEXT | Yes | App-generated path; never supplied directly by user |
+| StorageRelativePath | TEXT | Yes | App-generated single-segment `<profile-guid>` (direct child of `RootCachePath` per `ADR-011`); never supplied directly by user |
 | CreatedAtUtc | TEXT ISO-8601 | Yes | UTC |
 | UpdatedAtUtc | TEXT ISO-8601 | Yes | UTC |
 | LastOpenedAtUtc | TEXT ISO-8601 | No | UTC |
-| IsArchived | INTEGER bool | Yes | Default false |
-| RestoreLastSession | INTEGER bool | Yes | Default true |
-| PersistSessionCookies | INTEGER bool | Yes | Explicit preference; default selected by product privacy review |
+| IsFavorite | INTEGER bool | Yes | Default `false` (`REQ-015`, D4) |
+| IsArchived | INTEGER bool | Yes | Default `false` |
+| RestoreLastSession | INTEGER bool | Yes | Default `true` |
+| PersistSessionCookies | INTEGER bool | Yes | Default `true` (D4); user-configurable per profile |
 
 Constraints: unique active profile name is not required; profile IDs and paths must be unique. Do not put password/cookie/session values in this row.
 
@@ -54,9 +55,10 @@ Constraints: unique active profile name is not required; profile IDs and paths m
 - `Name`: required, 1–80 characters.
 - `Kind`: enum `Manual | WebsiteDomain`.
 - `DomainKey`: optional normalized host for WebsiteDomain groups.
+- `IsHidden`: `INTEGER bool`, required, default `false` (allows hiding read-only `WebsiteDomain` groups, D4).
 - `CreatedAtUtc`, `UpdatedAtUtc`: UTC ISO-8601.
 - Unique constraint: `(Kind, DomainKey)` when `Kind=WebsiteDomain`.
-- System-derived groups are read-only; users may hide them but should not edit source domain identity.
+- System-derived groups are read-only; users may hide them via `IsHidden` but may not edit source domain identity.
 
 ### ENT-003 ProfileGroupMembership
 - `ProfileId`: FK to BrowserProfile.
@@ -69,7 +71,7 @@ Constraints: unique active profile name is not required; profile IDs and paths m
 - `TabId`: GUID PK.
 - `ProfileId`: FK.
 - `WindowId`: GUID.
-- `Url`: required safe URL; only persist http/https and supported internal URLs.
+- `Url`: required safe URL; only persist `http:`, `https:`, and allowlisted internal URL (`about:blank`).
 - `Title`: optional, max 512 chars; treat as untrusted text.
 - `Position`: nonnegative integer.
 - `IsPinned`: boolean.
@@ -107,7 +109,7 @@ Constraints: unique active profile name is not required; profile IDs and paths m
 - `MimeType`: optional.
 - `BytesReceived`, `TotalBytes`: nullable nonnegative integers.
 - `State`: `InProgress | Completed | Cancelled | Failed`.
-- `StartedAtUtc`, `CompletedAtUtc`: UTC.
+- `StartedAtUtc`: UTC ISO-8601; `CompletedAtUtc`: nullable UTC ISO-8601.
 - Browser engine remains authoritative for the active transfer; DB records status/metadata.
 
 ### ENT-008 ExtensionInstall
@@ -123,27 +125,27 @@ Constraints: unique active profile name is not required; profile IDs and paths m
 - Unique `(ProfileId, ExtensionId)`.
 - Never assume all Chrome extensions are supported by CEF; extension tables may remain unused until the optional feature is approved.
 
-### ENT-009 VaultCredential
+### ENT-009 VaultCredential *(Deferred post-MVP — D1)*
+> Not created or populated in MVP (`AGENTS.md` §5 prohibits website passwords in SQLite during MVP). Retained as a future schema note only; if reopened, move to an approved encrypted vault contract and enforce the AEAD rules below:
 - `CredentialId`: GUID PK.
-- `ProfileId`: FK.
-- `Origin`: normalized https/http origin; no URL query or fragment.
-- `UsernameCiphertext`: encrypted bytes/base64.
-- `PasswordCiphertext`: encrypted bytes/base64.
+- `ProfileId`: FK (`ON DELETE CASCADE`).
+- `Origin`: normalized `https`/`http` origin; no URL query or fragment.
+- `SecretPayloadCiphertext`: single AEAD ciphertext encrypting canonical UTF-8 JSON `{username, password}` (never reuse one nonce across separate ciphertext columns).
 - `CryptoVersion`: integer.
-- `Nonce` and `AuthenticationTag`: bytes/base64 where required by chosen cipher.
+- `Nonce`: unique 96-bit CSPRNG nonce per record (bytes/base64).
+- `AuthenticationTag`: 128-bit AEAD tag (bytes/base64), with AAD binding `(CryptoVersion, CredentialId, ProfileId, Origin)`.
 - `CreatedAtUtc`, `UpdatedAtUtc`: UTC.
 - Do not store plaintext credential fields, master password, raw CSV contents, or recoverable keys.
-- Encryption key is held/wrapped outside DB; local key wrapping through DPAPI. Backup re-encrypts vault records under portable archive encryption.
 
 ### ENT-010 AppSetting
 - `Key`: text PK, fixed allowlisted key names.
 - `ValueJson`: validated JSON; never store secrets.
 - `UpdatedAtUtc`: UTC.
-- Settings keys include theme, startup behavior, backup preferences, telemetry opt-in, and resource warnings.
+- Settings keys include theme, startup behavior, telemetry opt-in, and resource warnings (backup schedule/retention keys deferred post-MVP per D2).
 
 ### ENT-011 BackupJob
 - `BackupJobId`: GUID PK.
-- `Mode`: `Manual | Scheduled`.
+- `Mode`: `Manual` in MVP (`Scheduled` deferred post-MVP per D2).
 - `Status`: `Queued | Running | Completed | Failed | Cancelled`.
 - `DestinationPath`: user-selected path; redact in logs.
 - `StartedAtUtc`, `CompletedAtUtc`: nullable UTC.
@@ -157,13 +159,13 @@ Constraints: unique active profile name is not required; profile IDs and paths m
 - `SourceBrowser`: `Chrome | Edge`.
 - `SourceProfileLabel`: user-visible source name; no secrets.
 - `SelectedCategoriesJson`: allowlisted category list.
-- `TargetProfileId`: FK.
+- `TargetProfileId`: nullable FK (`ON DELETE SET NULL`, null allowed while `Status=Preview`).
 - `Status`: `Preview | Running | Completed | Partial | Failed | Cancelled`.
 - `ResultSummaryJson`: counts and validation errors with sensitive values redacted.
-- `CreatedAtUtc`, `CompletedAtUtc`: UTC.
+- `CreatedAtUtc`: UTC; `CompletedAtUtc`: nullable UTC.
 - Password values are not stored in ImportJob.
 
-## 4. Relationship overview
+## 4. Relationship overview & FK delete rules
 
 ```mermaid
 erDiagram
@@ -177,6 +179,14 @@ erDiagram
     ProfileGroup ||--o{ ProfileGroupMembership : contains
     BrowserProfile ||--o{ ImportJob : target
 ```
+
+Standalone tables not linked by FK: `ENT-010 AppSetting`, `ENT-011 BackupJob`.
+
+**FK `ON DELETE` rules (D4):**
+- Deleting a `BrowserProfile` cascades (`ON DELETE CASCADE`) to `BrowserTabSession`, `Bookmark`, `HistoryEntry`, `DownloadRecord`, `ProfileGroupMembership`, `ExtensionInstall`, and (if enabled) `VaultCredential`.
+- Deleting a `BrowserProfile` sets `ImportJob.TargetProfileId = NULL` (`ON DELETE SET NULL`) to preserve import audit history.
+- Deleting a `ProfileGroup` cascades (`ON DELETE CASCADE`) to `ProfileGroupMembership` only (never deletes profiles).
+- Deleting a parent `Bookmark` folder sets child `ParentBookmarkId = NULL` (`ON DELETE SET NULL`) or deletes subtree explicitly inside a single transaction.
 
 ## 5. Validation and normalization
 
@@ -197,7 +207,10 @@ No network API is required for the Free MVP. Application services expose typed u
 public sealed record CreateProfileCommand(
     string Name,
     string? StartupUrl,
-    string? GroupId);
+    string? ColorHex,
+    string? IconKey,
+    bool IsFavorite,
+    IReadOnlyList<Guid>? GroupIds);
 
 public sealed record CreateProfileResult(
     Guid ProfileId,
@@ -208,7 +221,6 @@ public sealed record ImportPreview(
     int HistoryCount,
     int ExtensionCount,
     int OpenTabCount,
-    int PasswordCount,
     IReadOnlyList<ImportWarning> Warnings);
 ```
 
@@ -230,13 +242,13 @@ These are illustrative DTOs, not implemented code. Do not add remote HTTP contra
 - Clearing history: delete only selected profile records and call matching browser-data cleanup where required.
 - Deleting app metadata does not claim to securely overwrite SSD sectors.
 - Credential vault deletion removes encrypted records and rotates/invalidates the relevant wrapped key where appropriate.
-- Backup retention default: `Terbuka`; proposed initial default 7 daily snapshots, configurable.
-- Windows account or master password changes must be handled by a documented key recovery policy.
+- Backup retention default: deferred post-MVP with scheduled backups (D2, `OPEN-006`).
+- Windows account or master password changes must be handled by a documented key recovery policy before enabling optional master-password lock in M-007.
 
-## 9. Terbuka
+## 9. Open items
 
-- Exact browser history DB schemas for the supported Chrome/Edge versions; validated in import spike.
-- Which limited extension APIs, if any, are worth supporting after the MVP.
-- Password autofill integration versus secure local vault management; do not promise autofill until proof-of-concept.
-- Whether profile metadata DB is encrypted as a whole; vault fields must be encrypted regardless.
-- Backup default schedule and retention duration.
+- Exact browser history DB schemas and SNSS session bounds for supported Chrome/Edge versions; validated in M-006 import spike.
+- Which limited extension APIs, if any, are worth supporting after MVP (`OPEN-003`).
+- Post-MVP password vault & CSV import (`OPEN-009`, deferred per D1).
+- Post-MVP scheduled backup cadence and retention (`OPEN-006`, deferred per D2).
+- Resolved (D4): `switchly-next.db` uses plain SQLite for non-secret metadata (no SQLCipher in MVP); `PersistSessionCookies` defaults to `true`.

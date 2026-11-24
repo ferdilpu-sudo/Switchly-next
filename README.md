@@ -1,27 +1,26 @@
 # Switchly Next
 
-> **Project phase:** Specification only — no application code has been implemented or tested.  
+> **Project phase:** M-002 complete — M-001 CEF PoC & Windows 11 provider sign-in validated (`artifacts/engine-spike/`); M-002 desktop foundation (`Switchly.sln`, `Switchly.BrowserHost` isolation, EF Core SQLite baseline, CI/tests, manual Win11 WPF launch) verified; ready for M-003.  
 > **Product name:** Switchly Next (working name).  
 > **Purpose:** Windows desktop workspace for managing many isolated web browser profiles, tabs and windows.
 
 ## 1. At a glance
 
-Switchly Next is designed to reduce repeated logout/login when working with many website accounts. Each profile uses its own browser storage context. The product is local-first and supports manual/automatic encrypted backup.
+Switchly Next is designed to reduce repeated logout/login when working with many website accounts. Each profile uses its own browser storage context. The product is local-first and supports manual encrypted backup/restore.
 
-**MVP:** profile management, isolated browser sessions, groups, integrated multi-window/tabs, browser basics, Chrome/Edge data import, local security, and encrypted backup/restore. Extensions are optional and deferred.
+**MVP:** profile management, isolated browser sessions, groups, integrated multi-window/tabs, browser basics, Chrome/Edge data import (bookmarks, history, open-tab URLs), local security, and manual encrypted backup/restore. Extensions (`REQ-007`), CSV password vault (D1), and scheduled automatic backups (D2) are deferred post-MVP.
 
-## 2. Current technology proposal
+## 2. Current technology stack
 
-| Component | Candidate | Notes |
+| Component | Selection | Notes |
 |---|---|---|
-| Desktop UI | C# / WPF / MVVM | Windows desktop shell |
-| Runtime | .NET 10 LTS | Windows 11 primary; Windows 10 compatibility requires policy validation |
-| Embedded browser | CefSharp + CEF (Chrome Runtime) | Candidate; pin exact compatible versions after M-001 |
-| Metadata | SQLite + EF Core | Application metadata only |
-| Local vault key | Windows DPAPI | Current Windows user |
-| Optional unlock | Master password / Windows Hello | Exact unlock flow requires implementation spike |
-| Portable backup | AES-256-GCM with passphrase-derived key | Key derivation parameters must be reviewed |
-| Tests | xUnit or NUnit (choose at scaffold) | Unit, integration, browser and E2E tests |
+| Desktop UI | C# / WPF / MVVM | Windows desktop shell (`ADR-001`, Accepted) |
+| Runtime | .NET 10 LTS | Windows 11 primary; Windows 10 compatibility requires policy validation (`ADR-002`, Accepted) |
+| Embedded browser | `CefSharp.Wpf.NETCore 156.0.300` + CEF `156.0.30` (Chrome Runtime) | Validated in M-001 (`ADR-003`, `ADR-011`, Accepted); isolated strictly in `Switchly.BrowserHost` (D5) |
+| Metadata | Plain SQLite + EF Core `10.x` | Non-secret application metadata only (`ADR-004`, Accepted) |
+| Local security | Windows DPAPI (`CurrentUser`) + optional master password / Windows Hello | Custom password vault deferred post-MVP (D1, `ADR-005`) |
+| Portable backup | Manual chunked streaming AES-256-GCM with passphrase KDF | Cross-device restore excludes device-bound Chromium cookies (D2, D3, `ADR-006`) |
+| Tests | `xUnit` (`xunit 2.9.3`) | Unit, integration, browser and E2E tests |
 
 Technology rationale and risks: [architecture.md](./architecture.md), [decisions.md](./decisions.md).
 
@@ -40,17 +39,15 @@ The Windows 10 target needs explicit qualification. Microsoft currently lists .N
 
 ## 4. Getting started
 
-This handoff contains specifications, not a runnable repository. The following commands are **Direncanakan — verifikasi setelah scaffolding**.
+`Switchly.sln` is scaffolded under M-002 (`TASK-007`–`009`). Verify the commands below as part of completing `TASK-010` and M-002 cleanup:
 
 ```powershell
-git clone <repository-url>
-cd SwitchlyNext
-dotnet restore
+dotnet restore .\Switchly.sln
 dotnet build .\Switchly.sln -c Release
 dotnet test .\Switchly.sln -c Release
 ```
 
-Do not assume a solution file, NuGet package lock, installer or command exists until the agent creates and verifies it. M-001 must be completed before the full app scaffolding proceeds.
+M-001 engine spike artifacts live under `artifacts/engine-spike/`. Do not start `M-003` until `M-002` cleanup (`Switchly.BrowserHost` isolation, `Directory.Packages.props`, and `TASK-010` build/test verification) passes.
 
 ## 5. Repository orientation (target structure)
 
@@ -113,15 +110,13 @@ The original Switchly repository is reference-only. This generation starts from 
 
 ## 10. Important known limitations
 
-- Extension support is not a core requirement. Chrome Runtime is the only CEF mode from CEF 156+; do not promise Chrome Web Store extension parity.
-- Profile storage is isolated per context; test this before any product work.
-- Chrome/Edge cookies and login sessions are intentionally not imported.
-- Passwords are only imported from a CSV file explicitly exported and selected by the user; plaintext CSV handling needs strong warnings.
-- Free/Pro feature limits, pricing, payment and license provider are unresolved.
-- Windows 10 Home/Pro support status needs a product policy decision.
+- Extension support is not a core requirement. Chrome Runtime is the only CEF mode since CEF 128 (Alloy removed); do not promise Chrome Web Store extension parity.
+- Profile storage is isolated per direct-child `<profile-guid>` context (`ADR-011`); validated in M-001 on Windows 11.
+- Chrome/Edge cookies and login sessions are intentionally not imported (`ADR-010`), and cross-device backup restore does not carry device-bound Chromium cookies (D3).
+- Password CSV import & custom credential vault (D1) and unattended scheduled backups (D2) are deferred post-MVP.
+- Free/Pro feature limits, pricing, payment and license provider are unresolved (`OPEN-001`, `OPEN-005`).
+- Windows 10 Home/Pro support status needs a product policy decision (`OPEN-002`).
 
 ## 11. Current next step
 
-Start with **M-001: CEF browser and provider compatibility proof-of-concept**. Do not build the full profile manager until the engine demonstrates isolated persistent contexts, integrated browser behavior, compatibility evidence for priority websites, and measured resource behavior.
-
-No tests have run. No production readiness or compatibility claim is made.
+Start **M-003: Profile manager and isolation** (`TASK-011`: profile CRUD use cases and validation, followed by `TASK-012`..`TASK-015A`).

@@ -1,6 +1,6 @@
 # Development Rules — Switchly Next
 
-**Status:** DRAFT 0.1  
+**Status:** ACTIVE 0.2 — updated per PO decisions D1–D5 (2026-11-24)  
 These rules are mandatory for all human and AI contributors.
 
 ## 1. Non-negotiable modularity
@@ -23,18 +23,19 @@ Allowed dependency direction:
 Rules:
 - Views render and bind; ViewModels coordinate view state; use cases implement application actions.
 - Repositories own database access.
-- BrowserHost owns all CefSharp calls and CEF lifecycle.
+- `Switchly.BrowserHost` is the sole owner of `CefSharp.Wpf.NETCore` calls and CEF lifecycle; `Switchly.App` must **not** directly reference `CefSharp.*` NuGet packages (D5).
+- Align `Microsoft.Extensions.*` and EF Core NuGet packages to `10.x` LTS via `Directory.Packages.props` (D5).
 - WindowsSecurity adapter owns DPAPI/Hello interop.
 - Composition root wires implementations; avoid static service locators and ambient mutable singletons.
 
 ## 3. Browser profile isolation rules
 
-- Every profile must resolve to a unique application-generated storage directory.
+- Every profile must resolve to a unique application-generated single-segment `<profile-guid>` directory directly under `RootCachePath` (`ADR-011`).
 - Never share a `CefRequestContext` between different `ProfileId` values.
 - Tabs/windows within one profile may share that profile's context.
 - Never use global CEF context for a user profile.
-- Do not reuse a path after profile deletion until CEF confirms all browser/context handles are closed.
-- Acquire a cross-window/process lock before opening a profile cache path.
+- Do not reuse a path after profile deletion until CEF confirms all browser/context handles are closed (use a startup deferred-delete tombstone queue if Windows retains a Chromium handle).
+- Enforce an **app-level single-instance guard** (named mutex + IPC focus handoff) before `Cef.Initialize()` (required by Chrome Runtime's `RootCachePath` `ProcessSingleton`), paired with in-process per-profile state locks.
 - Profile duplication copies profile settings only by default; copying browser data requires a separate explicit, confirmed action.
 - Never copy source browser cookies/session in import.
 - Any isolation regression is a release blocker, not a warning.
@@ -43,9 +44,9 @@ Rules:
 
 - Never log passwords, cookies, access tokens, auth headers, CSV row contents, backup passphrases, DPAPI blobs, private browsing data or URL query strings.
 - No secrets in source, appsettings files, test snapshots, sample data or crash messages.
-- Store imported credentials only as authenticated ciphertext. Plaintext may exist only in memory for the minimum required duration.
+- No website passwords, cookies, or OAuth tokens are stored in `switchly-next.db` in MVP (custom CSV password vault `ENT-009` is deferred post-MVP per D1). If reopened later, credentials must be stored only as single-payload authenticated ciphertext with unique nonces and AAD binding.
 - Do not store master password, backup passphrase, encryption key or recovery key in SQLite.
-- Windows DPAPI `CurrentUser` is for local key wrapping; portable backup must use independent passphrase-based encryption.
+- Windows DPAPI `CurrentUser` is for local protection; portable backup must use independent passphrase-based **chunked streaming AES-256-GCM** encryption (`ADR-006`) and exclude CEF global state, disposable caches, and device-bound cookies on cross-device restore (D3).
 - Validate archive paths against traversal and symlink escapes before extraction.
 - Extension management is not a core MVP feature. If later implemented, never install an extension without showing source and permissions and receiving user consent.
 - Validate extension manifests and file paths; do not auto-run scripts from imported files.
@@ -70,8 +71,7 @@ Rules:
 - Source Chrome/Edge profile data is read-only.
 - Ask the user to close source browser if SQLite/session files are locked; never terminate a browser process automatically.
 - Import only categories selected in the preview screen.
-- For CSV passwords, show plaintext-file warning before file selection and again before import commit.
-- Do not write CSV content to temp files or logs. If parsing must use a temp stream for a dependency, justify and restrict it, then document cleanup limitations.
+- Password CSV import is deferred post-MVP (D1). If later reopened, show plaintext-file warnings before selection and commit, and never write CSV content to temp files or logs.
 - Import must support partial success with per-category counts and redacted errors.
 - Never infer cookies/session import from another selected category.
 
@@ -82,7 +82,7 @@ Rules:
 - The database is not the owner of CEF internal profile data.
 - Database transactions must keep profile metadata and import state consistent.
 - File-system actions that span DB changes use staging and compensating cleanup.
-- Backup restore uses atomic staging/promotion and leaves the current data untouched on failure.
+- Backup restore validates archive integrity into staging and promotes via **restart-to-restore directory swap** before CEF/SQLite open file handles, leaving current data untouched on failure (D3).
 
 ## 8. Error handling and diagnostics
 
