@@ -1,6 +1,6 @@
 # Implementation Plan — Switchly Next
 
-**Status:** M-006 Complete — ready to begin M-007 (`TASK-029`: local DPAPI protection & unlock key handling; M-005 deferred)  
+**Status:** M-007 Complete — Product Owner reopened D1 (D6): implementing Encrypted Password Vault (`ENT-009`), CSV Password Import (`TASK-028`), and Explicit-Click Autofill before M-008  
 **Strategy:** prove the browser engine risk before implementing the full product.
 
 ## 1. Delivery strategy

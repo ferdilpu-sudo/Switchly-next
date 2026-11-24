@@ -143,6 +143,7 @@
   - **D3:** Cross-device restore excludes device-bound Chromium cookies, uses chunked streaming AEAD + cache exclusions + restart-to-restore staged swap.
   - **D4:** Schema adds `IsFavorite` & `IsHidden`, `PersistSessionCookies` default = `true`, plain SQLite for non-secret metadata, ADR-001..004/007/009..011 promoted to `Accepted`.
   - **D5:** Strict `Switchly.BrowserHost` isolation enforced in M-002; `Infrastructure/BrowserEngine` removed; `Microsoft.Extensions.*` aligned to `10.x` LTS via `Directory.Packages.props`.
+  - **D6 (2026-11-24):** Product Owner explicitly reopened **D1** after M-007 DPAPI verification to implement **`ENT-009 VaultCredential`** (single-payload AES-256-GCM with unique 96-bit CSPRNG nonce + AAD `(CryptoVersion, CredentialId, ProfileId, Origin)` wrapped by Windows DPAPI `CurrentUser`), **Chrome/Edge CSV Password Import (`TASK-028`, `AC-010`, `TEST-010`)**, and **explicit-click origin-matched Autofill** (no unrestricted JS bridge).
 
 ## 14. Open decisions with impact
 

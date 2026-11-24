@@ -1,0 +1,104 @@
+<Window x:Class="Switchly.App.Views.SecurityAndBackupDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Keamanan Lokal &amp; Backup Manual"
+        Height="620" Width="660"
+        MinHeight="540" MinWidth="580"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize">
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="CancelOpButton" Content="Batalkan Operasi" Click="OnCancelOperationClick"
+                    Padding="12,6" Margin="0,0,8,0" Visibility="Collapsed"/>
+            <Button Content="Tutup" IsCancel="True" Padding="14,6"/>
+        </StackPanel>
+
+        <TabControl>
+            <!-- Tab 1: Local Security (UI-010) -->
+            <TabItem Header="Keamanan Lokal">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+                    <StackPanel>
+                        <TextBlock Text="Perlindungan Lokal (Windows DPAPI)" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <Border Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock x:Name="DpapiStatusText" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="HelloStatusText" Foreground="#4B5563" FontSize="12" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="Kata Sandi Utama (Opsional)" FontSize="15" FontWeight="SemiBold" Margin="0,4,0,6"/>
+                        <Border Background="#FEF3C7" BorderBrush="#F59E0B" BorderThickness="1" CornerRadius="5" Padding="10,8" Margin="0,0,0,12">
+                            <TextBlock TextWrapping="Wrap" Foreground="#92400E" FontSize="12"
+                                       Text="Kata sandi utama mengunci pembukaan aplikasi di komputer ini (dilindungi Windows DPAPI CurrentUser). Jika lupa, kata sandi tidak dapat dipulihkan."/>
+                        </Border>
+
+                        <!-- Enable Master Password -->
+                        <StackPanel x:Name="EnableMasterPasswordPanel">
+                            <TextBlock Text="Kata sandi utama baru (minimal 8 karakter):" Margin="0,0,0,4"/>
+                            <PasswordBox x:Name="NewMasterPasswordBox" Padding="8,5" Margin="0,0,0,8"/>
+                            <TextBlock Text="Konfirmasi kata sandi utama:" Margin="0,0,0,4"/>
+                            <PasswordBox x:Name="ConfirmMasterPasswordBox" Padding="8,5" Margin="0,0,0,10"/>
+                            <Button Content="Aktifkan Kunci Kata Sandi Utama" Click="OnEnableMasterPasswordClick"
+                                    Background="#1B6EF3" Foreground="White" FontWeight="SemiBold" Padding="12,6" HorizontalAlignment="Left"/>
+                        </StackPanel>
+
+                        <!-- Disable Master Password -->
+                        <StackPanel x:Name="DisableMasterPasswordPanel" Visibility="Collapsed">
+                            <TextBlock Text="Kunci kata sandi utama saat ini AKTIF." Foreground="#15803D" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                            <TextBlock Text="Masukkan kata sandi utama saat ini untuk menonaktifkan:" Margin="0,0,0,4"/>
+                            <PasswordBox x:Name="CurrentMasterPasswordBox" Padding="8,5" Margin="0,0,0,10"/>
+                            <Button Content="Nonaktifkan Kunci Kata Sandi Utama" Click="OnDisableMasterPasswordClick"
+                                    Padding="12,6" HorizontalAlignment="Left"/>
+                        </StackPanel>
+
+                        <TextBlock x:Name="SecurityFeedbackText" Margin="0,10,0,0" FontSize="12" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Tab 2: Manual Backup & Restore (UI-011) -->
+            <TabItem Header="Backup &amp; Restore Manual">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+                    <StackPanel>
+                        <Border Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="5" Padding="10,8" Margin="0,0,0,12">
+                            <TextBlock TextWrapping="Wrap" Foreground="#1E40AF" FontSize="12"
+                                       Text="Backup manual terenkripsi AES-256-GCM (chunked streaming). Cache sementara dan cookies sesi perangkat TIDAK disertakan — pada komputer baru Anda perlu login ulang ke website."/>
+                        </Border>
+
+                        <!-- Create Manual Backup -->
+                        <TextBlock Text="Buat Backup Terenkripsi (.snbak)" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <TextBlock Text="Passphrase enkripsi (minimal 8 karakter — simpan baik-baik, tidak dapat dipulihkan jika hilang):" FontSize="12" Foreground="#4B5563" Margin="0,0,0,4"/>
+                        <PasswordBox x:Name="BackupPassphraseBox" Padding="8,5" Margin="0,0,0,6"/>
+                        <TextBlock Text="Konfirmasi passphrase:" FontSize="12" Foreground="#4B5563" Margin="0,0,0,4"/>
+                        <PasswordBox x:Name="BackupPassphraseConfirmBox" Padding="8,5" Margin="0,0,0,10"/>
+                        <Button x:Name="CreateBackupButton" Content="Pilih Lokasi &amp; Buat Backup..." Click="OnCreateBackupClick"
+                                Background="#1B6EF3" Foreground="White" FontWeight="SemiBold" Padding="12,6" HorizontalAlignment="Left" Margin="0,0,0,16"/>
+
+                        <Separator Margin="0,4,0,14"/>
+
+                        <!-- Restore from Backup (Restart-to-Restore) -->
+                        <TextBlock Text="Pulihkan dari Arsip Backup (Restart-to-Restore)" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <DockPanel Margin="0,0,0,8">
+                            <Button DockPanel.Dock="Right" Content="Pilih File..." Click="OnBrowseRestoreArchiveClick" Padding="10,5" Margin="8,0,0,0"/>
+                            <TextBox x:Name="RestoreArchivePathBox" IsReadOnly="True" Padding="8,5" ToolTip="Path file .snbak"/>
+                        </DockPanel>
+
+                        <Border x:Name="RestorePreviewCard" Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="5"
+                                Padding="10" Margin="0,0,0,8" Visibility="Collapsed">
+                            <TextBlock x:Name="RestorePreviewText" FontSize="12" Foreground="#374151" TextWrapping="Wrap"/>
+                        </Border>
+
+                        <TextBlock Text="Passphrase arsip backup:" FontSize="12" Foreground="#4B5563" Margin="0,0,0,4"/>
+                        <PasswordBox x:Name="RestorePassphraseBox" Padding="8,5" Margin="0,0,0,10"/>
+                        <Button x:Name="StageRestoreButton" Content="Verifikasi &amp; Siapkan Pemulihan (Restart)" Click="OnStageRestoreClick"
+                                Padding="12,6" HorizontalAlignment="Left"/>
+
+                        <!-- Progress & Status -->
+                        <ProgressBar x:Name="OperationProgressBar" Height="8" Minimum="0" Maximum="1" Margin="0,14,0,4" Visibility="Collapsed"/>
+                        <TextBlock x:Name="BackupStatusText" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

@@ -5,6 +5,7 @@ using Switchly.Domain.Groups;
 using Switchly.Domain.History;
 using Switchly.Domain.Import;
 using Switchly.Domain.Profiles;
+using Switchly.Domain.Security;
 using Switchly.Domain.Tabs;
 
 namespace Switchly.Infrastructure.Persistence;
@@ -32,6 +33,8 @@ public sealed class SwitchlyDbContext : DbContext
     public DbSet<BrowserTabSession> TabSessions => Set<BrowserTabSession>();
 
     public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
+
+    public DbSet<BackupJob> BackupJobs => Set<BackupJob>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -153,6 +156,17 @@ public sealed class SwitchlyDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(j => j.TargetProfileId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<BackupJob>(e =>
+        {
+            e.HasKey(b => b.BackupJobId);
+            e.Property(b => b.Mode).HasConversion<string>().HasMaxLength(16);
+            e.Property(b => b.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(b => b.DestinationPath).IsRequired().HasMaxLength(512);
+            e.Property(b => b.IncludedProfilesJson).IsRequired();
+            e.Property(b => b.ResultSummaryJson).IsRequired();
+            e.HasIndex(b => b.StartedAtUtc);
         });
     }
 }

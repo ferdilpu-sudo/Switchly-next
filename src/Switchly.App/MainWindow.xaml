@@ -51,10 +51,12 @@
             <Border DockPanel.Dock="Top" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="16,12">
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Content="+ Profil Baru" Click="OnNewProfileClick"
-                            Background="#1B6EF3" Foreground="White" FontWeight="SemiBold" Padding="14,6" Margin="10,0,0,0"/>
+                            Background="#1B6EF3" Foreground="White" FontWeight="SemiBold" Padding="14,6" Margin="8,0,0,0"/>
                     <Button DockPanel.Dock="Right" Content="Impor Browser" Click="OnImportBrowserClick"
-                            Padding="12,6" Margin="10,0,0,0" ToolTip="Impor bookmark, riwayat, atau tab terbuka dari Chrome/Edge (baca-saja)"/>
-                    <TextBox DockPanel.Dock="Right" Width="240" VerticalContentAlignment="Center" Padding="8,5"
+                            Padding="10,6" Margin="8,0,0,0" ToolTip="Impor bookmark, riwayat, atau tab terbuka dari Chrome/Edge (baca-saja)"/>
+                    <Button DockPanel.Dock="Right" Content="Keamanan &amp; Backup" Click="OnSecurityAndBackupClick"
+                            Padding="10,6" Margin="8,0,0,0" ToolTip="Kunci kata sandi utama lokal (DPAPI) dan Backup/Restore terenkripsi AES-256-GCM"/>
+                    <TextBox DockPanel.Dock="Right" Width="210" VerticalContentAlignment="Center" Padding="8,5"
                              Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                              ToolTip="Cari profil berdasarkan nama atau URL"/>
                     <TextBlock Text="{Binding SectionTitle}" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center"/>

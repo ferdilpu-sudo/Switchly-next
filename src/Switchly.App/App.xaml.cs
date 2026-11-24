@@ -7,13 +7,16 @@ using Microsoft.Extensions.Logging;
 using Switchly.App.Diagnostics;
 using Switchly.App.Navigation;
 using Switchly.App.ViewModels;
+using Switchly.App.Views;
 using Switchly.Application.Browser;
 using Switchly.Application.Groups;
 using Switchly.Application.Import;
 using Switchly.Application.Profiles;
+using Switchly.Application.Security;
 using Switchly.BrowserHost.CefBootstrap;
 using Switchly.Infrastructure.Import;
 using Switchly.Infrastructure.Persistence;
+using Switchly.Infrastructure.Security;
 
 namespace Switchly.App;
 
@@ -74,6 +77,15 @@ public partial class App : System.Windows.Application
         services.AddScoped<IDownloadRepository, EfDownloadRepository>();
         services.AddScoped<ITabSessionRepository, EfTabSessionRepository>();
         services.AddScoped<IImportJobRepository, EfImportJobRepository>();
+        services.AddScoped<IBackupJobRepository, EfBackupJobRepository>();
+        services.AddSingleton<ILocalDataProtector, WindowsDpapiProtector>();
+        services.AddSingleton<ILocalSecurityService>(sp =>
+            new LocalSecurityService(sp.GetRequiredService<ILocalDataProtector>(), dataDirectory));
+        services.AddScoped<IBackupRestoreService>(sp =>
+            new PortableBackupRestoreService(
+                appData,
+                sp.GetRequiredService<IProfileRepository>(),
+                sp.GetRequiredService<IBackupJobRepository>()));
         services.AddSingleton<IProfileStorageDirectory>(_ => new LocalProfileStorageDirectory(ProfilesRootPath, dataDirectory));
         services.AddSingleton<IBrowserProfileDiscovery, ChromiumProfileDiscovery>();
         services.AddSingleton<IBookmarkImporter, ChromiumBookmarkImporter>();
@@ -106,7 +118,47 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        // 1. Apply pending restart-to-restore staging swap BEFORE Cef.Initialize() and EF Core open any handles (ADR-006, D3).
+        try
+        {
+            PendingRestoreApplier.ApplyPendingRestoreIfAny(appData);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Pemulihan backup gagal diterapkan dan telah dikembalikan ke data sebelumnya.\n\nDetail: {ex.Message}",
+                "Switchly Next — Pemulihan Backup",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+
+        // 2. Process deferred profile deletions BEFORE Cef.Initialize() (ADR-011).
         Services.GetRequiredService<IProfileStorageDirectory>().ProcessPendingDeletes();
+
+        // 3. Enforce local DPAPI health and optional master-password unlock BEFORE opening workspace (REQ-010, TEST-011).
+        var securityService = Services.GetRequiredService<ILocalSecurityService>();
+        var securityStatus = securityService.GetStatus();
+        if (!securityStatus.IsProtectionHealthy)
+        {
+            MessageBox.Show(
+                securityStatus.ErrorMessage ?? "Perlindungan keamanan lokal gagal dibuka (DPAPI fail-closed).",
+                "Switchly Next — Keamanan Lokal",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(2);
+            return;
+        }
+
+        if (securityStatus.IsMasterPasswordEnabled)
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            var unlockDialog = new UnlockDialog(securityService);
+            if (unlockDialog.ShowDialog() != true)
+            {
+                Shutdown(0);
+                return;
+            }
+        }
 
         _browserRuntime = Services.GetRequiredService<IBrowserRuntime>();
         _sessionManager = Services.GetRequiredService<IProfileSessionManager>();
@@ -135,6 +187,7 @@ public partial class App : System.Windows.Application
 
         var mainWindow = new MainWindow();
         MainWindow = mainWindow;
+        ShutdownMode = ShutdownMode.OnMainWindowClose;
         mainWindow.Show();
     }
 

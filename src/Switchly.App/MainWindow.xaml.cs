@@ -153,6 +153,12 @@ public partial class MainWindow : Window
         dialog.ShowDialog();
     }
 
+    private void OnSecurityAndBackupClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SecurityAndBackupDialog { Owner = this };
+        dialog.ShowDialog();
+    }
+
     private void OnImportForProfileClick(object sender, RoutedEventArgs e)
     {
         if (ExtractItem(sender) is { } item)
