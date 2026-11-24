@@ -11,6 +11,12 @@ public interface IBrowserWindowHost : IDisposable
 
     void Reload();
 
+    /// <summary>
+    /// Explicitly fills a visible login form on the current page when triggered by user click (D6).
+    /// Never exposes any persistent vault bridge to website JavaScript.
+    /// </summary>
+    Task<bool> FillLoginFormAsync(string username, string password);
+
     bool CanGoBack { get; }
 
     bool CanGoForward { get; }

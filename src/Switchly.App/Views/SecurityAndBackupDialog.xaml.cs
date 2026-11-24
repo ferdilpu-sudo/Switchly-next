@@ -1,9 +1,14 @@
 using System.Diagnostics;
+using System.Text;
 using System.Windows;
+using System.Windows.Controls;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using Switchly.App.Navigation;
+using Switchly.Application.Profiles;
 using Switchly.Application.Security;
+using Switchly.Application.Vault;
+using Switchly.Domain.Profiles;
 
 namespace Switchly.App.Views;
 
@@ -20,7 +25,11 @@ public partial class SecurityAndBackupDialog : Window
 
         _securityService = App.Services.GetRequiredService<ILocalSecurityService>();
         _windowCoordinator = App.Services.GetRequiredService<BrowserWindowCoordinator>();
-        Loaded += (_, _) => RefreshSecurityStatus();
+        Loaded += async (_, _) =>
+        {
+            RefreshSecurityStatus();
+            await LoadVaultProfilesAsync();
+        };
     }
 
     private void RefreshSecurityStatus()
@@ -214,6 +223,126 @@ public partial class SecurityAndBackupDialog : Window
 
     private void OnCancelOperationClick(object sender, RoutedEventArgs e)
         => _opCts?.Cancel();
+
+    private async Task LoadVaultProfilesAsync()
+    {
+        using var scope = App.Services.CreateScope();
+        var profileService = scope.ServiceProvider.GetRequiredService<IProfileService>();
+        var profiles = await profileService.ListAsync(includeArchived: false);
+        VaultProfileCombo.ItemsSource = profiles;
+        VaultProfileCombo.SelectedItem = profiles.FirstOrDefault();
+    }
+
+    private async void OnVaultProfileChanged(object sender, SelectionChangedEventArgs e)
+        => await RefreshVaultCredentialsAsync();
+
+    private async Task RefreshVaultCredentialsAsync()
+    {
+        if (VaultProfileCombo.SelectedItem is not BrowserProfile profile)
+        {
+            VaultCredentialsList.ItemsSource = null;
+            return;
+        }
+
+        try
+        {
+            using var scope = App.Services.CreateScope();
+            var vault = scope.ServiceProvider.GetRequiredService<IPasswordVaultService>();
+            var items = await vault.ListSummariesAsync(profile.ProfileId);
+            VaultCredentialsList.ItemsSource = items;
+        }
+        catch (Exception ex)
+        {
+            VaultFeedbackText.Text = $"Gagal memuat Password Vault: {ex.Message}";
+        }
+    }
+
+    private async void OnImportCsvPasswordsClick(object sender, RoutedEventArgs e)
+    {
+        if (VaultProfileCombo.SelectedItem is not BrowserProfile profile)
+        {
+            VaultFeedbackText.Text = "Pilih profil Switchly Next terlebih dahulu.";
+            return;
+        }
+
+        var dlg = new OpenFileDialog
+        {
+            Title = "Pilih File CSV Password (Chrome / Edge)",
+            Filter = "CSV Files (*.csv)|*.csv|Semua File (*.*)|*.*",
+        };
+        if (dlg.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var result = await Task.Run(async () =>
+            {
+                using var scope = App.Services.CreateScope();
+                var vault = scope.ServiceProvider.GetRequiredService<IPasswordVaultService>();
+                return await vault.ImportChromeEdgeCsvAsync(profile.ProfileId, dlg.FileName);
+            });
+
+            var sb = new StringBuilder();
+            sb.Append($"Impor CSV selesai → {profile.Name}: {result.ImportedCount} baru, {result.UpdatedCount} diperbarui, {result.SkippedCount} dilewati, {result.MalformedRowCount} baris tidak valid.");
+            if (result.RedactedWarnings.Count > 0)
+            {
+                sb.Append(" " + string.Join(" ", result.RedactedWarnings));
+            }
+
+            VaultFeedbackText.Text = sb.ToString();
+            await RefreshVaultCredentialsAsync();
+        }
+        catch (Exception ex)
+        {
+            VaultFeedbackText.Text = $"Impor CSV gagal: {ex.Message}";
+        }
+    }
+
+    private async void OnSaveCredentialClick(object sender, RoutedEventArgs e)
+    {
+        if (VaultProfileCombo.SelectedItem is not BrowserProfile profile)
+        {
+            VaultFeedbackText.Text = "Pilih profil Switchly Next terlebih dahulu.";
+            return;
+        }
+
+        var origin = VaultOriginBox.Text.Trim();
+        var username = VaultUsernameBox.Text.Trim();
+        var password = VaultPasswordBox.Password;
+
+        try
+        {
+            using var scope = App.Services.CreateScope();
+            var vault = scope.ServiceProvider.GetRequiredService<IPasswordVaultService>();
+            await vault.UpsertCredentialAsync(profile.ProfileId, origin, username, password);
+            VaultOriginBox.Clear();
+            VaultUsernameBox.Clear();
+            VaultPasswordBox.Clear();
+            VaultFeedbackText.Text = "Kredensial berhasil disimpan terenkripsi ke Password Vault.";
+            await RefreshVaultCredentialsAsync();
+        }
+        catch (Exception ex)
+        {
+            VaultFeedbackText.Text = ex.Message;
+        }
+    }
+
+    private async void OnDeleteCredentialClick(object sender, RoutedEventArgs e)
+    {
+        if (VaultProfileCombo.SelectedItem is not BrowserProfile profile ||
+            sender is not FrameworkElement { Tag: VaultCredentialSummary summary })
+        {
+            return;
+        }
+
+        using var scope = App.Services.CreateScope();
+        var vault = scope.ServiceProvider.GetRequiredService<IPasswordVaultService>();
+        await vault.DeleteAsync(profile.ProfileId, summary.CredentialId);
+        VaultFeedbackText.Text = $"Kredensial untuk {summary.Origin} dihapus.";
+        await RefreshVaultCredentialsAsync();
+    }
 
     private async Task RunWithProgressAsync(Func<IProgress<BackupProgress>, CancellationToken, Task> action)
     {

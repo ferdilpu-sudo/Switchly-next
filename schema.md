@@ -125,8 +125,8 @@ Constraints: unique active profile name is not required; profile IDs and paths m
 - Unique `(ProfileId, ExtensionId)`.
 - Never assume all Chrome extensions are supported by CEF; extension tables may remain unused until the optional feature is approved.
 
-### ENT-009 VaultCredential *(Deferred post-MVP — D1)*
-> Not created or populated in MVP (`AGENTS.md` §5 prohibits website passwords in SQLite during MVP). Retained as a future schema note only; if reopened, move to an approved encrypted vault contract and enforce the AEAD rules below:
+### ENT-009 VaultCredential *(Reopened per PO Decision D6 — 2026-11-24)*
+> Implemented on top of M-007 Windows DPAPI (`CurrentUser`) protection using the AEAD rules below:
 - `CredentialId`: GUID PK.
 - `ProfileId`: FK (`ON DELETE CASCADE`).
 - `Origin`: normalized `https`/`http` origin; no URL query or fragment.

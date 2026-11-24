@@ -7,6 +7,7 @@ using Switchly.Domain.Import;
 using Switchly.Domain.Profiles;
 using Switchly.Domain.Security;
 using Switchly.Domain.Tabs;
+using Switchly.Domain.Vault;
 
 namespace Switchly.Infrastructure.Persistence;
 
@@ -35,6 +36,8 @@ public sealed class SwitchlyDbContext : DbContext
     public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
 
     public DbSet<BackupJob> BackupJobs => Set<BackupJob>();
+
+    public DbSet<VaultCredential> VaultCredentials => Set<VaultCredential>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -167,6 +170,21 @@ public sealed class SwitchlyDbContext : DbContext
             e.Property(b => b.IncludedProfilesJson).IsRequired();
             e.Property(b => b.ResultSummaryJson).IsRequired();
             e.HasIndex(b => b.StartedAtUtc);
+        });
+
+        modelBuilder.Entity<VaultCredential>(e =>
+        {
+            e.HasKey(c => c.CredentialId);
+            e.Property(c => c.Origin).IsRequired().HasMaxLength(512);
+            e.Property(c => c.SecretPayloadCiphertext).IsRequired();
+            e.Property(c => c.Nonce).IsRequired();
+            e.Property(c => c.AuthenticationTag).IsRequired();
+            e.HasIndex(c => new { c.ProfileId, c.Origin });
+
+            e.HasOne<BrowserProfile>()
+                .WithMany()
+                .HasForeignKey(c => c.ProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

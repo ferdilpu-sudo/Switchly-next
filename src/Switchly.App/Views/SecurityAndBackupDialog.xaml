@@ -99,6 +99,72 @@
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
+
+            <!-- Tab 3: Password Vault & CSV Import (ENT-009, TASK-028, D6) -->
+            <TabItem Header="Password Vault &amp; CSV">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+                    <StackPanel>
+                        <Border Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="5" Padding="10,8" Margin="0,0,0,12">
+                            <TextBlock TextWrapping="Wrap" Foreground="#1E40AF" FontSize="12"
+                                       Text="Kredensial dienkripsi per profil dengan AES-256-GCM (nonce unik + AAD) dan kunci yang dilindungi Windows DPAPI. Isi otomatis hanya aktif saat Anda klik tombol 🔑 Isi pada origin situs yang cocok."/>
+                        </Border>
+
+                        <TextBlock Text="Profil Switchly Next:" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="VaultProfileCombo" DisplayMemberPath="Name" SelectionChanged="OnVaultProfileChanged" Padding="8,5" Margin="0,0,0,12"/>
+
+                        <!-- CSV Import (TASK-028) -->
+                        <TextBlock Text="Impor Password CSV (Ekspor Resmi Chrome / Edge)" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                        <TextBlock Text="Ekspor password dari Chrome/Edge ke file .csv, impor ke profil di atas, lalu hapus file .csv plaintext setelah selesai."
+                                   Foreground="#4B5563" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <Button Content="Pilih File CSV &amp; Impor ke Vault..." Click="OnImportCsvPasswordsClick"
+                                Background="#1B6EF3" Foreground="White" FontWeight="SemiBold" Padding="12,6" HorizontalAlignment="Left" Margin="0,0,0,14"/>
+
+                        <Separator Margin="0,2,0,12"/>
+
+                        <!-- Manual Add Credential -->
+                        <TextBlock Text="Tambah / Perbarui Kredensial Manual" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="URL / Origin (contoh: https://chatgpt.com)" FontSize="11" Foreground="#4B5563" Margin="0,0,0,2"/>
+                                <TextBox x:Name="VaultOriginBox" Padding="6,4"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Username / Email" FontSize="11" Foreground="#4B5563" Margin="0,0,0,2"/>
+                                <TextBox x:Name="VaultUsernameBox" Padding="6,4"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Text="Password:" FontSize="11" Foreground="#4B5563" Margin="0,0,0,2"/>
+                        <DockPanel Margin="0,0,0,10">
+                            <Button DockPanel.Dock="Right" Content="Simpan ke Vault" Click="OnSaveCredentialClick" Padding="12,5" Margin="8,0,0,0"/>
+                            <PasswordBox x:Name="VaultPasswordBox" Padding="6,4"/>
+                        </DockPanel>
+
+                        <TextBlock x:Name="VaultFeedbackText" FontSize="12" Foreground="#15803D" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                        <!-- Saved Credentials List (Origin & Username only — NEVER displays plaintext password) -->
+                        <TextBlock Text="Kredensial Tersimpan di Profil Ini:" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                        <ListBox x:Name="VaultCredentialsList" MaxHeight="200">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel LastChildFill="True" Margin="2">
+                                        <Button DockPanel.Dock="Right" Content="Hapus" Click="OnDeleteCredentialClick" Tag="{Binding}"
+                                                Padding="8,2" FontSize="11" Margin="8,0,0,0"/>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Origin}" FontWeight="SemiBold" FontSize="12"/>
+                                            <TextBlock Text="{Binding Username}" Foreground="#4B5563" FontSize="11"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
         </TabControl>
     </DockPanel>
 </Window>

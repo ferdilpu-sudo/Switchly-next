@@ -6,6 +6,7 @@ using System.Windows.Media;
 using Microsoft.Extensions.DependencyInjection;
 using Switchly.App.ViewModels;
 using Switchly.Application.Browser;
+using Switchly.Application.Vault;
 using Switchly.BrowserHost.BrowserAdapters;
 using Switchly.Domain.Profiles;
 
@@ -282,6 +283,62 @@ public partial class BrowserWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show($"Gagal memuat unduhan: {ex.Message}", "Switchly Next", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async void OnAutofillPasswordClick(object sender, RoutedEventArgs e)
+    {
+        if (_activeTab is null || string.IsNullOrWhiteSpace(_activeTab.Address))
+        {
+            return;
+        }
+
+        try
+        {
+            using var scope = App.Services.CreateScope();
+            var vault = scope.ServiceProvider.GetRequiredService<IPasswordVaultService>();
+            var matches = await vault.FindMatchesForUrlAsync(_profile.ProfileId, _activeTab.Address);
+
+            if (matches.Count == 0)
+            {
+                MessageBox.Show(
+                    "Tidak ada kredensial tersimpan di Password Vault profil ini untuk origin halaman saat ini.\n\nTambahkan atau impor CSV password lewat menu Keamanan & Backup → Password Vault.",
+                    "Autofill Password",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            VaultCredentialMatch? selected = matches[0];
+            if (matches.Count > 1)
+            {
+                var picker = new CredentialPickerDialog(matches) { Owner = this };
+                if (picker.ShowDialog() != true)
+                {
+                    return;
+                }
+
+                selected = picker.SelectedMatch;
+            }
+
+            if (selected is null)
+            {
+                return;
+            }
+
+            var filled = await _activeTab.Host.FillLoginFormAsync(selected.Username, selected.Password);
+            if (!filled)
+            {
+                MessageBox.Show(
+                    "Kolom login/password yang terlihat tidak ditemukan di halaman saat ini. Pastikan halaman sudah memuat form login.",
+                    "Autofill Password",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Gagal mengisi kredensial: {ex.Message}", "Autofill Password", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

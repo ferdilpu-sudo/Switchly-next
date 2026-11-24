@@ -1,6 +1,6 @@
 # Implementation Plan — Switchly Next
 
-**Status:** M-007 Complete — Product Owner reopened D1 (D6): implementing Encrypted Password Vault (`ENT-009`), CSV Password Import (`TASK-028`), and Explicit-Click Autofill before M-008  
+**Status:** M-007 & D6 (Password Vault + CSV Import + Explicit-Click Autofill) Complete — ready to begin M-008 (`TASK-034`: resource manager & memory-pressure warnings)  
 **Strategy:** prove the browser engine risk before implementing the full product.
 
 ## 1. Delivery strategy

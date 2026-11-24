@@ -13,6 +13,7 @@ using Switchly.Application.Groups;
 using Switchly.Application.Import;
 using Switchly.Application.Profiles;
 using Switchly.Application.Security;
+using Switchly.Application.Vault;
 using Switchly.BrowserHost.CefBootstrap;
 using Switchly.Infrastructure.Import;
 using Switchly.Infrastructure.Persistence;
@@ -78,9 +79,15 @@ public partial class App : System.Windows.Application
         services.AddScoped<ITabSessionRepository, EfTabSessionRepository>();
         services.AddScoped<IImportJobRepository, EfImportJobRepository>();
         services.AddScoped<IBackupJobRepository, EfBackupJobRepository>();
+        services.AddScoped<IVaultCredentialRepository, EfVaultCredentialRepository>();
         services.AddSingleton<ILocalDataProtector, WindowsDpapiProtector>();
         services.AddSingleton<ILocalSecurityService>(sp =>
             new LocalSecurityService(sp.GetRequiredService<ILocalDataProtector>(), dataDirectory));
+        services.AddScoped<IPasswordVaultService>(sp =>
+            new PasswordVaultService(
+                sp.GetRequiredService<IVaultCredentialRepository>(),
+                sp.GetRequiredService<ILocalDataProtector>(),
+                dataDirectory));
         services.AddScoped<IBackupRestoreService>(sp =>
             new PortableBackupRestoreService(
                 appData,

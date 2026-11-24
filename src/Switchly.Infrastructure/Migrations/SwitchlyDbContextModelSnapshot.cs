@@ -398,6 +398,48 @@ namespace Switchly.Infrastructure.Migrations
                     b.ToTable("TabSessions");
                 });
 
+            modelBuilder.Entity("Switchly.Domain.Vault.VaultCredential", b =>
+                {
+                    b.Property<Guid>("CredentialId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("AuthenticationTag")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CryptoVersion")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<byte[]>("Nonce")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("SecretPayloadCiphertext")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("CredentialId");
+
+                    b.HasIndex("ProfileId", "Origin");
+
+                    b.ToTable("VaultCredentials");
+                });
+
             modelBuilder.Entity("Switchly.Domain.Bookmarks.Bookmark", b =>
                 {
                     b.HasOne("Switchly.Domain.Bookmarks.Bookmark", null)
@@ -454,6 +496,15 @@ namespace Switchly.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("Switchly.Domain.Tabs.BrowserTabSession", b =>
+                {
+                    b.HasOne("Switchly.Domain.Profiles.BrowserProfile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Switchly.Domain.Vault.VaultCredential", b =>
                 {
                     b.HasOne("Switchly.Domain.Profiles.BrowserProfile", null)
                         .WithMany()

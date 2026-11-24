@@ -56,6 +56,8 @@
                         ToolTip="Lihat riwayat profil ini"/>
                 <Button DockPanel.Dock="Right" Content="★ Bookmark" Click="OnBookmarkCurrentClick" Padding="10,4" Margin="6,0,0,0"
                         ToolTip="Simpan halaman ini ke bookmark profil"/>
+                <Button DockPanel.Dock="Right" Content="🔑 Isi" Click="OnAutofillPasswordClick" Padding="10,4" Margin="6,0,0,0"
+                        ToolTip="Isi otomatis username/password dari Password Vault profil ini (hanya origin yang cocok)"/>
                 <Button DockPanel.Dock="Right" Content="Buka" Click="OnNavigateClick" Padding="14,4" Margin="6,0,0,0"/>
                 <TextBox x:Name="AddressBox" VerticalContentAlignment="Center" Padding="6,4" KeyDown="OnAddressBoxKeyDown"
                          ToolTip="Address bar (Ctrl+L)"/>

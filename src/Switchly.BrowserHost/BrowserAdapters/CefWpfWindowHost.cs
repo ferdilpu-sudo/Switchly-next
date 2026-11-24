@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Windows;
 using CefSharp;
 using CefSharp.Wpf;
@@ -77,6 +78,81 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
     }
 
     public void Reload() => _browser.Reload();
+
+    public async Task<bool> FillLoginFormAsync(string username, string password)
+    {
+        if (_disposed || !_browser.IsBrowserInitialized)
+        {
+            return false;
+        }
+
+        var userJson = JsonSerializer.Serialize(username ?? string.Empty);
+        var passJson = JsonSerializer.Serialize(password ?? string.Empty);
+
+        // One-shot IIFE using native HTMLInputElement value setter so React/Vue/Next.js/Angular
+        // controlled inputs (ChatGPT, Google Flow, Dola, SeaArt) receive the updated value cleanly.
+        var script = $$"""
+            (function(u, p) {
+                function isVisible(el) {
+                    if (!el || el.disabled || el.readOnly) return false;
+                    var style = window.getComputedStyle(el);
+                    if (style.display === 'none' || style.visibility === 'hidden') return false;
+                    var rect = el.getBoundingClientRect();
+                    return rect.width > 0 && rect.height > 0;
+                }
+                function setNativeValue(el, val) {
+                    var proto = window.HTMLInputElement && window.HTMLInputElement.prototype;
+                    var desc = proto ? Object.getOwnPropertyDescriptor(proto, 'value') : null;
+                    if (desc && desc.set) {
+                        desc.set.call(el, val);
+                    } else {
+                        el.value = val;
+                    }
+                    el.dispatchEvent(new Event('input', { bubbles: true }));
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                var filled = false;
+                var allInputs = Array.from(document.querySelectorAll('input')).filter(isVisible);
+                var passInput = allInputs.find(function(i) { return (i.type || '').toLowerCase() === 'password'; });
+
+                var userCandidates = allInputs.filter(function(i) {
+                    var t = (i.type || 'text').toLowerCase();
+                    if (t !== 'email' && t !== 'text' && t !== 'tel') return false;
+                    var hint = ((i.name || '') + ' ' + (i.id || '') + ' ' + (i.autocomplete || '') + ' ' + (i.placeholder || '')).toLowerCase();
+                    return t === 'email' || /user|email|login|account|identifier|phone/.test(hint) || !!passInput;
+                });
+
+                var userInput = null;
+                if (passInput && passInput.form) {
+                    userInput = userCandidates.find(function(i) { return i.form === passInput.form; }) || null;
+                }
+                if (!userInput && userCandidates.length > 0) {
+                    userInput = userCandidates[0];
+                }
+
+                if (userInput && u) {
+                    setNativeValue(userInput, u);
+                    filled = true;
+                }
+                if (passInput && p) {
+                    setNativeValue(passInput, p);
+                    filled = true;
+                }
+                return filled;
+            })({{userJson}}, {{passJson}});
+            """;
+
+        try
+        {
+            var response = await _browser.EvaluateScriptAsync(script, timeout: TimeSpan.FromSeconds(5));
+            return response.Success && response.Result is bool ok && ok;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     public void Dispose()
     {

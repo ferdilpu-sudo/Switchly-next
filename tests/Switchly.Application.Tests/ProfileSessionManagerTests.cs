@@ -230,6 +230,8 @@ public class ProfileSessionManagerTests
             LoadingStateChanged?.Invoke(false);
         }
 
+        public Task<bool> FillLoginFormAsync(string username, string password) => Task.FromResult(true);
+
         public void SimulateTitle(string title)
         {
             Title = title;

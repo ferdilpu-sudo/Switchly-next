@@ -1,6 +1,6 @@
 # Switchly Next
 
-> **Project phase:** M-007 complete — M-001..M-004, M-006, and M-007 (Windows DPAPI local protection, optional master-password unlock, manual chunked AES-256-GCM backup, restart-to-restore staging swap; 90/90 tests PASS) verified; next: Encrypted Password Vault + CSV Import (`TASK-028`) + Explicit-Click Autofill (PO decision D6).  
+> **Project phase:** M-007 & D6 complete — M-001..M-004, M-006, M-007 (DPAPI, master-password unlock, chunked AES-256-GCM backup/restore), and D6 (Encrypted Password Vault `ENT-009`, Chrome/Edge CSV import `TASK-028`, explicit-click autofill; 92/92 tests PASS) verified; ready for M-008 (Hardening & QA).  
 > **Product name:** Switchly Next (working name).  
 > **Purpose:** Windows desktop workspace for managing many isolated web browser profiles, tabs and windows.
 
