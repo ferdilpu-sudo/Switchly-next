@@ -19,6 +19,7 @@ public static class Program
         bool singletonTest = false;
         bool noProbe = false;
         bool task004 = false;
+        bool task005 = false;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -42,6 +43,9 @@ public static class Program
                 case "--task-004":
                     task004 = true;
                     break;
+                case "--task-005":
+                    task005 = true;
+                    break;
             }
         }
 
@@ -59,6 +63,12 @@ public static class Program
         {
             var task4Root = root ?? Path.Combine(Path.GetTempPath(), "switchly-engine-spike-task4", Guid.NewGuid().ToString("N"));
             return Task004.Run(task4Root);
+        }
+
+        if (task005)
+        {
+            var task5Root = root ?? Path.Combine(Path.GetTempPath(), "switchly-engine-spike-task5", Guid.NewGuid().ToString("N"));
+            return Task005.Run(task5Root);
         }
 
         var baseDir = root ?? Path.Combine(Path.GetTempPath(), "switchly-engine-spike", Guid.NewGuid().ToString("N"));
