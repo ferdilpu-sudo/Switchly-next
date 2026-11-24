@@ -10,8 +10,8 @@ using Switchly.Domain.Profiles;
 namespace Switchly.App.Navigation;
 
 /// <summary>
-/// Coordinates per-profile BrowserWindow instances: focuses existing window on switch
-/// (design.md §4.1), supports multiple windows per profile (REQ-005), and keeps
+/// Coordinates per-profile multi-tab BrowserWindow instances: focuses existing window on switch
+/// (design.md §4.1), supports multiple windows and tabs per profile (REQ-005), and keeps
 /// profiles strictly isolated (REQ-003).
 /// </summary>
 public sealed class BrowserWindowCoordinator
@@ -52,10 +52,32 @@ public sealed class BrowserWindowCoordinator
 
     public async Task OpenNewWindowForProfileAsync(BrowserProfile profile, string? initialUrl = null)
     {
-        var host = (IWpfBrowserWindowHost)await _sessionManager.OpenWindowAsync(profile.ProfileId, initialUrl);
+        var isFirstWindow = !_openWindows.TryGetValue(profile.ProfileId, out var existingList) || existingList.Count == 0;
+        var urlsToOpen = new List<string>();
+
+        if (isFirstWindow && string.IsNullOrWhiteSpace(initialUrl) && profile.RestoreLastSession)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var tabSessions = scope.ServiceProvider.GetRequiredService<ITabSessionService>();
+            var restored = await tabSessions.GetRestorableTabsAsync(profile.ProfileId);
+            urlsToOpen.AddRange(restored.Select(t => t.Url));
+        }
+
+        if (urlsToOpen.Count == 0)
+        {
+            urlsToOpen.Add(!string.IsNullOrWhiteSpace(initialUrl)
+                ? initialUrl
+                : profile.StartupUrl ?? "about:blank");
+        }
+
+        var initialHost = (IWpfBrowserWindowHost)await _sessionManager.OpenWindowAsync(profile.ProfileId, urlsToOpen[0]);
+
         var window = new BrowserWindow(
             profile,
-            host,
+            initialHost,
+            urlsToOpen[0],
+            async (profileId, url) => (IWpfBrowserWindowHost)await _sessionManager.OpenWindowAsync(profileId, url),
+            (profileId, host) => _sessionManager.CloseWindow(profileId, host),
             p => OpenNewWindowForProfileAsync(p),
             SyncDomainGroupAsync,
             OnWindowClosed);
@@ -68,6 +90,11 @@ public sealed class BrowserWindowCoordinator
 
         list.Add(window);
         window.Show();
+
+        for (var i = 1; i < urlsToOpen.Count; i++)
+        {
+            await window.AddRestoredTabAsync(urlsToOpen[i]);
+        }
     }
 
     public async Task CloseProfileWindowsAsync(Guid profileId)
@@ -94,8 +121,20 @@ public sealed class BrowserWindowCoordinator
         }
     }
 
-    private void OnWindowClosed(Guid profileId, IBrowserWindowHost host, BrowserWindow window)
+    private void OnWindowClosed(Guid profileId, BrowserWindow window)
     {
+        var tabs = window.CaptureOpenTabs();
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var tabSessions = scope.ServiceProvider.GetRequiredService<ITabSessionService>();
+            tabSessions.SaveOpenTabsAsync(profileId, window.WindowId, tabs).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to persist tab session for profile {ProfileId}.", profileId);
+        }
+
         if (_openWindows.TryGetValue(profileId, out var windows))
         {
             windows.Remove(window);
@@ -104,8 +143,6 @@ public sealed class BrowserWindowCoordinator
                 _openWindows.Remove(profileId);
             }
         }
-
-        _sessionManager.CloseWindow(profileId, host);
     }
 
     private async Task SyncDomainGroupAsync(Guid profileId, string url)
@@ -115,11 +152,15 @@ public sealed class BrowserWindowCoordinator
             using var scope = _scopeFactory.CreateScope();
             var groupService = scope.ServiceProvider.GetRequiredService<IGroupService>();
             await groupService.SyncWebsiteDomainGroupAsync(profileId, url);
+
+            var historyService = scope.ServiceProvider.GetRequiredService<IHistoryService>();
+            await historyService.RecordVisitAsync(profileId, url);
+
             GroupsChanged?.Invoke();
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to sync auto WebsiteDomain group for profile {ProfileId}.", profileId);
+            _logger.LogWarning(ex, "Failed to sync domain group / history for profile {ProfileId}.", profileId);
         }
     }
 }

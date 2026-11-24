@@ -67,9 +67,17 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IProfileSessionStore, EfProfileSessionStore>();
         services.AddScoped<IProfileRepository, EfProfileRepository>();
         services.AddScoped<IGroupRepository, EfGroupRepository>();
+        services.AddScoped<IBookmarkRepository, EfBookmarkRepository>();
+        services.AddScoped<IHistoryRepository, EfHistoryRepository>();
+        services.AddScoped<IDownloadRepository, EfDownloadRepository>();
+        services.AddScoped<ITabSessionRepository, EfTabSessionRepository>();
         services.AddSingleton<IProfileStorageDirectory>(_ => new LocalProfileStorageDirectory(ProfilesRootPath, dataDirectory));
         services.AddScoped<IProfileService, ProfileService>();
         services.AddScoped<IGroupService, GroupService>();
+        services.AddScoped<IBookmarkService, BookmarkService>();
+        services.AddScoped<IHistoryService, HistoryService>();
+        services.AddScoped<IDownloadService, DownloadService>();
+        services.AddScoped<ITabSessionService, TabSessionService>();
         services.AddSingleton<IBrowserRuntime, CefBrowserRuntime>();
         services.AddSingleton<IProfileSessionManager, ProfileSessionManager>();
         services.AddSingleton<BrowserWindowCoordinator>();
@@ -111,6 +119,10 @@ public partial class App : System.Windows.Application
         using (var scope = Services.CreateScope())
         {
             scope.ServiceProvider.GetRequiredService<DatabaseHealthCheck>().Check();
+            scope.ServiceProvider.GetRequiredService<IDownloadService>()
+                .MarkInterruptedOnStartupAsync()
+                .GetAwaiter()
+                .GetResult();
         }
 
         var mainWindow = new MainWindow();

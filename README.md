@@ -1,6 +1,6 @@
 # Switchly Next
 
-> **Project phase:** M-003 complete — M-001 CEF PoC, M-002 desktop foundation, and M-003 profile manager & isolated multi-window workspace verified (58/58 tests PASS + manual GUI check); ready for M-004.  
+> **Project phase:** M-004 complete — M-001 CEF PoC, M-002 foundation, M-003 profile manager & multi-window workspace, and M-004 browser essentials (tabs, bookmarks, history, downloads, session restore; 80/80 tests PASS) verified; ready for M-006 (M-005 deferred).  
 > **Product name:** Switchly Next (working name).  
 > **Purpose:** Windows desktop workspace for managing many isolated web browser profiles, tabs and windows.
 
@@ -119,4 +119,4 @@ The original Switchly repository is reference-only. This generation starts from 
 
 ## 11. Current next step
 
-Start **M-004: Browser essentials** (`TASK-016`: tab and window coordination, followed by bookmarks, history, downloads, and session restore).
+Start **M-006: Browser import** (`TASK-023`–`TASK-026`: Chrome/Edge read-only discovery, preview, bookmark/history/open-tab URL import; no cookies/sessions, CSV password vault deferred per D1).

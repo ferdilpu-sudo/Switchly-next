@@ -1,6 +1,6 @@
 # Implementation Plan — Switchly Next
 
-**Status:** M-003 Complete — ready to begin M-004 (`TASK-016`: tab and window coordination)  
+**Status:** M-004 Complete — ready to begin M-006 (`TASK-023`: Chrome/Edge source discovery & profile picker; M-005 deferred)  
 **Strategy:** prove the browser engine risk before implementing the full product.
 
 ## 1. Delivery strategy
@@ -150,7 +150,9 @@ Key assumptions:
 | M-001 | Complete (Win11; Win10 & non-elevated WPF stress carried to M-002/M-008) | `artifacts/engine-spike/engine-version-report.md`, `task-002-results.md` (`TEST-003`/`004`/`017` PASS), `task-003-results.md` (4 providers public + manual sign-in PASS), `task-004-results.md` (`TEST-021` PASS), `task-005-results.md` (`TEST-016` baseline), `task-006-go-nogo.md` |
 | M-002 | Complete | Tier-2 manual sign-in PASS (`task-003-results.md`); `TASK-007`..`010` + D4 migration (`AddProfileFavoritesGroupHiddenAndConstraints`) + D5 `Switchly.BrowserHost` isolation & `Directory.Packages.props` (`10.0.11`) + `app.manifest` (`asInvoker`, `longPathAware`) + CEF `locales\*.pak` (220 files) done; `dotnet format`, `dotnet build -c Release` (0 warnings/0 errors), `dotnet test -c Release` (2/2 PASS), and manual WPF launch (`TEST-001` Win11 / `TEST-014`) confirmed PASS by product owner on 2026-11-24 |
 | M-003 | Complete | `TASK-011`..`015A` done (`ProfileValidation`, `ProfileService`, `ProfileFilter`, `GroupValidation`, `GroupService`, `ProfileSessionManager`, `BrowserWindowCoordinator`, `WorkspaceViewModel`, `MainWindow` UI-001/004, `ProfileEditorDialog` UI-002, `BrowserWindow` UI-003; `Domain.Tests` 39/39, `Application.Tests` 8/8, `Infrastructure.Tests` 11/11 = 58/58 PASS, `dotnet format` PASS, manual multi-profile workspace & browser window check confirmed PASS by product owner on 2026-11-24) |
-| M-004 to M-009 | Not started | Blocked on M-003 completion (M-005 optional/deferred) |
+| M-004 | Complete | `TASK-016`..`019` done (multi-tab `BrowserWindow`, `ProfileLifeSpanHandler`, `ProfileDownloadHandler`, `Bookmark`/`HistoryEntry`/`DownloadRecord`/`BrowserTabSession` + migrations `AddBookmarksAndHistory`, `AddDownloads`, `AddTabSessions` + session restore; `Domain.Tests` 58/58, `Application.Tests` 8/8, `Infrastructure.Tests` 14/14 = 80/80 PASS, `dotnet format` PASS; manual GUI verification confirmed PASS by product owner on 2026-11-24) |
+| M-005 | Deferred (optional) | Optional extension support (`REQ-007`) deferred beyond MVP per product-owner decision |
+| M-006 to M-009 | Not started | Ready to start M-006 (`TASK-023`..`026`; `TASK-028` CSV password vault deferred per D1) |
 
 ## 7. Milestone definition of done
 

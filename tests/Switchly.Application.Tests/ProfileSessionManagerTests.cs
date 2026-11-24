@@ -191,17 +191,54 @@ public class ProfileSessionManagerTests
 
     private sealed class FakeWindowHost(string initialUrl) : IBrowserWindowHost
     {
+        public bool CanGoBack { get; private set; }
+
+        public bool CanGoForward { get; private set; }
+
+        public bool IsLoading { get; private set; }
+
         public string? Address { get; private set; } = initialUrl;
+
+        public string? Title { get; private set; } = "Test Page";
 
         public bool Disposed { get; private set; }
 
         public event Action<string>? AddressChanged;
 
+        public event Action<string>? TitleChanged;
+
+        public event Action<bool>? LoadingStateChanged;
+
+        public event Action<string>? NewTabRequested;
+
+        public event Action<DownloadUpdateEvent>? DownloadUpdated;
+
         public void Navigate(string url)
         {
             Address = url;
+            CanGoBack = true;
             AddressChanged?.Invoke(url);
         }
+
+        public void GoBack() => CanGoForward = true;
+
+        public void GoForward() => CanGoForward = false;
+
+        public void Reload()
+        {
+            IsLoading = false;
+            LoadingStateChanged?.Invoke(false);
+        }
+
+        public void SimulateTitle(string title)
+        {
+            Title = title;
+            TitleChanged?.Invoke(title);
+        }
+
+        public void SimulatePopup(string url) => NewTabRequested?.Invoke(url);
+
+        public void SimulateDownload(DownloadUpdateEvent evt) => DownloadUpdated?.Invoke(evt);
 
         public void Dispose() => Disposed = true;
     }

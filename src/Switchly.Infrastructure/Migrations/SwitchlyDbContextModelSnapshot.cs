@@ -17,6 +17,92 @@ namespace Switchly.Infrastructure.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
 
+            modelBuilder.Entity("Switchly.Domain.Bookmarks.Bookmark", b =>
+                {
+                    b.Property<Guid>("BookmarkId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ParentBookmarkId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("BookmarkId");
+
+                    b.HasIndex("ParentBookmarkId");
+
+                    b.HasIndex("ProfileId", "ParentBookmarkId", "Position");
+
+                    b.ToTable("Bookmarks");
+                });
+
+            modelBuilder.Entity("Switchly.Domain.Downloads.DownloadRecord", b =>
+                {
+                    b.Property<Guid>("DownloadId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("BytesReceived")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MimeType")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("StartedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SuggestedFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TargetPath")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("TotalBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("DownloadId");
+
+                    b.HasIndex("ProfileId", "StartedAtUtc");
+
+                    b.ToTable("Downloads");
+                });
+
             modelBuilder.Entity("Switchly.Domain.Groups.ProfileGroup", b =>
                 {
                     b.Property<Guid>("GroupId")
@@ -75,6 +161,42 @@ namespace Switchly.Infrastructure.Migrations
                     b.HasIndex("GroupId");
 
                     b.ToTable("GroupMemberships");
+                });
+
+            modelBuilder.Entity("Switchly.Domain.History.HistoryEntry", b =>
+                {
+                    b.Property<Guid>("HistoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TransitionKind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("VisitCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("VisitedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("HistoryId");
+
+                    b.HasIndex("ProfileId", "VisitedAtUtc");
+
+                    b.ToTable("HistoryEntries");
                 });
 
             modelBuilder.Entity("Switchly.Domain.Profiles.BrowserProfile", b =>
@@ -141,6 +263,71 @@ namespace Switchly.Infrastructure.Migrations
                     b.ToTable("Profiles");
                 });
 
+            modelBuilder.Entity("Switchly.Domain.Tabs.BrowserTabSession", b =>
+                {
+                    b.Property<Guid>("TabId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("LastActiveAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RestoreState")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("WindowId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("TabId");
+
+                    b.HasIndex("ProfileId", "WindowId", "Position");
+
+                    b.ToTable("TabSessions");
+                });
+
+            modelBuilder.Entity("Switchly.Domain.Bookmarks.Bookmark", b =>
+                {
+                    b.HasOne("Switchly.Domain.Bookmarks.Bookmark", null)
+                        .WithMany()
+                        .HasForeignKey("ParentBookmarkId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Switchly.Domain.Profiles.BrowserProfile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Switchly.Domain.Downloads.DownloadRecord", b =>
+                {
+                    b.HasOne("Switchly.Domain.Profiles.BrowserProfile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Switchly.Domain.Groups.ProfileGroupMembership", b =>
                 {
                     b.HasOne("Switchly.Domain.Groups.ProfileGroup", null)
@@ -149,6 +336,24 @@ namespace Switchly.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Switchly.Domain.Profiles.BrowserProfile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Switchly.Domain.History.HistoryEntry", b =>
+                {
+                    b.HasOne("Switchly.Domain.Profiles.BrowserProfile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Switchly.Domain.Tabs.BrowserTabSession", b =>
+                {
                     b.HasOne("Switchly.Domain.Profiles.BrowserProfile", null)
                         .WithMany()
                         .HasForeignKey("ProfileId")
