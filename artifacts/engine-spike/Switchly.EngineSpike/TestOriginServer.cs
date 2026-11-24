@@ -33,6 +33,13 @@ public sealed class TestOriginServer : IDisposable
         var app = builder.Build();
         app.MapGet("/", () => Results.Text(
             "<!doctype html><title>probe</title><body>ok</body>", "text/html"));
+        app.MapGet("/download", () => Results.Bytes(
+            System.Text.Encoding.UTF8.GetBytes("hello-download"), "text/plain", "probe.txt"));
+        app.MapGet("/popup", () => Results.Text(
+            "<html><body><script>window.open('/popup-target','w');</script></body></html>", "text/html"));
+        app.MapGet("/popup-target", () => Results.Text(
+            "<html><title>popup</title><body>popup-ok</body></html>", "text/html"));
+        app.MapGet("/404", () => Results.NotFound());
 
         app.StartAsync().GetAwaiter().GetResult();
 
