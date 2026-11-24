@@ -20,6 +20,7 @@ public static class Program
         bool noProbe = false;
         bool task004 = false;
         bool task005 = false;
+        bool task003 = false;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -46,6 +47,9 @@ public static class Program
                 case "--task-005":
                     task005 = true;
                     break;
+                case "--task-003":
+                    task003 = true;
+                    break;
             }
         }
 
@@ -69,6 +73,12 @@ public static class Program
         {
             var task5Root = root ?? Path.Combine(Path.GetTempPath(), "switchly-engine-spike-task5", Guid.NewGuid().ToString("N"));
             return Task005.Run(task5Root);
+        }
+
+        if (task003)
+        {
+            var task3Root = root ?? Path.Combine(Path.GetTempPath(), "switchly-engine-spike-task3", Guid.NewGuid().ToString("N"));
+            return Task003.Run(task3Root);
         }
 
         var baseDir = root ?? Path.Combine(Path.GetTempPath(), "switchly-engine-spike", Guid.NewGuid().ToString("N"));
