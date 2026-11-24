@@ -1,6 +1,6 @@
 # Implementation Plan — Switchly Next
 
-**Status:** M-002 Complete — ready to begin M-003 (`TASK-011`: profile CRUD use cases and validation)  
+**Status:** M-003 in progress — `TASK-011` (CRUD), `TASK-012` (locking/tombstone), `TASK-013` (grouping), & `TASK-014` (BrowserHost profile lifecycle; 57/57 tests PASS) done; next: `TASK-015` & `TASK-015A` (workspace UI, multi-window, favorites, search/filter)  
 **Strategy:** prove the browser engine risk before implementing the full product.
 
 ## 1. Delivery strategy
@@ -149,7 +149,8 @@ Key assumptions:
 |---|---|---|
 | M-001 | Complete (Win11; Win10 & non-elevated WPF stress carried to M-002/M-008) | `artifacts/engine-spike/engine-version-report.md`, `task-002-results.md` (`TEST-003`/`004`/`017` PASS), `task-003-results.md` (4 providers public + manual sign-in PASS), `task-004-results.md` (`TEST-021` PASS), `task-005-results.md` (`TEST-016` baseline), `task-006-go-nogo.md` |
 | M-002 | Complete | Tier-2 manual sign-in PASS (`task-003-results.md`); `TASK-007`..`010` + D4 migration (`AddProfileFavoritesGroupHiddenAndConstraints`) + D5 `Switchly.BrowserHost` isolation & `Directory.Packages.props` (`10.0.11`) + `app.manifest` (`asInvoker`, `longPathAware`) + CEF `locales\*.pak` (220 files) done; `dotnet format`, `dotnet build -c Release` (0 warnings/0 errors), `dotnet test -c Release` (2/2 PASS), and manual WPF launch (`TEST-001` Win11 / `TEST-014`) confirmed PASS by product owner on 2026-11-24 |
-| M-003 to M-009 | Not started | Blocked on M-002 completion (M-005 optional/deferred) |
+| M-003 | In progress | `TASK-011`..`014` done (`ProfileValidation`, `ProfileService`, `GroupValidation`, `GroupService`, `ProfileSessionManager`, `EfProfileRepository`, `EfGroupRepository`, `EfProfileSessionStore`, `LocalProfileStorageDirectory` + tombstone queue, `SingleInstanceMutexGuard`, `InProcessProfileLockManager`; `Domain.Tests` 39/39, `Application.Tests` 7/7, `Infrastructure.Tests` 11/11 = 57/57 PASS, `dotnet format` PASS); `TASK-015` & `TASK-015A` remaining |
+| M-004 to M-009 | Not started | Blocked on M-003 completion (M-005 optional/deferred) |
 
 ## 7. Milestone definition of done
 

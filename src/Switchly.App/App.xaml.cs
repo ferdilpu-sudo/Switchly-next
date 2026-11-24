@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using Switchly.App.Diagnostics;
 using Switchly.App.ViewModels;
 using Switchly.Application.Browser;
+using Switchly.Application.Groups;
+using Switchly.Application.Profiles;
 using Switchly.BrowserHost.CefBootstrap;
 using Switchly.Infrastructure.Persistence;
 
@@ -14,6 +16,8 @@ namespace Switchly.App;
 
 public partial class App : System.Windows.Application
 {
+    private IAppInstanceGuard? _instanceGuard;
+    private IProfileSessionManager? _sessionManager;
     private IBrowserRuntime? _browserRuntime;
 
     public static IServiceProvider Services { get; private set; } = null!;
@@ -54,13 +58,39 @@ public partial class App : System.Windows.Application
             builder.AddConsole();
             builder.AddSwitchlyFile(logDirectory);
         });
+        services.AddDbContextFactory<SwitchlyDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
         services.AddDbContext<SwitchlyDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
         services.AddScoped<DatabaseHealthCheck>();
+        services.AddSingleton<IAppInstanceGuard>(_ => new SingleInstanceMutexGuard(ProfilesRootPath));
+        services.AddSingleton<IProfileLockManager, InProcessProfileLockManager>();
+        services.AddSingleton<IProfileSessionStore, EfProfileSessionStore>();
+        services.AddScoped<IProfileRepository, EfProfileRepository>();
+        services.AddScoped<IGroupRepository, EfGroupRepository>();
+        services.AddSingleton<IProfileStorageDirectory>(_ => new LocalProfileStorageDirectory(ProfilesRootPath, dataDirectory));
+        services.AddScoped<IProfileService, ProfileService>();
+        services.AddScoped<IGroupService, GroupService>();
         services.AddSingleton<IBrowserRuntime, CefBrowserRuntime>();
+        services.AddSingleton<IProfileSessionManager, ProfileSessionManager>();
         services.AddSingleton<MainViewModel>();
         Services = services.BuildServiceProvider();
 
+        // Enforce single-instance guard and process deferred profile deletions BEFORE Cef.Initialize() (ADR-011, TEST-017).
+        _instanceGuard = Services.GetRequiredService<IAppInstanceGuard>();
+        if (!_instanceGuard.TryAcquire())
+        {
+            MessageBox.Show(
+                "Switchly Next sudah berjalan. Tutup instance yang sedang aktif terlebih dahulu.",
+                "Switchly Next",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            Shutdown(0);
+            return;
+        }
+
+        Services.GetRequiredService<IProfileStorageDirectory>().ProcessPendingDeletes();
+
         _browserRuntime = Services.GetRequiredService<IBrowserRuntime>();
+        _sessionManager = Services.GetRequiredService<IProfileSessionManager>();
         if (!_browserRuntime.Initialize(ProfilesRootPath))
         {
             MessageBox.Show(
@@ -87,7 +117,9 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _sessionManager?.Dispose();
         _browserRuntime?.Shutdown();
+        _instanceGuard?.Dispose();
         (Services as IDisposable)?.Dispose();
         base.OnExit(e);
     }
