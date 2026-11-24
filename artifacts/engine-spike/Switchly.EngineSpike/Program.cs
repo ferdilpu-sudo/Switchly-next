@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using CefSharp;
 using CefSharp.OffScreen;
 
@@ -5,13 +6,52 @@ namespace Switchly.EngineSpike;
 
 /// <summary>
 /// M-001 TASK-002 PoC: prove per-profile CefRequestContext storage isolation
-/// (TEST-003) and persistence across context recreation (TEST-004).
+/// (TEST-003), persistence across context recreation (TEST-004), and the
+/// process singleton lock on RootCachePath (TEST-017).
 /// </summary>
 public static class Program
 {
     public static int Main(string[] args)
     {
-        var baseDir = Path.Combine(Path.GetTempPath(), "switchly-engine-spike", Guid.NewGuid().ToString("N"));
+        string? root = null;
+        int holdSeconds = 0;
+        string? readyMarker = null;
+        bool singletonTest = false;
+        bool noProbe = false;
+
+        for (int i = 0; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--root" when i + 1 < args.Length:
+                    root = args[++i];
+                    break;
+                case "--hold" when i + 1 < args.Length:
+                    holdSeconds = int.Parse(args[++i]);
+                    break;
+                case "--ready-marker" when i + 1 < args.Length:
+                    readyMarker = args[++i];
+                    break;
+                case "--singleton-test":
+                    singletonTest = true;
+                    break;
+                case "--no-probe":
+                    noProbe = true;
+                    break;
+            }
+        }
+
+        if (singletonTest)
+        {
+            if (root is null)
+            {
+                Console.WriteLine("FAIL  --singleton-test requires --root");
+                return 2;
+            }
+            return SingletonTest(root);
+        }
+
+        var baseDir = root ?? Path.Combine(Path.GetTempPath(), "switchly-engine-spike", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(baseDir);
 
         var lines = new List<string>();
@@ -40,34 +80,49 @@ public static class Program
 
             if (!Cef.Initialize(settings))
             {
-                Console.WriteLine("FAIL  Cef.Initialize returned false (browser process exited early).");
+                var code = Cef.GetExitCode();
+                Console.WriteLine($"FAIL  Cef.Initialize returned false (exit code {(int)code} ({code})).");
                 return 1;
+            }
+
+            if (readyMarker is not null)
+            {
+                File.WriteAllText(readyMarker, "ready");
             }
 
             try
             {
-                // Chrome Runtime only accepts a cache_path that is a DIRECT child of
-                // RootCachePath; deeper paths are rejected ("Cannot create profile").
-                var cacheA = Path.Combine(baseDir, "profile-A");
-                var cacheB = Path.Combine(baseDir, "profile-B");
+                if (!noProbe)
+                {
+                    // Chrome Runtime only accepts a cache_path that is a DIRECT child of
+                    // RootCachePath; deeper paths are rejected ("Cannot create profile").
+                    var cacheA = Path.Combine(baseDir, "profile-A");
+                    var cacheB = Path.Combine(baseDir, "profile-B");
 
-                // TEST-003: write distinct values into two isolated contexts.
-                var a1 = Probe(cacheA, "A", server.Origin);
-                var b1 = Probe(cacheB, "B", server.Origin);
+                    // TEST-003: write distinct values into two isolated contexts.
+                    var a1 = Probe(cacheA, "A", server.Origin);
+                    var b1 = Probe(cacheB, "B", server.Origin);
 
-                // Let CEF flush cookie/localStorage state to disk.
-                Thread.Sleep(1500);
+                    // Let CEF flush cookie/localStorage state to disk.
+                    Thread.Sleep(1500);
 
-                // TEST-004: fresh contexts on the SAME cache paths must reload
-                // the persisted values (and still not see the other profile).
-                var a2 = Probe(cacheA, null, server.Origin);
-                var b2 = Probe(cacheB, null, server.Origin);
+                    // TEST-004: fresh contexts on the SAME cache paths must reload
+                    // the persisted values (and still not see the other profile).
+                    var a2 = Probe(cacheA, null, server.Origin);
+                    var b2 = Probe(cacheB, null, server.Origin);
 
-                lines.Add(Assess("A", a1, a2, "A"));
-                lines.Add(Assess("B", b1, b2, "B"));
+                    lines.Add(Assess("A", a1, a2, "A"));
+                    lines.Add(Assess("B", b1, b2, "B"));
+                }
             }
             finally
             {
+                if (holdSeconds > 0)
+                {
+                    Console.WriteLine($"INFO  holding {holdSeconds}s...");
+                    Thread.Sleep(holdSeconds * 1000);
+                }
+
                 Cef.WaitForBrowsersToClose();
                 Cef.Shutdown();
             }
@@ -89,6 +144,74 @@ public static class Program
         var failed = lines.Any(l => l.StartsWith("FAIL", StringComparison.Ordinal));
         Console.WriteLine(failed ? "RESULT: FAIL" : "RESULT: PASS");
         return failed ? 1 : 0;
+    }
+
+    /// <summary>
+    /// TEST-017: launch a holder process that initializes CEF on a fixed
+    /// RootCachePath, then attempt a second Cef.Initialize on the same path from
+    /// this process. The second initialize must fail (CEF 120+ singleton lock).
+    /// </summary>
+    private static int SingletonTest(string root)
+    {
+        Directory.CreateDirectory(root);
+        var marker = Path.Combine(root, ".ready");
+        File.Delete(marker);
+
+        var exe = Environment.ProcessPath ?? throw new InvalidOperationException("Cannot determine this process path.");
+        var psi = new ProcessStartInfo(exe)
+        {
+            UseShellExecute = false,
+        };
+        psi.ArgumentList.Add("--root");
+        psi.ArgumentList.Add(root);
+        psi.ArgumentList.Add("--no-probe");
+        psi.ArgumentList.Add("--hold");
+        psi.ArgumentList.Add("15");
+        psi.ArgumentList.Add("--ready-marker");
+        psi.ArgumentList.Add(marker);
+
+        using var holder = Process.Start(psi) ?? throw new InvalidOperationException("Could not start holder process.");
+
+        var deadline = DateTime.UtcNow.AddSeconds(25);
+        while (!File.Exists(marker) && DateTime.UtcNow < deadline)
+        {
+            Thread.Sleep(200);
+        }
+
+        if (!File.Exists(marker))
+        {
+            Console.WriteLine("FAIL  TEST-017: holder process did not initialize CEF in time.");
+            try { holder.Kill(entireProcessTree: true); } catch { }
+            return 1;
+        }
+
+        Console.WriteLine("INFO  holder initialized CEF; attempting a second Cef.Initialize on the same RootCachePath...");
+
+        Cef.EnableWaitForBrowsersToClose();
+        var settings = new CefSharp.OffScreen.CefSettings
+        {
+            RootCachePath = root,
+            LogSeverity = LogSeverity.Error,
+        };
+        settings.CefCommandLineArgs.Add("do-not-de-elevate", "1");
+
+        var initialized = Cef.Initialize(settings);
+
+        if (initialized)
+        {
+            Console.WriteLine("FAIL  TEST-017: second process initialized CEF on the same RootCachePath (no singleton lock enforced).");
+            Cef.Shutdown();
+        }
+        else
+        {
+            var code = Cef.GetExitCode();
+            Console.WriteLine($"PASS  TEST-017: second process blocked by singleton lock. Cef.Initialize=false, exit code={(int)code} ({code}).");
+        }
+
+        try { holder.Kill(entireProcessTree: true); } catch { }
+        try { Directory.Delete(root, recursive: true); } catch { }
+
+        return initialized ? 1 : 0;
     }
 
     private static (bool Ok, string Detail) Probe(string cachePath, string? setValue, string origin)

@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-24
 **Harness:** `Switchly.EngineSpike` (console, `net10.0-windows`, `win-x64`)
-**Traceability:** REQ-003 → AC-003 (isolation) → TEST-003; REQ-003 → AC-004 (persistence) → TEST-004.
+**Traceability:** REQ-003 → AC-003 (isolation) → TEST-003, TEST-017; REQ-003 → AC-004 (persistence) → TEST-004.
 
 ## Environment
 
@@ -30,6 +30,12 @@ RESULT: PASS
 
 - **TEST-003 (isolation):** Profile A's `localStorage`/cookie never appear in Profile B and vice-versa.
 - **TEST-004 (persistence):** a fresh `RequestContext` on the same `CachePath` reloads the persisted value from disk.
+- **TEST-017 (single-instance):** a second process attempting `Cef.Initialize` on the same `RootCachePath` is blocked with `Cef.Initialize=false` and exit code `NormalExitProcessNotified` (24).
+
+```
+INFO  holder initialized CEF; attempting a second Cef.Initialize on the same RootCachePath...
+PASS  TEST-017: second process blocked by singleton lock. Cef.Initialize=false, exit code=24 (NormalExitProcessNotified).
+```
 
 ## Findings (non-obvious, affect the architecture)
 
@@ -60,5 +66,4 @@ RESULT: PASS
 
 ## Not covered here
 
-- TEST-017 (two-process single-instance lock) — separate check.
 - WPF window hosting — out of scope for the OffScreen PoC (deferred to M-002).
