@@ -18,6 +18,12 @@ internal static class Task003
         ("SeaArt", "https://seaart.ai"),
     };
 
+    private static readonly (string Name, string Url)[] SignInSites =
+    {
+        ("Google sign-in", "https://accounts.google.com/v3/signin/identifier"),
+        ("ChatGPT login", "https://chatgpt.com/auth/login"),
+    };
+
     public static int Run(string root)
     {
         Directory.CreateDirectory(root);
@@ -50,6 +56,13 @@ internal static class Task003
                 {
                     lines.Add(Probe(name, url, ctx));
                 }
+
+                lines.Add("--- sign-in reachability (non-account, no credentials) ---");
+                foreach (var (name, url) in SignInSites)
+                {
+                    lines.Add(Probe(name, url, ctx));
+                }
+                lines.Add("NOTE  Dola/SeaArt sign-in is SPA-gated (behind JS buttons) — not reachable headlessly without user interaction.");
             }
             finally
             {

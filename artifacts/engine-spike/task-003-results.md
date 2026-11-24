@@ -40,3 +40,17 @@ public-page level. Redirects are canonical-domain normalization
 
 - Uploads, downloads, popups, clipboard, media/WebGL per provider (tier 2).
 - Authenticated workflows (tier 2, requires accounts).
+
+## Sign-in reachability (non-account follow-up, 2026-11-24)
+
+| Provider | Sign-in URL | Result |
+|---|---|---|
+| Google | accounts.google.com/v3/signin/identifier | HTTP 400 "Error 400 (Bad Request)" — inconclusive: could be embedded-browser rejection OR the direct URL lacking flow context |
+| ChatGPT | chatgpt.com/auth/login | HTTP 200, loads (title "ChatGPT") |
+| Dola / SeaArt | — | SPA-gated (sign-in behind JS buttons); not reachable headlessly |
+
+**Conclusion:** sign-in cannot be fully validated in the headless harness.
+ChatGPT's login page loads; Google's sign-in surface returned 400 (needs
+investigation); Dola/SeaArt sign-in is JS-gated. Definitive sign-in validation
+requires the WPF shell (M-002) and the user's accounts.
+
