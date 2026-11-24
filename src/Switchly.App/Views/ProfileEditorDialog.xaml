@@ -1,0 +1,46 @@
+<Window x:Class="Switchly.App.Views.ProfileEditorDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Profil Browser"
+        Height="390" Width="440"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock Text="Nama Profil *" FontWeight="SemiBold" Margin="0,0,0,4"/>
+            <TextBox x:Name="NameBox" MaxLength="80" Padding="6,4"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,10">
+            <TextBlock Text="URL Awal (opsional, http/https)" FontWeight="SemiBold" Margin="0,0,0,4"/>
+            <TextBox x:Name="StartupUrlBox" Padding="6,4" ToolTip="Contoh: https://chatgpt.com"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Margin="0,0,0,10">
+            <TextBlock Text="Warna Label (#RRGGBB, opsional)" FontWeight="SemiBold" Margin="0,0,0,4"/>
+            <TextBox x:Name="ColorHexBox" MaxLength="7" Padding="6,4" ToolTip="Contoh: #1B6EF3"/>
+        </StackPanel>
+
+        <CheckBox Grid.Row="3" x:Name="FavoriteCheck" Content="Tandai sebagai Favorit" Margin="0,4,0,6"/>
+        <CheckBox Grid.Row="4" x:Name="RestoreSessionCheck" Content="Pulihkan sesi terakhir saat dibuka" IsChecked="True" Margin="0,0,0,6"/>
+        <CheckBox Grid.Row="5" x:Name="PersistCookiesCheck" Content="Simpan session cookies antar-restart" IsChecked="True" Margin="0,0,0,8"/>
+
+        <TextBlock Grid.Row="6" x:Name="ErrorText" Foreground="#DC2626" TextWrapping="Wrap" VerticalAlignment="Top"/>
+
+        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Batal" IsCancel="True" Padding="14,6" Margin="0,0,8,0"/>
+            <Button Content="Simpan" IsDefault="True" Click="OnSaveClick" Padding="16,6" Background="#1B6EF3" Foreground="White"/>
+        </StackPanel>
+    </Grid>
+</Window>

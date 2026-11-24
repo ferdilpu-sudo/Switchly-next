@@ -1,0 +1,20 @@
+<Window x:Class="Switchly.App.Views.BrowserWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Height="820" Width="1240"
+        WindowStartupLocation="CenterScreen">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Background="#F3F4F6" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="8,6">
+            <DockPanel>
+                <Border x:Name="ProfileBadge" DockPanel.Dock="Left" CornerRadius="4" Padding="8,4" Margin="0,0,8,0" Background="#1B6EF3">
+                    <TextBlock x:Name="ProfileNameText" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </Border>
+                <Button DockPanel.Dock="Right" Content="Jendela Baru" Click="OnNewWindowClick" Padding="10,4" Margin="6,0,0,0"
+                        ToolTip="Buka jendela tambahan dengan sesi profil yang sama"/>
+                <Button DockPanel.Dock="Right" Content="Buka" Click="OnNavigateClick" Padding="14,4" Margin="6,0,0,0"/>
+                <TextBox x:Name="AddressBox" VerticalContentAlignment="Center" Padding="6,4" KeyDown="OnAddressBoxKeyDown"/>
+            </DockPanel>
+        </Border>
+        <ContentControl x:Name="BrowserContainer"/>
+    </DockPanel>
+</Window>

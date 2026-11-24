@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Switchly.App.Diagnostics;
+using Switchly.App.Navigation;
 using Switchly.App.ViewModels;
 using Switchly.Application.Browser;
 using Switchly.Application.Groups;
@@ -71,6 +72,8 @@ public partial class App : System.Windows.Application
         services.AddScoped<IGroupService, GroupService>();
         services.AddSingleton<IBrowserRuntime, CefBrowserRuntime>();
         services.AddSingleton<IProfileSessionManager, ProfileSessionManager>();
+        services.AddSingleton<BrowserWindowCoordinator>();
+        services.AddSingleton<WorkspaceViewModel>();
         services.AddSingleton<MainViewModel>();
         Services = services.BuildServiceProvider();
 

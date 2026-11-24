@@ -1,6 +1,6 @@
 # Switchly Next
 
-> **Project phase:** M-002 complete — M-001 CEF PoC & Windows 11 provider sign-in validated (`artifacts/engine-spike/`); M-002 desktop foundation (`Switchly.sln`, `Switchly.BrowserHost` isolation, EF Core SQLite baseline, CI/tests, manual Win11 WPF launch) verified; ready for M-003.  
+> **Project phase:** M-003 complete — M-001 CEF PoC, M-002 desktop foundation, and M-003 profile manager & isolated multi-window workspace verified (58/58 tests PASS + manual GUI check); ready for M-004.  
 > **Product name:** Switchly Next (working name).  
 > **Purpose:** Windows desktop workspace for managing many isolated web browser profiles, tabs and windows.
 
@@ -119,4 +119,4 @@ The original Switchly repository is reference-only. This generation starts from 
 
 ## 11. Current next step
 
-Start **M-003: Profile manager and isolation** (`TASK-011`: profile CRUD use cases and validation, followed by `TASK-012`..`TASK-015A`).
+Start **M-004: Browser essentials** (`TASK-016`: tab and window coordination, followed by bookmarks, history, downloads, and session restore).
