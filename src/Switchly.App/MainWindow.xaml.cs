@@ -147,6 +147,21 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnImportBrowserClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new ImportWizardDialog { Owner = this };
+        dialog.ShowDialog();
+    }
+
+    private void OnImportForProfileClick(object sender, RoutedEventArgs e)
+    {
+        if (ExtractItem(sender) is { } item)
+        {
+            var dialog = new ImportWizardDialog(item.ProfileId) { Owner = this };
+            dialog.ShowDialog();
+        }
+    }
+
     private async void OnCreateGroupClick(object sender, RoutedEventArgs e)
     {
         var dialog = new TextInputDialog("Grup Baru", "Masukkan nama grup manual:") { Owner = this };

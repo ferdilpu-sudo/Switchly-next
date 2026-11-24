@@ -199,6 +199,54 @@ namespace Switchly.Infrastructure.Migrations
                     b.ToTable("HistoryEntries");
                 });
 
+            modelBuilder.Entity("Switchly.Domain.Import.ImportJob", b =>
+                {
+                    b.Property<Guid>("ImportJobId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ResultSummaryJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SelectedCategoriesJson")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceBrowser")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceProfileLabel")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("TargetProfileId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ImportJobId");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("TargetProfileId");
+
+                    b.ToTable("ImportJobs");
+                });
+
             modelBuilder.Entity("Switchly.Domain.Profiles.BrowserProfile", b =>
                 {
                     b.Property<Guid>("ProfileId")
@@ -350,6 +398,14 @@ namespace Switchly.Infrastructure.Migrations
                         .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Switchly.Domain.Import.ImportJob", b =>
+                {
+                    b.HasOne("Switchly.Domain.Profiles.BrowserProfile", null)
+                        .WithMany()
+                        .HasForeignKey("TargetProfileId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("Switchly.Domain.Tabs.BrowserTabSession", b =>

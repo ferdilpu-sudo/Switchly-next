@@ -1,6 +1,6 @@
 # Switchly Next
 
-> **Project phase:** M-004 complete — M-001 CEF PoC, M-002 foundation, M-003 profile manager & multi-window workspace, and M-004 browser essentials (tabs, bookmarks, history, downloads, session restore; 80/80 tests PASS) verified; ready for M-006 (M-005 deferred).  
+> **Project phase:** M-006 complete — M-001 CEF PoC, M-002 foundation, M-003 profile manager & multi-window workspace, M-004 browser essentials, and M-006 browser import (Chrome/Edge discovery, bookmarks, history, open-tab SNSS, Import Wizard; 86/86 tests PASS) verified; ready for M-007 (M-005 deferred).  
 > **Product name:** Switchly Next (working name).  
 > **Purpose:** Windows desktop workspace for managing many isolated web browser profiles, tabs and windows.
 

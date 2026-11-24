@@ -52,7 +52,9 @@
                 <DockPanel>
                     <Button DockPanel.Dock="Right" Content="+ Profil Baru" Click="OnNewProfileClick"
                             Background="#1B6EF3" Foreground="White" FontWeight="SemiBold" Padding="14,6" Margin="10,0,0,0"/>
-                    <TextBox DockPanel.Dock="Right" Width="260" VerticalContentAlignment="Center" Padding="8,5"
+                    <Button DockPanel.Dock="Right" Content="Impor Browser" Click="OnImportBrowserClick"
+                            Padding="12,6" Margin="10,0,0,0" ToolTip="Impor bookmark, riwayat, atau tab terbuka dari Chrome/Edge (baca-saja)"/>
+                    <TextBox DockPanel.Dock="Right" Width="240" VerticalContentAlignment="Center" Padding="8,5"
                              Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                              ToolTip="Cari profil berdasarkan nama atau URL"/>
                     <TextBlock Text="{Binding SectionTitle}" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -110,6 +112,7 @@
                                         <MenuItem Header="Ubah Profil" Click="OnEditProfileClick" Tag="{Binding}"/>
                                         <MenuItem Header="Favorit / Hapus Favorit" Click="OnToggleFavoriteClick" Tag="{Binding}"/>
                                         <MenuItem Header="Duplikat Konfigurasi (Tanpa Sesi)" Click="OnDuplicateProfileClick" Tag="{Binding}"/>
+                                        <MenuItem Header="Impor dari Chrome/Edge..." Click="OnImportForProfileClick" Tag="{Binding}"/>
                                         <MenuItem Header="Arsipkan / Pulihkan" Click="OnToggleArchiveClick" Tag="{Binding}"/>
                                         <Separator/>
                                         <MenuItem Header="Hapus Profil" Click="OnDeleteProfileClick" Tag="{Binding}"/>

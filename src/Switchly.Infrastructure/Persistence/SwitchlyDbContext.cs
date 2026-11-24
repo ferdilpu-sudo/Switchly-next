@@ -3,6 +3,7 @@ using Switchly.Domain.Bookmarks;
 using Switchly.Domain.Downloads;
 using Switchly.Domain.Groups;
 using Switchly.Domain.History;
+using Switchly.Domain.Import;
 using Switchly.Domain.Profiles;
 using Switchly.Domain.Tabs;
 
@@ -29,6 +30,8 @@ public sealed class SwitchlyDbContext : DbContext
     public DbSet<DownloadRecord> Downloads => Set<DownloadRecord>();
 
     public DbSet<BrowserTabSession> TabSessions => Set<BrowserTabSession>();
+
+    public DbSet<ImportJob> ImportJobs => Set<ImportJob>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -134,6 +137,22 @@ public sealed class SwitchlyDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(t => t.ProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ImportJob>(e =>
+        {
+            e.HasKey(j => j.ImportJobId);
+            e.Property(j => j.SourceBrowser).HasConversion<string>().HasMaxLength(16);
+            e.Property(j => j.SourceProfileLabel).IsRequired().HasMaxLength(200);
+            e.Property(j => j.SelectedCategoriesJson).IsRequired().HasMaxLength(256);
+            e.Property(j => j.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(j => j.ResultSummaryJson).IsRequired();
+            e.HasIndex(j => j.CreatedAtUtc);
+
+            e.HasOne<BrowserProfile>()
+                .WithMany()
+                .HasForeignKey(j => j.TargetProfileId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

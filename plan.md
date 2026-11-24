@@ -1,6 +1,6 @@
 # Implementation Plan — Switchly Next
 
-**Status:** M-004 Complete — ready to begin M-006 (`TASK-023`: Chrome/Edge source discovery & profile picker; M-005 deferred)  
+**Status:** M-006 Complete — ready to begin M-007 (`TASK-029`: local DPAPI protection & unlock key handling; M-005 deferred)  
 **Strategy:** prove the browser engine risk before implementing the full product.
 
 ## 1. Delivery strategy
