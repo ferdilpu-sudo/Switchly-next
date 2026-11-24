@@ -11,17 +11,18 @@
     <SelfContained>false</SelfContained>
     <RootNamespace>Switchly.App</RootNamespace>
     <AssemblyName>Switchly.App</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CefSharp.Wpf.NETCore" Version="156.0.300" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="11.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="11.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Switchly.Application\Switchly.Application.csproj" />
+    <ProjectReference Include="..\Switchly.BrowserHost\Switchly.BrowserHost.csproj" />
     <ProjectReference Include="..\Switchly.Infrastructure\Switchly.Infrastructure.csproj" />
   </ItemGroup>
 

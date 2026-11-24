@@ -15,6 +15,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Switchly.Infrastructure", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Switchly.BrowserHost", "src\Switchly.BrowserHost\Switchly.BrowserHost.csproj", "{CCE3F072-2FBE-4F8E-8277-37FB59D1D32E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Switchly.Infrastructure.Tests", "tests\Switchly.Infrastructure.Tests\Switchly.Infrastructure.Tests.csproj", "{E2F26C76-6A73-46A2-B9E1-5C5D540212DA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +89,18 @@ Global
 		{CCE3F072-2FBE-4F8E-8277-37FB59D1D32E}.Release|x64.Build.0 = Release|Any CPU
 		{CCE3F072-2FBE-4F8E-8277-37FB59D1D32E}.Release|x86.ActiveCfg = Release|Any CPU
 		{CCE3F072-2FBE-4F8E-8277-37FB59D1D32E}.Release|x86.Build.0 = Release|Any CPU
+		{E2F26C76-6A73-46A2-B9E1-5C5D540212DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E2F26C76-6A73-46A2-B9E1-5C5D540212DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E2F26C76-6A73-46A2-B9E1-5C5D540212DA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E2F26C76-6A73-46A2-B9E1-5C5D540212DA}.Debug|x64.Build.0 = Debug|Any CPU
+		{E2F26C76-6A73-46A2-B9E1-5C5D540212DA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E2F26C76-6A73-46A2-B9E1-5C5D540212DA}.Debug|x86.Build.0 = Debug|Any CPU
+		{E2F26C76-6A73-46A2-B9E1-5C5D540212DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E2F26C76-6A73-46A2-B9E1-5C5D540212DA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E2F26C76-6A73-46A2-B9E1-5C5D540212DA}.Release|x64.ActiveCfg = Release|Any CPU
+		{E2F26C76-6A73-46A2-B9E1-5C5D540212DA}.Release|x64.Build.0 = Release|Any CPU
+		{E2F26C76-6A73-46A2-B9E1-5C5D540212DA}.Release|x86.ActiveCfg = Release|Any CPU
+		{E2F26C76-6A73-46A2-B9E1-5C5D540212DA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -95,5 +111,6 @@ Global
 		{C2398106-02E7-47E0-B578-88545CD165F4} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{9EE9A54B-C254-420E-9BF9-ACDE00D9BD5B} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{CCE3F072-2FBE-4F8E-8277-37FB59D1D32E} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{E2F26C76-6A73-46A2-B9E1-5C5D540212DA} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

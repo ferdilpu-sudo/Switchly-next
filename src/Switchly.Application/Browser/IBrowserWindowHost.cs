@@ -6,4 +6,6 @@ public interface IBrowserWindowHost : IDisposable
     void Navigate(string url);
 
     string? Address { get; }
+
+    event Action<string>? AddressChanged;
 }

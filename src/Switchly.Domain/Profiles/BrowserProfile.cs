@@ -21,9 +21,11 @@ public sealed class BrowserProfile
 
     public DateTimeOffset? LastOpenedAtUtc { get; set; }
 
+    public bool IsFavorite { get; set; }
+
     public bool IsArchived { get; set; }
 
     public bool RestoreLastSession { get; set; } = true;
 
-    public bool PersistSessionCookies { get; set; }
+    public bool PersistSessionCookies { get; set; } = true;
 }

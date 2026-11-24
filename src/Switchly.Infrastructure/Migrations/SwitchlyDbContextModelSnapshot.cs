@@ -30,6 +30,11 @@ namespace Switchly.Infrastructure.Migrations
                         .HasMaxLength(253)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsHidden")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -45,7 +50,9 @@ namespace Switchly.Infrastructure.Migrations
 
                     b.HasKey("GroupId");
 
-                    b.HasIndex("Kind", "DomainKey");
+                    b.HasIndex("Kind", "DomainKey")
+                        .IsUnique()
+                        .HasFilter("\"Kind\" = 'WebsiteDomain'");
 
                     b.ToTable("Groups");
                 });
@@ -64,6 +71,8 @@ namespace Switchly.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("ProfileId", "GroupId");
+
+                    b.HasIndex("GroupId");
 
                     b.ToTable("GroupMemberships");
                 });
@@ -86,7 +95,14 @@ namespace Switchly.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsArchived")
-                        .HasColumnType("INTEGER");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsFavorite")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTimeOffset?>("LastOpenedAtUtc")
                         .HasColumnType("TEXT");
@@ -97,10 +113,14 @@ namespace Switchly.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("PersistSessionCookies")
-                        .HasColumnType("INTEGER");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
 
                     b.Property<bool>("RestoreLastSession")
-                        .HasColumnType("INTEGER");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("StartupUrl")
                         .HasMaxLength(2048)
@@ -115,7 +135,25 @@ namespace Switchly.Infrastructure.Migrations
 
                     b.HasKey("ProfileId");
 
+                    b.HasIndex("StorageRelativePath")
+                        .IsUnique();
+
                     b.ToTable("Profiles");
+                });
+
+            modelBuilder.Entity("Switchly.Domain.Groups.ProfileGroupMembership", b =>
+                {
+                    b.HasOne("Switchly.Domain.Groups.ProfileGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Switchly.Domain.Profiles.BrowserProfile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
