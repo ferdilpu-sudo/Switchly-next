@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Switchly.Application\Switchly.Application.csproj" />
+    <ProjectReference Include="..\Switchly.Infrastructure\Switchly.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
