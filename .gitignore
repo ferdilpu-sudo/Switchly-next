@@ -7,7 +7,6 @@
 
 # Local browser/profile data and test secrets
 **/BrowserData/
-**/Profiles/
 **/UserData/
 *.db-wal
 *.db-shm
