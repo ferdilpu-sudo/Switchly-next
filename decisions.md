@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | ADR-001 | Proposed | WPF + MVVM desktop shell | REQ-001, REQ-005 | Accessibility or shell limitations discovered |
 | ADR-002 | Proposed | .NET 10 LTS | REQ-001, REQ-014 | Win10 Home/Pro support requirement conflicts |
-| ADR-003 | Proposed | C# + WPF + CEF (Chrome Runtime) through CefSharp | REQ-001, REQ-003, REQ-005 | Priority-site compatibility or isolation fails |
+| ADR-003 | Validated | C# + WPF + CEF (Chrome Runtime) through CefSharp | REQ-001, REQ-003, REQ-005 | Priority-site sign-in fails in M-002 |
 | ADR-004 | Proposed | SQLite for app metadata; CEF owns browser storage | REQ-002, REQ-006 | Local data volume/performance demands |
 | ADR-005 | Proposed | DPAPI local key wrapping + optional master password/Hello unlock | REQ-010 | Threat model or account recovery issues |
 | ADR-006 | Proposed | AES-GCM encrypted portable backup | REQ-011 | KDF performance/interoperability |
@@ -17,7 +17,7 @@
 | ADR-008 | Open | MSIX vs signed setup installer | REQ-014 | Installation/update PoC |
 | ADR-009 | Confirmed scope | No registration for basic use; Pro login only for upgrade/activation | REQ-012, REQ-013 | Product business model evolves |
 | ADR-010 | Confirmed scope | No source cookies/session import | REQ-009 | Product owner explicitly expands scope |
-| ADR-011 | Proposed | Profile dirs are direct children of RootCachePath | REQ-003 | CEF profile-path rules change |
+| ADR-011 | Validated | Profile dirs are direct children of RootCachePath | REQ-003 | CEF profile-path rules change |
 
 ## 2. ADR-001 — WPF desktop shell
 
@@ -44,7 +44,7 @@
 
 ## 4. ADR-003 — Embedded browser engine
 
-- **Status:** Proposed; implementation candidate, not yet validated in a Windows runtime.
+- **Status:** Validated by M-001 (isolation TEST-003/004/017, browser behavior TEST-021, resource baseline, provider public pages). Provider sign-in remains unvalidated — first M-002 gate.
 - **Context:** Switchly Next needs one integrated desktop UI with embedded Chromium browsing, per-profile storage isolation, tabs, and managed windows. The product owner explicitly excludes WebView2. Extension support is not a priority.
 - **Options:**
   - CefSharp + CEF (Chrome Runtime): direct WPF integration and Chromium embedding; CEF lifecycle, native packaging, security patching, and website compatibility remain engineering responsibilities.
@@ -113,7 +113,7 @@
 
 ## 12. ADR-011 — Profile storage layout under Chrome Runtime
 
-- **Status:** Proposed.
+- **Status:** Validated (verified by M-001 TASK-002).
 - **Context:** CEF 156 runs Chrome Runtime exclusively. In Chrome Runtime, a request context's `CachePath` is accepted only as a **direct child** of `CefSettings.RootCachePath`; a deeper path is rejected (`Cannot create profile at path`) and CEF silently falls back to an in-memory (off-the-record) profile — persistence fails with no obvious error. Verified by the M-001 TASK-002 spike.
 - **Decision:** Set `CefSettings.RootCachePath = %LOCALAPPDATA%\SwitchlyNext\Profiles`; each profile's `RequestContextSettings.CachePath = %LOCALAPPDATA%\SwitchlyNext\Profiles\<profile-guid>` (a direct child). This preserves the documented per-profile path.
 - **Consequences:** `Profiles` doubles as CEF's user-data dir, so it also holds CEF global state (an unused "Default" profile + cache). Backups must copy only `<profile-guid>` directories, never CEF global state. Empty `CachePath` = in-memory only, never for account browsing.

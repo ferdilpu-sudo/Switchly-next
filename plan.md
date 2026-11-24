@@ -1,6 +1,6 @@
 # Implementation Plan — Switchly Next
 
-**Status:** M-001 in progress — TASK-001, TASK-002, TASK-004 PoCs complete; TASK-003 (providers) and TASK-005 (resource) remaining; no product application code yet  
+**Status:** M-002 in progress — M-001 complete (all PoCs pass; provider sign-in deferred to M-002 first gate); starting desktop foundation  
 **Strategy:** prove the browser engine risk before implementing the full product.
 
 ## 1. Delivery strategy
@@ -147,7 +147,8 @@ Key assumptions:
 
 | Milestone | Status | Evidence |
 |---|---|---|
-| M-001 | In progress | TASK-001, TASK-002 (TEST-003/004/017), TASK-004 (TEST-021) complete; TASK-003/005 not started |
+| M-001 | Complete | TASK-001..006 done; all tested must-haves PASS; provider sign-in deferred to M-002 first gate |
+| M-002 | In progress | First gate: minimal WPF shell + embedded browser for provider sign-in |
 | M-002 to M-009 | Not started | No code or test execution has been performed |
 
 ## 7. Milestone definition of done
