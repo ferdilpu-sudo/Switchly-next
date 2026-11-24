@@ -16,7 +16,7 @@ Switchly Next is designed to reduce repeated logout/login when working with many
 |---|---|---|
 | Desktop UI | C# / WPF / MVVM | Windows desktop shell |
 | Runtime | .NET 10 LTS | Windows 11 primary; Windows 10 compatibility requires policy validation |
-| Embedded browser | CefSharp + standard CEF runtime | Candidate; pin exact compatible versions after M-001 |
+| Embedded browser | CefSharp + CEF (Chrome Runtime) | Candidate; pin exact compatible versions after M-001 |
 | Metadata | SQLite + EF Core | Application metadata only |
 | Local vault key | Windows DPAPI | Current Windows user |
 | Optional unlock | Master password / Windows Hello | Exact unlock flow requires implementation spike |
@@ -113,7 +113,7 @@ The original Switchly repository is reference-only. This generation starts from 
 
 ## 10. Important known limitations
 
-- Extension support is not a core requirement. Do not require CEF Chrome Runtime or promise Chrome Web Store parity.
+- Extension support is not a core requirement. Chrome Runtime is the only CEF mode from CEF 156+; do not promise Chrome Web Store extension parity.
 - Profile storage is isolated per context; test this before any product work.
 - Chrome/Edge cookies and login sessions are intentionally not imported.
 - Passwords are only imported from a CSV file explicitly exported and selected by the user; plaintext CSV handling needs strong warnings.

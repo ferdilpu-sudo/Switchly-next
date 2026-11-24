@@ -105,7 +105,7 @@ Antigravity App and Antigravity for IDEs are the documented EGM installation tar
 - EGM is a methodology and reviewer tool. It does not override product-owner decisions or silently rewrite approved scope.
 - The legacy Switchly WebView2 repository is reference-only. Switchly Next is built from a clean source tree.
 - WebView2 is explicitly excluded. Do not introduce it as a fallback.
-- Standard CEF via CefSharp is the current candidate; exact versions and compatibility remain gated by M-001.
+- CEF (Chrome Runtime) via CefSharp is the current candidate; exact versions and compatibility remain gated by M-001.
 - Extensions are optional, not MVP-critical.
 - Respect provider policies and applicable age/eligibility requirements; do not attempt to bypass them.
 

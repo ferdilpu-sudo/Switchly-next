@@ -20,7 +20,7 @@ The new product must:
 - Respect provider authentication, age, safety, anti-abuse, and acceptable-use policies. Never bypass sign-in protections, age gates, CAPTCHA, account restrictions, or embedded-browser restrictions.
 - Use local-first storage and encrypted backup as defined by the project documents.
 
-Current technology baseline is a **proposal**, not a license to skip validation: C# + WPF/MVVM + .NET 10 candidate + standard CEF through CefSharp + SQLite/EF Core + Windows DPAPI + AES-256-GCM encrypted backup. WebView2 is excluded. Exact CEF/CefSharp/package/runtime versions must be pinned only after M-001 compatibility and packaging verification. Do not switch to Rust, Electron, Tauri, WebView2, or a custom Chromium fork without a decision recorded by the product owner in `decisions.md`.
+Current technology baseline is a **proposal**, not a license to skip validation: C# + WPF/MVVM + .NET 10 candidate + CEF (Chrome Runtime) through CefSharp + SQLite/EF Core + Windows DPAPI + AES-256-GCM encrypted backup. WebView2 is excluded. Exact CEF/CefSharp/package/runtime versions must be pinned only after M-001 compatibility and packaging verification. Do not switch to Rust, Electron, Tauri, WebView2, or a custom Chromium fork without a decision recorded by the product owner in `decisions.md`.
 
 ## 2. Canonical project documents
 
@@ -113,7 +113,7 @@ Use the skill names exposed by the installed plugin in the current Antigravity s
 - No privileged native API may be exposed to websites through an unrestricted JavaScript bridge.
 - Never store website passwords, cookies, OAuth tokens, or browser-session material in the application SQLite database or logs.
 - Do not promise that a provider will accept embedded CEF. If a priority website blocks embedded login, respect that restriction and report the tested behavior; do not spoof user-agent or circumvent provider safeguards.
-- Do not implement extensions as a blocker or add Chrome Runtime complexity unless the product owner reopens `REQ-007`.
+- Do not implement extensions as a blocker or add Chrome Runtime **extension API** complexity unless the product owner reopens `REQ-007`.
 
 ## 6. Testing and evidence
 

@@ -25,14 +25,14 @@ Priority provider compatibility targets: Google Flow (https://flow.google), Chat
 |---|---|---|---|---|
 | Desktop UI | C# + WPF, MVVM | Mature Windows desktop UI; cocok untuk sidebar, multi-window, accessibility | Windows-only; binding ke native browser control | ADR-001 |
 | Runtime | .NET 10 LTS | LTS modern dan tooling matang | Win10 Home/Pro tidak tercantum sebagai supported OS pada matrix .NET 10; perlu policy compatibility | ADR-002 |
-| Embedded browser | CefSharp WPF 156.x / CEF 156.x candidate | Chromium embedded, WPF integration, per-profile request contexts | extensions are optional and may have limited compatibility | ADR-003 |
+| Embedded browser | CefSharp WPF 156.x / CEF 156.x candidate | Chromium embedded, WPF integration, per-profile request contexts | Chrome Runtime is the only mode in CEF 156+ (Alloy removed); extensions are optional and may have limited compatibility | ADR-003 |
 | Local metadata | SQLite + EF Core 10.x | Local relational data and migrations | DB owns metadata only, not Chromium's internal data | ADR-004 |
 | Local secrets | Windows DPAPI / Windows Hello integration | Local key protection tied to Windows user/device | Cross-device restore must use separate portable archive key | ADR-005 |
 | Backup encryption | AES-256-GCM + password-derived key | Authenticated encryption; portable archive | Passphrase recovery unavailable; KDF parameters need testing | ADR-006 |
 | Logging | Microsoft.Extensions.Logging + rolling local files | Structured diagnostic events | Redact URLs/credentials as needed; opt-in diagnostics policy TBD | ADR-007 |
 | Installer | MSIX or signed installer candidate | Predictable Windows install/update | Select after install/update PoC and signing-cost decision | ADR-008 |
 
-**Package note:** current NuGet listing shows `CefSharp.Wpf.NETCore 156.0.150` (published 4 Nov 2026). The release/CEF runtime version must be pinned together and rechecked before implementation. See [CefSharp package](https://www.nuget.org/packages/CefSharp.Wpf.NETCore/) and [CefSharp repository](https://github.com/cefsharp/CefSharp).
+**Package note:** the engine spike (TASK-001) pins `CefSharp.Wpf.NETCore 156.0.300` (CEF 156.0.30 + chromium-156.0.8078.96). The release/CEF runtime version must be pinned together and rechecked before implementation. See [CefSharp package](https://www.nuget.org/packages/CefSharp.Wpf.NETCore/) and [CefSharp repository](https://github.com/cefsharp/CefSharp).
 
 ## 3. System context
 
@@ -237,7 +237,7 @@ Controls:
 `M-001` is a browser-engine proof-of-concept, not full UI development. It must test:
 - Per-profile isolated `CefRequestContext` directories.
 - Cookie/localStorage separation and persistence across restart.
-- CEF Standard CEF runtime startup and WPF window hosting.
+- CEF (Chrome Runtime) startup and WPF window hosting.
 - Optional extension loading only if supported by the selected CEF distribution; no Chrome Web Store parity commitment.
 - Extension UI/permissions/update/uninstall are deferred beyond MVP.
 - Download handling and popup/new-window behavior.

@@ -170,7 +170,7 @@ Pengguna yang mengelola banyak akun website mengalami kerepotan karena harus log
 | Item | Status | Asumsi sementara | Dampak / pemilik |
 |---|---|---|---|
 | Nama Switchly Next | Asumsi | Nama kerja saja | Product owner menetapkan branding sebelum beta. |
-| CEF runtime | Usulan teknis | Gunakan runtime CEF standar melalui CefSharp; Chrome Runtime khusus tidak menjadi kebutuhan karena ekstensi bukan prioritas | Kandidat tetap memerlukan verifikasi build, lisensi, stabilitas, dan kompatibilitas situs pada M-001. |
+| CEF runtime | Usulan teknis | Gunakan CEF (Chrome Runtime, satu-satunya mode sejak CEF 128) melalui CefSharp; penggunaan **API ekstensi** Chrome Runtime bukan prioritas karena ekstensi opsional | Kandidat tetap memerlukan verifikasi build, lisensi, stabilitas, dan kompatibilitas situs pada M-001. |
 | Ekstensi Chromium | Dikonfirmasi bukan prioritas | Tidak menjadi syarat MVP; dukungan terbatas dapat dievaluasi setelah browser inti stabil | Product owner dapat menentukan cakupan opsional setelah ada bukti kompatibilitas. |
 | Windows 10 Home/Pro | Terbuka | Best-effort compatibility | Tetapkan dukungan resmi sebelum rilis publik. |
 | Free vs Pro | Terbuka | Semua fitur dasar berjalan tanpa registrasi; fitur premium belum dibatasi | Tentukan benefit, limit, harga, backend, dan refund/support policy. |

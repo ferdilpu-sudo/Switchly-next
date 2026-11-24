@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | ADR-001 | Proposed | WPF + MVVM desktop shell | REQ-001, REQ-005 | Accessibility or shell limitations discovered |
 | ADR-002 | Proposed | .NET 10 LTS | REQ-001, REQ-014 | Win10 Home/Pro support requirement conflicts |
-| ADR-003 | Proposed | C# + WPF + standard CEF through CefSharp | REQ-001, REQ-003, REQ-005 | Priority-site compatibility or isolation fails |
+| ADR-003 | Proposed | C# + WPF + CEF (Chrome Runtime) through CefSharp | REQ-001, REQ-003, REQ-005 | Priority-site compatibility or isolation fails |
 | ADR-004 | Proposed | SQLite for app metadata; CEF owns browser storage | REQ-002, REQ-006 | Local data volume/performance demands |
 | ADR-005 | Proposed | DPAPI local key wrapping + optional master password/Hello unlock | REQ-010 | Threat model or account recovery issues |
 | ADR-006 | Proposed | AES-GCM encrypted portable backup | REQ-011 | KDF performance/interoperability |
@@ -46,11 +46,11 @@
 - **Status:** Proposed; implementation candidate, not yet validated in a Windows runtime.
 - **Context:** Switchly Next needs one integrated desktop UI with embedded Chromium browsing, per-profile storage isolation, tabs, and managed windows. The product owner explicitly excludes WebView2. Extension support is not a priority.
 - **Options:**
-  - CefSharp + standard CEF runtime: direct WPF integration and Chromium embedding; CEF lifecycle, native packaging, security patching, and website compatibility remain engineering responsibilities.
+  - CefSharp + CEF (Chrome Runtime): direct WPF integration and Chromium embedding; CEF lifecycle, native packaging, security patching, and website compatibility remain engineering responsibilities.
   - Rust + CEF bindings: native memory-safety advantages in application code, but a different Windows UI integration path and a higher implementation burden for the current WPF concept.
   - Launch installed Chrome: best Chrome fidelity but violates the requirement for an integrated browser surface.
   - WebView2: excluded by explicit product-owner decision; do not add it as a fallback.
-- **Decision:** Use C# + WPF + CefSharp/CEF as the current implementation proposal. Use the standard CEF runtime; do not make CEF Chrome Runtime or Chrome Web Store parity a requirement. Validate the chosen CefSharp/CEF version and four priority websites in M-001.
+- **Decision:** Use C# + WPF + CefSharp/CEF as the current implementation proposal. CEF 156+ ships **Chrome Runtime exclusively** (the Alloy bootstrap was removed in CEF 128), so Chrome Runtime is the baseline runtime rather than an option to avoid. The earlier "standard CEF vs Chrome Runtime" distinction is obsolete. What remains deferred and optional is the use of Chrome Runtime's **extension APIs** and any Chrome Web Store parity — neither is an MVP requirement. Validate the chosen CefSharp/CEF version and four priority websites in M-001.
 - **Consequences:** The first technical gate tests browser embedding, persistent profile isolation, popups, downloads, video/WebGL, provider sign-in behavior, and resource use. Extensions remain optional. A website that rejects embedded user agents must not be bypassed; document the limitation and request a product decision if it blocks a priority workflow.
 - **Revisit when:** CefSharp/CEF cannot meet basic integrated browser requirements, supported target Windows versions, or the required website workflows.
 - **Related:** `REQ-001`, `REQ-003`, `REQ-005`, `REQ-007`, `AC-003`, `TEST-003`, `M-001`.
