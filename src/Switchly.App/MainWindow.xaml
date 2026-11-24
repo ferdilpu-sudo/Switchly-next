@@ -36,7 +36,8 @@
                         <DataTemplate>
                             <DockPanel LastChildFill="True">
                                 <Button DockPanel.Dock="Right" Content="×" Click="OnHideGroupClick" Tag="{Binding}"
-                                        Padding="4,0" FontSize="11" ToolTip="Sembunyikan grup website ini" Background="Transparent" BorderThickness="0"/>
+                                        Padding="4,0" FontSize="11" ToolTip="Sembunyikan grup website ini"
+                                        AutomationProperties.Name="Sembunyikan grup website" Background="Transparent" BorderThickness="0"/>
                                 <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
                             </DockPanel>
                         </DataTemplate>
@@ -76,6 +77,21 @@
                     </Style>
                 </Border.Style>
                 <TextBlock Text="{Binding ErrorMessage}" Foreground="#B91C1C" TextWrapping="Wrap"/>
+            </Border>
+
+            <!-- Non-Modal Memory Pressure Warning Banner (TASK-038A, REQ-018, TEST-026) -->
+            <Border DockPanel.Dock="Top" Background="#FEF3C7" BorderBrush="#F59E0B" BorderThickness="0,0,0,1" Padding="14,8">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasMemoryWarning}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock Text="{Binding MemoryWarningMessage}" Foreground="#92400E" TextWrapping="Wrap"/>
             </Border>
 
             <!-- Footer Status Bar -->
@@ -125,7 +141,7 @@
 
                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                                         <Button Content="{Binding FavoriteGlyph}" Click="OnToggleFavoriteClick" Tag="{Binding}"
-                                                Padding="8,4" Margin="0,0,6,0" ToolTip="Favorit"/>
+                                                Padding="8,4" Margin="0,0,6,0" ToolTip="Favorit" AutomationProperties.Name="Tandai atau hapus favorit"/>
                                         <Button Content="Buka" Click="OnOpenProfileClick" Tag="{Binding}"
                                                 Background="#1B6EF3" Foreground="White" Padding="12,4" Margin="0,0,6,0"/>
                                         <Button Content="Ubah" Click="OnEditProfileClick" Tag="{Binding}" Padding="10,4" Margin="0,0,6,0"/>

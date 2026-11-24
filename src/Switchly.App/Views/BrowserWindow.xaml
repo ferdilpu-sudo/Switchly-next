@@ -30,7 +30,7 @@
                                 <DockPanel>
                                     <Button DockPanel.Dock="Right" Content="×" Click="OnCloseTabClick" Tag="{Binding}"
                                             Background="Transparent" BorderThickness="0" Padding="4,0" Margin="6,0,0,0"
-                                            ToolTip="Tutup tab (Ctrl+W)"/>
+                                            ToolTip="Tutup tab (Ctrl+W)" AutomationProperties.Name="Tutup tab"/>
                                     <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                                 </DockPanel>
                             </Border>
@@ -44,9 +44,12 @@
         <Border DockPanel.Dock="Top" Background="#F3F4F6" BorderBrush="#D1D5DB" BorderThickness="0,1,0,1" Padding="8,6">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="0,0,8,0">
-                    <Button x:Name="BackButton" Content="←" Click="OnBackClick" Padding="8,4" Margin="0,0,4,0" ToolTip="Kembali"/>
-                    <Button x:Name="ForwardButton" Content="→" Click="OnForwardClick" Padding="8,4" Margin="0,0,4,0" ToolTip="Maju"/>
-                    <Button x:Name="ReloadButton" Content="↻" Click="OnReloadClick" Padding="8,4" ToolTip="Muat ulang"/>
+                    <Button x:Name="BackButton" Content="←" Click="OnBackClick" Padding="8,4" Margin="0,0,4,0"
+                            ToolTip="Kembali" AutomationProperties.Name="Kembali"/>
+                    <Button x:Name="ForwardButton" Content="→" Click="OnForwardClick" Padding="8,4" Margin="0,0,4,0"
+                            ToolTip="Maju" AutomationProperties.Name="Maju"/>
+                    <Button x:Name="ReloadButton" Content="↻" Click="OnReloadClick" Padding="8,4"
+                            ToolTip="Muat ulang" AutomationProperties.Name="Muat ulang"/>
                 </StackPanel>
                 <Button DockPanel.Dock="Right" Content="Jendela Baru" Click="OnNewWindowClick" Padding="10,4" Margin="6,0,0,0"
                         ToolTip="Buka jendela tambahan dengan sesi profil yang sama"/>
@@ -61,6 +64,16 @@
                 <Button DockPanel.Dock="Right" Content="Buka" Click="OnNavigateClick" Padding="14,4" Margin="6,0,0,0"/>
                 <TextBox x:Name="AddressBox" VerticalContentAlignment="Center" Padding="6,4" KeyDown="OnAddressBoxKeyDown"
                          ToolTip="Address bar (Ctrl+L)"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Non-Modal Renderer Crash Recovery Banner (TASK-035) -->
+        <Border x:Name="CrashRecoveryBanner" DockPanel.Dock="Top" Background="#FEF2F2" BorderBrush="#FECACA"
+                BorderThickness="0,0,0,1" Padding="12,8" Visibility="Collapsed">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Muat Ulang Tab" Click="OnRecoverCrashedTabClick"
+                        Background="#DC2626" Foreground="White" FontWeight="SemiBold" Padding="10,4" Margin="10,0,0,0"/>
+                <TextBlock x:Name="CrashRecoveryMessageText" Foreground="#991B1B" VerticalAlignment="Center" TextWrapping="Wrap"/>
             </DockPanel>
         </Border>
 

@@ -22,6 +22,7 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
             RequestContext = profileContext.RequestContext,
             LifeSpanHandler = new ProfileLifeSpanHandler(url => NewTabRequested?.Invoke(url)),
             DownloadHandler = new ProfileDownloadHandler(profileContext.ProfileId, evt => DownloadUpdated?.Invoke(evt)),
+            RequestHandler = new ProfileRequestHandler(reason => RendererCrashed?.Invoke(reason)),
         };
 
         _browser.AddressChanged += OnBrowserAddressChanged;
@@ -50,6 +51,8 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
     public event Action<string>? NewTabRequested;
 
     public event Action<DownloadUpdateEvent>? DownloadUpdated;
+
+    public event Action<string>? RendererCrashed;
 
     public void Navigate(string url)
     {

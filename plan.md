@@ -1,6 +1,6 @@
 # Implementation Plan — Switchly Next
 
-**Status:** M-007 & D6 (Password Vault + CSV Import + Explicit-Click Autofill) Complete — ready to begin M-008 (`TASK-034`: resource manager & memory-pressure warnings)  
+**Status:** M-008 Complete (Win11 verified; Win10 physical test pending `OPEN-002`) — ready for M-009 (Freemium & Release Readiness, gated on `OPEN-001`/`002`/`004`/`005`/`007`)  
 **Strategy:** prove the browser engine risk before implementing the full product.
 
 ## 1. Delivery strategy

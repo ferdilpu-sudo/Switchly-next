@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Switchly.App.Navigation;
 using Switchly.App.ViewModels;
@@ -13,6 +14,7 @@ public partial class MainWindow : Window
 {
     private readonly WorkspaceViewModel _viewModel;
     private readonly BrowserWindowCoordinator _windowCoordinator;
+    private readonly DispatcherTimer _resourceTimer;
 
     public MainWindow()
     {
@@ -22,8 +24,19 @@ public partial class MainWindow : Window
         _windowCoordinator = App.Services.GetRequiredService<BrowserWindowCoordinator>();
         DataContext = _viewModel;
 
-        Loaded += async (_, _) => await _viewModel.LoadAsync();
-        Closed += (_, _) => _windowCoordinator.CloseAllWindows();
+        _resourceTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        _resourceTimer.Tick += (_, _) => _viewModel.RefreshResourceUsage();
+
+        Loaded += async (_, _) =>
+        {
+            await _viewModel.LoadAsync();
+            _resourceTimer.Start();
+        };
+        Closed += (_, _) =>
+        {
+            _resourceTimer.Stop();
+            _windowCoordinator.CloseAllWindows();
+        };
     }
 
     private async void OnAllProfilesClick(object sender, RoutedEventArgs e)

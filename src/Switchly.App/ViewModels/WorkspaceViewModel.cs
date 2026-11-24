@@ -4,8 +4,10 @@ using Microsoft.Extensions.Logging;
 using Switchly.App.Common;
 using Switchly.App.Navigation;
 using Switchly.Application.Browser;
+using Switchly.Application.Diagnostics;
 using Switchly.Application.Groups;
 using Switchly.Application.Profiles;
+using Switchly.Domain.Diagnostics;
 using Switchly.Domain.Groups;
 using Switchly.Domain.Profiles;
 
@@ -25,6 +27,7 @@ public sealed class WorkspaceViewModel : ViewModelBase
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IProfileSessionManager _sessionManager;
     private readonly BrowserWindowCoordinator _windowCoordinator;
+    private readonly IResourceMonitor _resourceMonitor;
     private readonly ILogger<WorkspaceViewModel> _logger;
 
     private List<BrowserProfile> _allProfiles = [];
@@ -32,6 +35,8 @@ public sealed class WorkspaceViewModel : ViewModelBase
     private ProfileGroup? _selectedGroup;
     private string _searchText = string.Empty;
     private string? _errorMessage;
+    private string? _memoryWarningMessage;
+    private string _resourceStatusText = "Profil tersimpan: 0  •  Aktif: 0";
     private string _sectionTitle = "Semua Profil";
     private int _totalSavedCount;
     private int _activeProfileCount;
@@ -41,11 +46,13 @@ public sealed class WorkspaceViewModel : ViewModelBase
         IServiceScopeFactory scopeFactory,
         IProfileSessionManager sessionManager,
         BrowserWindowCoordinator windowCoordinator,
+        IResourceMonitor resourceMonitor,
         ILogger<WorkspaceViewModel> logger)
     {
         _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         _sessionManager = sessionManager ?? throw new ArgumentNullException(nameof(sessionManager));
         _windowCoordinator = windowCoordinator ?? throw new ArgumentNullException(nameof(windowCoordinator));
+        _resourceMonitor = resourceMonitor ?? throw new ArgumentNullException(nameof(resourceMonitor));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         _sessionManager.StateChanged += OnSessionStateChanged;
@@ -96,7 +103,34 @@ public sealed class WorkspaceViewModel : ViewModelBase
         private set => SetProperty(ref _isEmpty, value);
     }
 
-    public string ResourceStatusText => $"Profil tersimpan: {_totalSavedCount}  •  Aktif: {_activeProfileCount}";
+    public string? MemoryWarningMessage
+    {
+        get => _memoryWarningMessage;
+        private set
+        {
+            if (SetProperty(ref _memoryWarningMessage, value))
+            {
+                OnPropertyChanged(nameof(HasMemoryWarning));
+            }
+        }
+    }
+
+    public bool HasMemoryWarning => !string.IsNullOrWhiteSpace(MemoryWarningMessage);
+
+    public string ResourceStatusText
+    {
+        get => _resourceStatusText;
+        private set => SetProperty(ref _resourceStatusText, value);
+    }
+
+    public void RefreshResourceUsage()
+    {
+        _activeProfileCount = _sessionManager.GetActiveSessions().Count;
+        var snapshot = _resourceMonitor.CaptureSnapshot(_totalSavedCount, _activeProfileCount);
+        var assessment = ResourcePressureEvaluator.Evaluate(snapshot);
+        ResourceStatusText = assessment.StatusSummary;
+        MemoryWarningMessage = assessment.NonModalWarningMessage;
+    }
 
     public async Task LoadAsync()
     {
@@ -109,8 +143,7 @@ public sealed class WorkspaceViewModel : ViewModelBase
 
             _allProfiles = [.. await profileService.ListAsync(includeArchived: true)];
             _totalSavedCount = _allProfiles.Count(p => !p.IsArchived);
-            _activeProfileCount = _sessionManager.GetActiveSessions().Count;
-            OnPropertyChanged(nameof(ResourceStatusText));
+            RefreshResourceUsage();
 
             await ReloadGroupCollectionsAsync(groupService);
             await ApplyFilterAsync();

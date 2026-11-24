@@ -213,6 +213,8 @@ public class ProfileSessionManagerTests
 
         public event Action<DownloadUpdateEvent>? DownloadUpdated;
 
+        public event Action<string>? RendererCrashed;
+
         public void Navigate(string url)
         {
             Address = url;
@@ -231,6 +233,8 @@ public class ProfileSessionManagerTests
         }
 
         public Task<bool> FillLoginFormAsync(string username, string password) => Task.FromResult(true);
+
+        public void SimulateRendererCrash(string reason) => RendererCrashed?.Invoke(reason);
 
         public void SimulateTitle(string title)
         {

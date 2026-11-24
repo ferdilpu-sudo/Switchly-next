@@ -38,4 +38,7 @@ public interface IBrowserWindowHost : IDisposable
 
     /// <summary>Raised when a download starts, progresses, completes, or cancels within this profile context.</summary>
     event Action<DownloadUpdateEvent>? DownloadUpdated;
+
+    /// <summary>Raised when the tab's browser renderer process terminates abnormally (TASK-035).</summary>
+    event Action<string>? RendererCrashed;
 }

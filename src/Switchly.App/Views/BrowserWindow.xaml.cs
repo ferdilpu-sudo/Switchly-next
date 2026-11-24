@@ -25,6 +25,7 @@ public partial class BrowserWindow : Window
     private readonly Func<Guid, string, Task> _onUrlVisitedCallback;
     private readonly Action<Guid, BrowserWindow> _onWindowClosedCallback;
     private readonly ObservableCollection<BrowserTabItemViewModel> _tabs = [];
+    private readonly Stack<string> _recentlyClosedUrls = new();
     private BrowserTabItemViewModel? _activeTab;
     private bool _closedNotified;
 
@@ -88,6 +89,14 @@ public partial class BrowserWindow : Window
         });
         host.NewTabRequested += url => Dispatcher.InvokeAsync(() => OpenTabAsync(url));
         host.DownloadUpdated += evt => _ = RecordDownloadUpdateAsync(evt);
+        host.RendererCrashed += reason => Dispatcher.Invoke(() =>
+        {
+            if (_activeTab == tab)
+            {
+                CrashRecoveryMessageText.Text = $"{reason} Profil lain tetap aman. Klik Muat Ulang Tab untuk memulihkan.";
+                CrashRecoveryBanner.Visibility = Visibility.Visible;
+            }
+        });
 
         _tabs.Add(tab);
         TabStrip.SelectedItem = tab;
@@ -113,6 +122,11 @@ public partial class BrowserWindow : Window
         if (index < 0)
         {
             return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(tab.Address) && !string.Equals(tab.Address, "about:blank", StringComparison.OrdinalIgnoreCase))
+        {
+            _recentlyClosedUrls.Push(tab.Address);
         }
 
         _tabs.RemoveAt(index);
@@ -356,8 +370,26 @@ public partial class BrowserWindow : Window
         }
     }
 
+    private void OnRecoverCrashedTabClick(object sender, RoutedEventArgs e)
+    {
+        CrashRecoveryBanner.Visibility = Visibility.Collapsed;
+        _activeTab?.Host.Reload();
+    }
+
     private async void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.T)
+        {
+            if (_recentlyClosedUrls.Count > 0)
+            {
+                e.Handled = true;
+                var restoredUrl = _recentlyClosedUrls.Pop();
+                await OpenTabAsync(restoredUrl);
+            }
+
+            return;
+        }
+
         if (Keyboard.Modifiers != ModifierKeys.Control)
         {
             return;
