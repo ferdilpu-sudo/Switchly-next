@@ -1,6 +1,6 @@
 # Implementation Plan — Switchly Next
 
-**Status:** Not started — specification and discovery handoff only  
+**Status:** M-001 in progress — TASK-001 (CEF/CefSharp research) complete; no application code or tests yet  
 **Strategy:** prove the browser engine risk before implementing the full product.
 
 ## 1. Delivery strategy
@@ -147,7 +147,8 @@ Key assumptions:
 
 | Milestone | Status | Evidence |
 |---|---|---|
-| M-001 to M-009 | Not started | No code or test execution has been performed |
+| M-001 | In progress | TASK-001 complete (`artifacts/engine-spike/engine-version-report.md`); TASK-002+ not started |
+| M-002 to M-009 | Not started | No code or test execution has been performed |
 
 ## 7. Milestone definition of done
 
