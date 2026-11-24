@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | ADR-001 | Proposed | WPF + MVVM desktop shell | REQ-001, REQ-005 | Accessibility or shell limitations discovered |
 | ADR-002 | Proposed | .NET 10 LTS | REQ-001, REQ-014 | Win10 Home/Pro support requirement conflicts |
-| ADR-003 | Validated | C# + WPF + CEF (Chrome Runtime) through CefSharp | REQ-001, REQ-003, REQ-005 | Priority-site sign-in fails in M-002 |
+| ADR-003 | Validated | C# + WPF + CEF (Chrome Runtime) through CefSharp | REQ-001, REQ-003, REQ-005 | Provider compatibility or isolation regresses |
 | ADR-004 | Proposed | SQLite for app metadata; CEF owns browser storage | REQ-002, REQ-006 | Local data volume/performance demands |
 | ADR-005 | Proposed | DPAPI local key wrapping + optional master password/Hello unlock | REQ-010 | Threat model or account recovery issues |
 | ADR-006 | Proposed | AES-GCM encrypted portable backup | REQ-011 | KDF performance/interoperability |
@@ -44,7 +44,7 @@
 
 ## 4. ADR-003 — Embedded browser engine
 
-- **Status:** Validated by M-001 (isolation TEST-003/004/017, browser behavior TEST-021, resource baseline, provider public pages). Provider sign-in remains unvalidated — first M-002 gate.
+- **Status:** Validated by M-001 + M-002 sign-in gate. Isolation (TEST-003/004/017), browser behavior (TEST-021), resource baseline, and provider public pages + sign-in (all four providers) pass.
 - **Context:** Switchly Next needs one integrated desktop UI with embedded Chromium browsing, per-profile storage isolation, tabs, and managed windows. The product owner explicitly excludes WebView2. Extension support is not a priority.
 - **Options:**
   - CefSharp + CEF (Chrome Runtime): direct WPF integration and Chromium embedding; CEF lifecycle, native packaging, security patching, and website compatibility remain engineering responsibilities.

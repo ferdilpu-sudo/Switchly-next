@@ -54,3 +54,10 @@ ChatGPT's login page loads; Google's sign-in surface returned 400 (needs
 investigation); Dola/SeaArt sign-in is JS-gated. Definitive sign-in validation
 requires the WPF shell (M-002) and the user's accounts.
 
+## Tier-2 sign-in (authenticated) — product-owner manual check (2026-11-24)
+
+**Result: PASS** — the product owner signed in to all four providers (Google
+Flow, ChatGPT, Dola, SeaArt) through the embedded WPF browser. The earlier
+headless Google 400 was a direct-URL artifact, not an embedded-browser block.
+
+
