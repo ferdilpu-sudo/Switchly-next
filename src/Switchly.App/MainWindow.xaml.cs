@@ -24,6 +24,8 @@ public partial class MainWindow : Window
         _windowCoordinator = App.Services.GetRequiredService<BrowserWindowCoordinator>();
         DataContext = _viewModel;
 
+        _windowCoordinator.ActiveDockedWorkspaceChanged += OnActiveDockedWorkspaceChanged;
+
         _resourceTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
         _resourceTimer.Tick += (_, _) => _viewModel.RefreshResourceUsage();
 
@@ -35,23 +37,44 @@ public partial class MainWindow : Window
         Closed += (_, _) =>
         {
             _resourceTimer.Stop();
+            _windowCoordinator.ActiveDockedWorkspaceChanged -= OnActiveDockedWorkspaceChanged;
             _windowCoordinator.CloseAllWindows();
         };
     }
 
+    private void OnActiveDockedWorkspaceChanged(BrowserWorkspaceView? workspace)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            DockedBrowserHost.Content = workspace;
+            DockedBrowserHost.Visibility = workspace is not null ? Visibility.Visible : Visibility.Collapsed;
+            DashboardView.Visibility = workspace is null ? Visibility.Visible : Visibility.Collapsed;
+        });
+    }
+
     private async void OnAllProfilesClick(object sender, RoutedEventArgs e)
-        => await _viewModel.SelectSectionAsync(WorkspaceSection.AllProfiles);
+    {
+        _windowCoordinator.ShowDashboard();
+        await _viewModel.SelectSectionAsync(WorkspaceSection.AllProfiles);
+    }
 
     private async void OnFavoritesClick(object sender, RoutedEventArgs e)
-        => await _viewModel.SelectSectionAsync(WorkspaceSection.Favorites);
+    {
+        _windowCoordinator.ShowDashboard();
+        await _viewModel.SelectSectionAsync(WorkspaceSection.Favorites);
+    }
 
     private async void OnArchivedClick(object sender, RoutedEventArgs e)
-        => await _viewModel.SelectSectionAsync(WorkspaceSection.Archived);
+    {
+        _windowCoordinator.ShowDashboard();
+        await _viewModel.SelectSectionAsync(WorkspaceSection.Archived);
+    }
 
     private async void OnGroupSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (sender is ListBox listBox && listBox.SelectedItem is ProfileGroup group)
         {
+            _windowCoordinator.ShowDashboard();
             await _viewModel.SelectSectionAsync(WorkspaceSection.Group, group);
         }
     }

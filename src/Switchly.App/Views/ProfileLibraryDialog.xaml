@@ -1,0 +1,87 @@
+<Window x:Class="Switchly.App.Views.ProfileLibraryDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Perpustakaan Profil"
+        Height="520" Width="680"
+        MinHeight="420" MinWidth="540"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize">
+    <DockPanel Margin="14">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Tutup" IsCancel="True" Padding="14,6"/>
+        </StackPanel>
+
+        <TabControl x:Name="LibraryTabs">
+            <!-- UI-005: Bookmarks -->
+            <TabItem Header="★ Bookmark">
+                <DockPanel Margin="10">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="Hapus" Click="OnDeleteBookmarkClick" Padding="10,4" Margin="6,0,0,0"/>
+                        <Button DockPanel.Dock="Right" Content="Buka" Click="OnOpenBookmarkClick"
+                                Background="#1B6EF3" Foreground="White" Padding="12,4" Margin="6,0,0,0"/>
+                        <TextBox x:Name="BookmarkSearchBox" Padding="6,4" TextChanged="OnBookmarkSearchChanged"
+                                 ToolTip="Cari bookmark berdasarkan judul atau URL"/>
+                    </DockPanel>
+                    <ListBox x:Name="BookmarksList" MouseDoubleClick="OnBookmarkDoubleClick">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="3">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Url}" FontSize="11" Foreground="#6B7280" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </TabItem>
+
+            <!-- UI-006: History -->
+            <TabItem Header="Riwayat">
+                <DockPanel Margin="10">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="Hapus Semua" Click="OnClearHistoryClick" Padding="10,4" Margin="6,0,0,0"/>
+                        <Button DockPanel.Dock="Right" Content="Buka" Click="OnOpenHistoryClick"
+                                Background="#1B6EF3" Foreground="White" Padding="12,4" Margin="6,0,0,0"/>
+                        <TextBox x:Name="HistorySearchBox" Padding="6,4" TextChanged="OnHistorySearchChanged"
+                                 ToolTip="Cari riwayat kunjungan profil ini"/>
+                    </DockPanel>
+                    <ListBox x:Name="HistoryList" MouseDoubleClick="OnHistoryDoubleClick">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="3">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Url}" FontSize="11" Foreground="#6B7280" TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </TabItem>
+
+            <!-- UI-007: Downloads -->
+            <TabItem Header="Unduhan">
+                <DockPanel Margin="10">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Content="Buka Folder" Click="OnOpenDownloadFolderClick"
+                                Background="#1B6EF3" Foreground="White" Padding="12,4"/>
+                        <TextBlock Text="Daftar unduhan milik profil ini:" VerticalAlignment="Center" Foreground="#4B5563"/>
+                    </DockPanel>
+                    <ListBox x:Name="DownloadsList" MouseDoubleClick="OnDownloadDoubleClick">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="3">
+                                    <TextBlock Text="{Binding SuggestedFileName}" FontWeight="SemiBold"/>
+                                    <TextBlock FontSize="11" Foreground="#6B7280">
+                                        <Run Text="{Binding State}"/>
+                                        <Run Text="  •  "/>
+                                        <Run Text="{Binding TargetPath}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>

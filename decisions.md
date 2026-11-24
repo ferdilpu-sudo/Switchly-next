@@ -144,6 +144,7 @@
   - **D4:** Schema adds `IsFavorite` & `IsHidden`, `PersistSessionCookies` default = `true`, plain SQLite for non-secret metadata, ADR-001..004/007/009..011 promoted to `Accepted`.
   - **D5:** Strict `Switchly.BrowserHost` isolation enforced in M-002; `Infrastructure/BrowserEngine` removed; `Microsoft.Extensions.*` aligned to `10.x` LTS via `Directory.Packages.props`.
   - **D6 (2026-11-24):** Product Owner explicitly reopened **D1** after M-007 DPAPI verification to implement **`ENT-009 VaultCredential`** (single-payload AES-256-GCM with unique 96-bit CSPRNG nonce + AAD `(CryptoVersion, CredentialId, ProfileId, Origin)` wrapped by Windows DPAPI `CurrentUser`), **Chrome/Edge CSV Password Import (`TASK-028`, `AC-010`, `TEST-010`)**, and **explicit-click origin-matched Autofill** (no unrestricted JS bridge).
+  - **D7 (2026-11-24):** Product Owner approved **Hybrid Integrated Workspace UX**: clicking a profile in the sidebar opens/switches its isolated `BrowserWorkspaceView` directly inside `MainWindow`'s right pane (1-click switching while keeping other active profiles alive), while retaining **Pop-out (`↗ Jendela Baru`)** for side-by-side / multi-monitor workflows, plus interactive per-profile Bookmark (`UI-005`), History (`UI-006`), and Downloads (`UI-007`) dialogs.
 
 ## 14. Open decisions with impact
 

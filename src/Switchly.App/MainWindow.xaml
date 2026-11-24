@@ -2,32 +2,51 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Switchly Next — Workspace"
-        Height="740" Width="1080"
-        MinHeight="560" MinWidth="820"
+        Height="800" Width="1280"
+        MinHeight="580" MinWidth="880"
         WindowStartupLocation="CenterScreen">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="240"/>
+            <ColumnDefinition Width="250"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <!-- Sidebar -->
         <Border Grid.Column="0" Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="0,0,1,0" Padding="12">
             <DockPanel>
-                <TextBlock DockPanel.Dock="Top" Text="Switchly Next" FontSize="18" FontWeight="Bold" Margin="0,0,0,14"/>
+                <TextBlock DockPanel.Dock="Top" Text="Switchly Next" FontSize="18" FontWeight="Bold" Margin="0,0,0,10"/>
 
-                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,14">
-                    <Button Content="Semua Profil" Click="OnAllProfilesClick" HorizontalContentAlignment="Left" Padding="10,6" Margin="0,0,0,4"/>
+                <!-- Navigation / Dashboard Views -->
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                    <Button Content="Kelola Profil" Click="OnAllProfilesClick" HorizontalContentAlignment="Left" Padding="10,6" Margin="0,0,0,4"/>
                     <Button Content="★ Favorit" Click="OnFavoritesClick" HorizontalContentAlignment="Left" Padding="10,6" Margin="0,0,0,4"/>
                     <Button Content="Arsip" Click="OnArchivedClick" HorizontalContentAlignment="Left" Padding="10,6"/>
                 </StackPanel>
 
-                <DockPanel DockPanel.Dock="Top" Margin="0,6,0,4">
+                <!-- Quick Profile Switcher (1-click opens/switches docked browser in right pane) -->
+                <TextBlock DockPanel.Dock="Top" Text="PROFIL (1 KLIK BUKA)" FontSize="11" FontWeight="SemiBold" Foreground="#6B7280" Margin="0,2,0,4"/>
+                <ListBox DockPanel.Dock="Top" ItemsSource="{Binding VisibleProfiles}" MaxHeight="240" BorderThickness="0" Background="Transparent"
+                         HorizontalContentAlignment="Stretch" Margin="0,0,0,12">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Button Click="OnOpenProfileClick" Tag="{Binding}" HorizontalContentAlignment="Stretch"
+                                    Background="Transparent" BorderThickness="0" Padding="4,4" ToolTip="Klik untuk buka / pindah ke profil ini">
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Left" Width="6" Height="16" CornerRadius="2" Background="{Binding ColorHex}" Margin="0,0,8,0"/>
+                                    <Ellipse DockPanel.Dock="Right" Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="12"/>
+                                </DockPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <DockPanel DockPanel.Dock="Top" Margin="0,4,0,4">
                     <Button DockPanel.Dock="Right" Content="+ Grup" Click="OnCreateGroupClick" Padding="6,2" FontSize="11"/>
                     <TextBlock Text="GRUP MANUAL" FontSize="11" FontWeight="SemiBold" Foreground="#6B7280" VerticalAlignment="Center"/>
                 </DockPanel>
-                <ListBox DockPanel.Dock="Top" ItemsSource="{Binding ManualGroups}" MaxHeight="160" BorderThickness="0" Background="Transparent"
-                         SelectionChanged="OnGroupSelectionChanged" DisplayMemberPath="Name" Margin="0,0,0,12"/>
+                <ListBox DockPanel.Dock="Top" ItemsSource="{Binding ManualGroups}" MaxHeight="120" BorderThickness="0" Background="Transparent"
+                         SelectionChanged="OnGroupSelectionChanged" DisplayMemberPath="Name" Margin="0,0,0,10"/>
 
                 <TextBlock DockPanel.Dock="Top" Text="WEBSITE (OTOMATIS)" FontSize="11" FontWeight="SemiBold" Foreground="#6B7280" Margin="0,4,0,4"/>
                 <ListBox ItemsSource="{Binding WebsiteGroups}" BorderThickness="0" Background="Transparent"
@@ -46,39 +65,8 @@
             </DockPanel>
         </Border>
 
-        <!-- Main Area -->
+        <!-- Main Right Area (switches between Profile Management Dashboard and Docked Browser) -->
         <DockPanel Grid.Column="1">
-            <!-- Header + Search + New Profile -->
-            <Border DockPanel.Dock="Top" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="16,12">
-                <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="+ Profil Baru" Click="OnNewProfileClick"
-                            Background="#1B6EF3" Foreground="White" FontWeight="SemiBold" Padding="14,6" Margin="8,0,0,0"/>
-                    <Button DockPanel.Dock="Right" Content="Impor Browser" Click="OnImportBrowserClick"
-                            Padding="10,6" Margin="8,0,0,0" ToolTip="Impor bookmark, riwayat, atau tab terbuka dari Chrome/Edge (baca-saja)"/>
-                    <Button DockPanel.Dock="Right" Content="Keamanan &amp; Backup" Click="OnSecurityAndBackupClick"
-                            Padding="10,6" Margin="8,0,0,0" ToolTip="Kunci kata sandi utama lokal (DPAPI) dan Backup/Restore terenkripsi AES-256-GCM"/>
-                    <TextBox DockPanel.Dock="Right" Width="210" VerticalContentAlignment="Center" Padding="8,5"
-                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                             ToolTip="Cari profil berdasarkan nama atau URL"/>
-                    <TextBlock Text="{Binding SectionTitle}" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                </DockPanel>
-            </Border>
-
-            <!-- Error Banner -->
-            <Border DockPanel.Dock="Top" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="0,0,0,1" Padding="14,8">
-                <Border.Style>
-                    <Style TargetType="Border">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding HasError}" Value="True">
-                                <Setter Property="Visibility" Value="Visible"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Border.Style>
-                <TextBlock Text="{Binding ErrorMessage}" Foreground="#B91C1C" TextWrapping="Wrap"/>
-            </Border>
-
             <!-- Non-Modal Memory Pressure Warning Banner (TASK-038A, REQ-018, TEST-026) -->
             <Border DockPanel.Dock="Top" Background="#FEF3C7" BorderBrush="#F59E0B" BorderThickness="0,0,0,1" Padding="14,8">
                 <Border.Style>
@@ -99,80 +87,122 @@
                 <TextBlock Text="{Binding ResourceStatusText}" Foreground="#4B5563" FontSize="12"/>
             </Border>
 
-            <!-- Empty State + Profile List -->
-            <Grid Margin="16">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsEmpty}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
-                    <TextBlock Text="Belum ada profil di tampilan ini." FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                    <TextBlock Text="Buat profil baru untuk memulai sesi browsing yang terisolasi." Foreground="#6B7280" HorizontalAlignment="Center" Margin="0,0,0,14"/>
-                    <Button Content="+ Buat Profil Pertama" Click="OnNewProfileClick" Background="#1B6EF3" Foreground="White" Padding="14,7" HorizontalAlignment="Center"/>
-                </StackPanel>
+            <Grid>
+                <!-- Mode A: Profile Management Dashboard -->
+                <DockPanel x:Name="DashboardView">
+                    <!-- Header + Search + Actions -->
+                    <Border DockPanel.Dock="Top" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="16,12">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="+ Profil Baru" Click="OnNewProfileClick"
+                                    Background="#1B6EF3" Foreground="White" FontWeight="SemiBold" Padding="14,6" Margin="8,0,0,0"/>
+                            <Button DockPanel.Dock="Right" Content="Impor Browser" Click="OnImportBrowserClick"
+                                    Padding="10,6" Margin="8,0,0,0" ToolTip="Impor bookmark, riwayat, atau tab terbuka dari Chrome/Edge (baca-saja)"/>
+                            <Button DockPanel.Dock="Right" Content="Keamanan &amp; Backup" Click="OnSecurityAndBackupClick"
+                                    Padding="10,6" Margin="8,0,0,0" ToolTip="Kunci lokal DPAPI, Password Vault/CSV, dan Backup/Restore AES-256-GCM"/>
+                            <TextBox DockPanel.Dock="Right" Width="210" VerticalContentAlignment="Center" Padding="8,5"
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Cari profil berdasarkan nama atau URL"/>
+                            <TextBlock Text="{Binding SectionTitle}" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </Border>
 
-                <ListBox ItemsSource="{Binding VisibleProfiles}" BorderThickness="0" HorizontalContentAlignment="Stretch">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Border BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,8" Background="White">
-                                <Border.ContextMenu>
-                                    <ContextMenu>
-                                        <MenuItem Header="Buka / Fokuskan" Click="OnOpenProfileClick" Tag="{Binding}"/>
-                                        <MenuItem Header="Buka Jendela Baru" Click="OnOpenNewWindowClick" Tag="{Binding}"/>
-                                        <MenuItem Header="Tutup Sesi" Click="OnCloseSessionClick" Tag="{Binding}"/>
-                                        <Separator/>
-                                        <MenuItem Header="Ubah Profil" Click="OnEditProfileClick" Tag="{Binding}"/>
-                                        <MenuItem Header="Favorit / Hapus Favorit" Click="OnToggleFavoriteClick" Tag="{Binding}"/>
-                                        <MenuItem Header="Duplikat Konfigurasi (Tanpa Sesi)" Click="OnDuplicateProfileClick" Tag="{Binding}"/>
-                                        <MenuItem Header="Impor dari Chrome/Edge..." Click="OnImportForProfileClick" Tag="{Binding}"/>
-                                        <MenuItem Header="Arsipkan / Pulihkan" Click="OnToggleArchiveClick" Tag="{Binding}"/>
-                                        <Separator/>
-                                        <MenuItem Header="Hapus Profil" Click="OnDeleteProfileClick" Tag="{Binding}"/>
-                                    </ContextMenu>
-                                </Border.ContextMenu>
-                                <DockPanel>
-                                    <Border DockPanel.Dock="Left" Width="10" CornerRadius="3" Background="{Binding ColorHex}" Margin="0,0,12,0"/>
+                    <!-- Error Banner -->
+                    <Border DockPanel.Dock="Top" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="0,0,0,1" Padding="14,8">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <TextBlock Text="{Binding ErrorMessage}" Foreground="#B91C1C" TextWrapping="Wrap"/>
+                    </Border>
 
-                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button Content="{Binding FavoriteGlyph}" Click="OnToggleFavoriteClick" Tag="{Binding}"
-                                                Padding="8,4" Margin="0,0,6,0" ToolTip="Favorit" AutomationProperties.Name="Tandai atau hapus favorit"/>
-                                        <Button Content="Buka" Click="OnOpenProfileClick" Tag="{Binding}"
-                                                Background="#1B6EF3" Foreground="White" Padding="12,4" Margin="0,0,6,0"/>
-                                        <Button Content="Ubah" Click="OnEditProfileClick" Tag="{Binding}" Padding="10,4" Margin="0,0,6,0"/>
-                                        <Button Content="Tutup" Click="OnCloseSessionClick" Tag="{Binding}" Padding="10,4">
-                                            <Button.Style>
-                                                <Style TargetType="Button">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
-                                    </StackPanel>
+                    <!-- Empty State + Profile List -->
+                    <Grid Margin="16">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsEmpty}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                            <TextBlock Text="Belum ada profil di tampilan ini." FontSize="15" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            <TextBlock Text="Buat profil baru untuk memulai sesi browsing yang terisolasi." Foreground="#6B7280" HorizontalAlignment="Center" Margin="0,0,0,14"/>
+                            <Button Content="+ Buat Profil Pertama" Click="OnNewProfileClick" Background="#1B6EF3" Foreground="White" Padding="14,7" HorizontalAlignment="Center"/>
+                        </StackPanel>
 
-                                    <StackPanel VerticalAlignment="Center">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" Margin="0,0,8,0"/>
-                                            <Border Background="{Binding StatusColor}" CornerRadius="3" Padding="6,1" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding StatusLabel}" Foreground="White" FontSize="11"/>
-                                            </Border>
-                                        </StackPanel>
-                                        <TextBlock Text="{Binding StartupUrlDisplay}" Foreground="#6B7280" FontSize="12" Margin="0,2,0,0"/>
-                                    </StackPanel>
-                                </DockPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                        <ListBox ItemsSource="{Binding VisibleProfiles}" BorderThickness="0" HorizontalContentAlignment="Stretch">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,0,0,8" Background="White">
+                                        <Border.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Buka di Workspace (Terintegrasi)" Click="OnOpenProfileClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Buka di Jendela Baru (Pop-out)" Click="OnOpenNewWindowClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Tutup Sesi" Click="OnCloseSessionClick" Tag="{Binding}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Ubah Profil" Click="OnEditProfileClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Favorit / Hapus Favorit" Click="OnToggleFavoriteClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Duplikat Konfigurasi (Tanpa Sesi)" Click="OnDuplicateProfileClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Impor dari Chrome/Edge..." Click="OnImportForProfileClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Arsipkan / Pulihkan" Click="OnToggleArchiveClick" Tag="{Binding}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Hapus Profil" Click="OnDeleteProfileClick" Tag="{Binding}"/>
+                                            </ContextMenu>
+                                        </Border.ContextMenu>
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Left" Width="10" CornerRadius="3" Background="{Binding ColorHex}" Margin="0,0,12,0"/>
+
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button Content="{Binding FavoriteGlyph}" Click="OnToggleFavoriteClick" Tag="{Binding}"
+                                                        Padding="8,4" Margin="0,0,6,0" ToolTip="Favorit" AutomationProperties.Name="Tandai atau hapus favorit"/>
+                                                <Button Content="Buka" Click="OnOpenProfileClick" Tag="{Binding}"
+                                                        Background="#1B6EF3" Foreground="White" Padding="12,4" Margin="0,0,6,0"
+                                                        ToolTip="Buka langsung di workspace terintegrasi"/>
+                                                <Button Content="↗" Click="OnOpenNewWindowClick" Tag="{Binding}" Padding="8,4" Margin="0,0,6,0"
+                                                        ToolTip="Buka di jendela terpisah (pop-out)" AutomationProperties.Name="Buka di jendela baru"/>
+                                                <Button Content="Ubah" Click="OnEditProfileClick" Tag="{Binding}" Padding="10,4" Margin="0,0,6,0"/>
+                                                <Button Content="Tutup" Click="OnCloseSessionClick" Tag="{Binding}" Padding="10,4">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                            </StackPanel>
+
+                                            <StackPanel VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" Margin="0,0,8,0"/>
+                                                    <Border Background="{Binding StatusColor}" CornerRadius="3" Padding="6,1" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding StatusLabel}" Foreground="White" FontSize="11"/>
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding StartupUrlDisplay}" Foreground="#6B7280" FontSize="12" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </DockPanel>
+
+                <!-- Mode B: Active Docked Browser Workspace (instant 1-click switch between profiles) -->
+                <ContentControl x:Name="DockedBrowserHost" Visibility="Collapsed"/>
             </Grid>
         </DockPanel>
     </Grid>

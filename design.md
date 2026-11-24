@@ -67,8 +67,8 @@ Switchly Next
 ### 4.1 Profile sidebar
 - Profil ditampilkan dengan nama, ikon, warna dan indikator status: closed, starting, active, suspending, suspended, error.
 - Klik profil:
-  - Jika sudah aktif: fokuskan jendela profil terakhir.
-  - Jika tertutup: buat request context dari direktori profil dan buka workspace.
+  - Default (Hybrid Workspace, D7): buka atau tampilkan `BrowserWorkspaceView` terisolasi langsung di panel kanan `MainWindow` (pindah akun 1 klik tanpa menumpuk jendela taskbar; sesi profil lain tetap aktif di memori).
+  - Opsi Pop-out (`↗ Jendela Baru`): buka `BrowserWindow` terpisah untuk kerja berdampingan (*side-by-side*) atau multi-monitor pada sesi profil yang sama.
   - Jika suspended: bangunkan sesuai kebutuhan dan pulihkan tab.
 - Context menu memuat open, close, edit, favorite, duplicate settings, archive, delete.
 - Penghapusan profil memerlukan konfirmasi, menjelaskan data yang akan hilang dan opsi backup terlebih dahulu.
