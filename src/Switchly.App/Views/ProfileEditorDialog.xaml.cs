@@ -18,6 +18,17 @@ public partial class ProfileEditorDialog : Window
         public bool IsSelected { get; set; } = isSelected;
     }
 
+    private static readonly string[] DefaultAvatarPalette =
+    [
+        "#2563EB",
+        "#7C3AED",
+        "#059669",
+        "#D97706",
+        "#E11D48",
+        "#0891B2",
+    ];
+
+    private static int _nextPaletteIndex;
     private readonly List<GroupSelectionOption> _groupOptions = [];
 
     public ProfileEditorDialog(
@@ -55,7 +66,7 @@ public partial class ProfileEditorDialog : Window
         else
         {
             Title = "Profil Baru — Switchly";
-            ColorHexBox.Text = "#3B82F6";
+            ColorHexBox.Text = DefaultAvatarPalette[_nextPaletteIndex++ % DefaultAvatarPalette.Length];
         }
 
         UpdateLivePreview();

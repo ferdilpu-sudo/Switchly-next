@@ -96,7 +96,7 @@ public sealed class WorkspaceViewModel : ViewModelBase
     private string _footerRamSummary = "RAM: —";
     private bool _memoryWarningDismissed;
     private string _sectionTitle = "Semua Profil";
-    private string _sectionSubtitle = "Klik kartu profil untuk membuka browser terisolasi. Atur grup dari menu Ubah Profil.";
+    private string _sectionSubtitle = "Klik baris profil untuk membuka sesi browser terisolasi, atau tekan Ctrl+Shift+K untuk pindah cepat.";
     private int _totalSavedCount;
     private int _activeProfileCount;
     private bool _isEmpty;
@@ -659,10 +659,10 @@ public sealed class WorkspaceViewModel : ViewModelBase
             WorkspaceSection.Favorites => "Profil favorit Anda untuk akses cepat.",
             WorkspaceSection.Archived => "Profil yang diarsipkan. Klik kanan untuk memulihkan.",
             WorkspaceSection.Group when group is not null && !string.IsNullOrWhiteSpace(group.DefaultUrl) =>
-                $"Klik kartu profil mana saja untuk langsung membuka {group.DefaultUrl}",
+                $"Klik baris profil mana saja untuk langsung membuka {group.DefaultUrl}",
             WorkspaceSection.Group when group is not null =>
                 $"Menampilkan profil di dalam folder '{group.Name}'.",
-            _ => "Klik kartu profil untuk membuka browser terisolasi. Atur grup dari menu Ubah Profil.",
+            _ => "Klik baris profil untuk membuka sesi browser terisolasi, atau tekan Ctrl+Shift+K untuk pindah cepat.",
         };
 
         await ApplyFilterAsync();

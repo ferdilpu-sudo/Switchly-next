@@ -256,9 +256,10 @@
                                                      VerticalAlignment="Center" Margin="6,0,2,0"/>
                                             <StackPanel VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"
-                                                           FontSize="12.5" FontWeight="SemiBold"/>
+                                                           FontSize="12.5" FontWeight="SemiBold" LineHeight="17"/>
                                                 <TextBlock Text="{Binding GroupBadgeLabel}" TextTrimming="CharacterEllipsis"
-                                                           FontSize="11" Foreground="{DynamicResource TextMutedBrush}"/>
+                                                           FontSize="11" LineHeight="16" Padding="0,0,0,1"
+                                                           Foreground="{DynamicResource TextMutedBrush}"/>
                                             </StackPanel>
                                         </DockPanel>
                                     </Button>
@@ -353,6 +354,7 @@
                         </Button>
                         <Button x:Name="TopProfilesButton" Style="{StaticResource GhostButtonStyle}"
                                 Click="OnAllProfilesClick" Padding="9,5" FontSize="12" Margin="0,0,2,0"
+                                Visibility="Collapsed"
                                 ToolTip="Buka Daftar Profil (Profile Library)">
                             <StackPanel Orientation="Horizontal">
                                 <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconGrid}" Width="13" Height="13" Margin="0,0,6,0"/>
@@ -361,6 +363,7 @@
                         </Button>
                         <Button x:Name="TopActivityButton" Style="{StaticResource GhostButtonStyle}"
                                 Click="OnOpenActivityViewClick" Padding="9,5" FontSize="12"
+                                Visibility="Collapsed"
                                 ToolTip="Buka Aktivitas &amp; Sesi Berjalan">
                             <StackPanel Orientation="Horizontal">
                                 <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconActivity}" Width="13" Height="13" Margin="0,0,6,0"/>
@@ -662,19 +665,25 @@
                             </Button>
                         </StackPanel>
 
-                        <Border CornerRadius="12" Background="{DynamicResource BgSurfaceBrush}"
+                        <Border VerticalAlignment="Top" CornerRadius="12" Background="{DynamicResource BgSurfaceBrush}"
                                 BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1">
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsEmpty}" Value="True">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <DockPanel>
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsEmpty}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <DockPanel>
+                                    <!-- Subtle Keyboard Hint Footer Bar Inside Table -->
+                                    <Border DockPanel.Dock="Bottom" Background="{DynamicResource BgAppBrush}"
+                                            CornerRadius="0,0,12,12" Padding="14,8">
+                                        <TextBlock Text="Tip: Klik baris profil untuk langsung membuka sesi terisolasi, atau tekan Ctrl+Shift+K dari mana saja untuk pindah cepat."
+                                                   FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}"/>
+                                    </Border>
                                 <!-- Sticky Table Header -->
                                 <Border DockPanel.Dock="Top" Background="{DynamicResource BgSidebarBrush}"
                                         BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1"
@@ -782,10 +791,10 @@
                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                         </Border>
                                                         <StackPanel VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding Name}" FontSize="13.5" FontWeight="SemiBold"
+                                                            <TextBlock Text="{Binding Name}" FontSize="13.5" FontWeight="SemiBold" LineHeight="19"
                                                                        Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
                                                             <TextBlock Text="{Binding StartupUrlDisplay}" Foreground="{DynamicResource TextSecondaryBrush}"
-                                                                       FontSize="11.5" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"/>
+                                                                       FontSize="11.5" LineHeight="17" Padding="0,0,0,1" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"/>
                                                         </StackPanel>
                                                     </DockPanel>
 
@@ -817,9 +826,11 @@
 
                                                     <!-- Col 5: Quick Actions -->
                                                     <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Buka"
+                                                        <Button Content="Buka"
                                                                 Click="OnOpenProfileClick" Tag="{Binding}"
-                                                                Padding="10,4" FontSize="12" Margin="0,0,4,0"
+                                                                Padding="12,4" MinHeight="28" FontSize="12" Margin="0,0,6,0"
+                                                                Background="{DynamicResource BgAppBrush}"
+                                                                BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1"
                                                                 Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
                                                         <Button Style="{StaticResource IconButtonStyle}" Width="28" Height="28" MinWidth="28"
                                                                 Click="OnToggleFavoriteClick" Tag="{Binding}"
@@ -1118,7 +1129,18 @@
                         </Button>
                         <Button DockPanel.Dock="Right" Content="Tutup Sesi Lain"
                                 Click="OnCloseBackgroundSessionsClick" Padding="10,4" FontSize="12" Margin="10,0,0,0"
-                                ToolTip="Matikan sesi profil latar belakang untuk menghemat RAM"/>
+                                ToolTip="Matikan sesi profil latar belakang untuk menghemat RAM">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasBackgroundSessions}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
                         <TextBlock Text="{Binding MemoryWarningMessage}" Foreground="{DynamicResource WarningSoftTextBrush}"
                                    FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
                     </DockPanel>

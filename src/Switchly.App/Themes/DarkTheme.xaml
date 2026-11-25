@@ -5,6 +5,7 @@
     <SolidColorBrush x:Key="BgSidebarBrush" Color="#0F131A"/>
     <SolidColorBrush x:Key="BgSurfaceBrush" Color="#151A23"/>
     <SolidColorBrush x:Key="BgSurfaceHoverBrush" Color="#1C2330"/>
+    <SolidColorBrush x:Key="BgHoverBrush" Color="#1C2330"/>
     <SolidColorBrush x:Key="BgSurfaceElevatedBrush" Color="#131822"/>
     <SolidColorBrush x:Key="BgInputBrush" Color="#0D1118"/>
     <SolidColorBrush x:Key="BgTabStripBrush" Color="#090C11"/>
@@ -38,6 +39,7 @@
     <SolidColorBrush x:Key="InfoSoftBorderBrush" Color="#1E3A8A"/>
     <SolidColorBrush x:Key="InfoSoftTextBrush" Color="#93C5FD"/>
 
+    <SolidColorBrush x:Key="SuccessBrush" Color="#22C55E"/>
     <SolidColorBrush x:Key="SuccessTextBrush" Color="#4ADE80"/>
     <SolidColorBrush x:Key="FavoriteBrush" Color="#F59E0B"/>
     <SolidColorBrush x:Key="ScrollThumbBrush" Color="#2C3649"/>

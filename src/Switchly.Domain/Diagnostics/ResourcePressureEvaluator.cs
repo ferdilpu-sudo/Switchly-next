@@ -33,6 +33,11 @@ public static class ResourcePressureEvaluator
         var summary =
             $"Profil tersimpan: {snapshot.SavedProfileCount}  •  Aktif: {snapshot.ActiveProfileCount}  •  RAM Aplikasi: {appMb:F0} MB  •  RAM Sistem: {memPct}%";
 
+        if (snapshot.ActiveProfileCount <= 0)
+        {
+            return new ResourceAssessment(ResourcePressureLevel.Normal, summary, null);
+        }
+
         if (memPct >= 90 || (memPct >= 85 && snapshot.ActiveProfileCount >= 3))
         {
             return new ResourceAssessment(

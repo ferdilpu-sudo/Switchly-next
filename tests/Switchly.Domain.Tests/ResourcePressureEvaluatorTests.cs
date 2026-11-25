@@ -56,4 +56,19 @@ public sealed class ResourcePressureEvaluatorTests
         Assert.NotNull(result.NonModalWarningMessage);
         Assert.Contains($"{systemMemPct}%", result.NonModalWarningMessage, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Evaluate_HighSystemMemoryWithZeroActiveProfiles_ReturnsNoWarning()
+    {
+        var snapshot = new ResourceSnapshot(
+            AppWorkingSetBytes: 380L * 1024 * 1024,
+            SystemMemoryLoadPercent: 93,
+            ActiveProfileCount: 0,
+            SavedProfileCount: 3);
+
+        var result = ResourcePressureEvaluator.Evaluate(snapshot);
+
+        Assert.Equal(ResourcePressureLevel.Normal, result.Level);
+        Assert.Null(result.NonModalWarningMessage);
+    }
 }

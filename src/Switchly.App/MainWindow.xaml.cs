@@ -86,6 +86,14 @@ public partial class MainWindow : Window
         DockedBrowserHost.Visibility = panel == DockedBrowserHost ? Visibility.Visible : Visibility.Collapsed;
         ActivityView.Visibility = panel == ActivityView ? Visibility.Visible : Visibility.Collapsed;
         SettingsView.Visibility = panel == SettingsView ? Visibility.Visible : Visibility.Collapsed;
+
+        if (SidebarActivityButton is not null && SidebarSettingsButton is not null)
+        {
+            var activeStyle = (Style)FindResource("NavButtonActiveStyle");
+            var ghostStyle = (Style)FindResource("GhostButtonStyle");
+            SidebarActivityButton.Style = panel == ActivityView ? activeStyle : ghostStyle;
+            SidebarSettingsButton.Style = panel == SettingsView ? activeStyle : ghostStyle;
+        }
     }
 
     private void OnOpenActivityViewClick(object sender, RoutedEventArgs e)
@@ -170,6 +178,12 @@ public partial class MainWindow : Window
 
         SidebarPanel.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
         SidebarColumn.Width = collapsed ? new GridLength(0) : new GridLength(268);
+
+        // Show compact Profil / Aktivitas buttons in Top Profile Strip only when Sidebar is collapsed
+        // to eliminate duplicate navigation controls (Hick's Law / Cognitive Clarity).
+        var topQuickNavVisibility = collapsed ? Visibility.Visible : Visibility.Collapsed;
+        TopProfilesButton.Visibility = topQuickNavVisibility;
+        TopActivityButton.Visibility = topQuickNavVisibility;
     }
 
     private void OnToggleSidebarClick(object sender, RoutedEventArgs e)
