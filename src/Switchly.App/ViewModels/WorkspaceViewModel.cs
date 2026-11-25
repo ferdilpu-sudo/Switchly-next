@@ -75,6 +75,7 @@ public sealed class WorkspaceViewModel : ViewModelBase
     private string? _memoryWarningMessage;
     private string _resourceStatusText = "Profil tersimpan: 0  •  Aktif: 0";
     private string _sectionTitle = "Semua Profil";
+    private string _sectionSubtitle = "Klik kartu profil untuk membuka browser terisolasi. Atur grup dari menu Ubah Profil.";
     private int _totalSavedCount;
     private int _activeProfileCount;
     private bool _isEmpty;
@@ -244,6 +245,12 @@ public sealed class WorkspaceViewModel : ViewModelBase
     {
         get => _sectionTitle;
         private set => SetProperty(ref _sectionTitle, value);
+    }
+
+    public string SectionSubtitle
+    {
+        get => _sectionSubtitle;
+        private set => SetProperty(ref _sectionSubtitle, value);
     }
 
     public string? ErrorMessage
@@ -435,6 +442,17 @@ public sealed class WorkspaceViewModel : ViewModelBase
             _ => "Semua Profil",
         };
 
+        SectionSubtitle = section switch
+        {
+            WorkspaceSection.Favorites => "Profil favorit Anda untuk akses cepat.",
+            WorkspaceSection.Archived => "Profil yang diarsipkan. Klik kanan untuk memulihkan.",
+            WorkspaceSection.Group when group is not null && !string.IsNullOrWhiteSpace(group.DefaultUrl) =>
+                $"Klik kartu profil mana saja untuk langsung membuka {group.DefaultUrl}",
+            WorkspaceSection.Group when group is not null =>
+                $"Menampilkan profil di dalam folder '{group.Name}'.",
+            _ => "Klik kartu profil untuk membuka browser terisolasi. Atur grup dari menu Ubah Profil.",
+        };
+
         await ApplyFilterAsync();
     }
 
@@ -589,6 +607,20 @@ public sealed class WorkspaceViewModel : ViewModelBase
         var groupService = scope.ServiceProvider.GetRequiredService<IGroupService>();
         await groupService.CreateManualGroupAsync(name, defaultUrl);
         await RefreshGroupsAsync();
+    }
+
+    public async Task RenameManualGroupAsync(ProfileGroup group, string newName)
+    {
+        ErrorMessage = null;
+        using var scope = _scopeFactory.CreateScope();
+        var groupService = scope.ServiceProvider.GetRequiredService<IGroupService>();
+        var updated = await groupService.RenameManualGroupAsync(group.GroupId, newName);
+        if (_selectedGroup?.GroupId == group.GroupId)
+        {
+            await SelectSectionAsync(WorkspaceSection.Group, updated);
+        }
+
+        await LoadAsync();
     }
 
     public async Task DeleteManualGroupAsync(ProfileGroup group)

@@ -44,11 +44,41 @@
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <DockPanel>
+                            <DockPanel MouseDown="OnTabItemMouseDown" Tag="{Binding}">
+                                <DockPanel.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Muat Ulang Tab" Click="OnTabReloadContextClick" Tag="{Binding}"/>
+                                        <MenuItem Header="Duplikat Tab" Click="OnTabDuplicateContextClick" Tag="{Binding}"/>
+                                        <MenuItem Header="Salin URL Tab" Click="OnTabCopyUrlContextClick" Tag="{Binding}"/>
+                                        <Separator/>
+                                        <MenuItem Header="Tutup Tab" Click="OnCloseTabClick" Tag="{Binding}"/>
+                                        <MenuItem Header="Tutup Tab Lainnya" Click="OnCloseOtherTabsContextClick" Tag="{Binding}"/>
+                                        <MenuItem Header="Buka Kembali Tab Tertutup (Ctrl+Shift+T)" Click="OnReopenClosedTabContextClick"/>
+                                    </ContextMenu>
+                                </DockPanel.ContextMenu>
+                                <DockPanel.ToolTip>
+                                    <StackPanel MaxWidth="360">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Address}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </DockPanel.ToolTip>
+                                <Ellipse DockPanel.Dock="Left" Width="6" Height="6" Fill="{DynamicResource AccentBrush}"
+                                         VerticalAlignment="Center" Margin="0,0,7,0">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
                                 <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}"
                                         Click="OnCloseTabClick" Tag="{Binding}"
                                         Width="22" Height="22" Padding="5" Margin="8,0,0,0"
-                                        ToolTip="Tutup tab (Ctrl+W)" AutomationProperties.Name="Tutup tab">
+                                        ToolTip="Tutup tab (Ctrl+W / klik tengah)" AutomationProperties.Name="Tutup tab">
                                     <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconClose}" Width="10" Height="10"/>
                                 </Button>
                                 <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"
@@ -60,7 +90,7 @@
             </DockPanel>
         </Border>
 
-        <!-- Pure-Vector Navigation Toolbar -->
+        <!-- Modern Navigation Toolbar with Integrated HTTPS Omnibox -->
         <Border DockPanel.Dock="Top" Background="{DynamicResource BgTabActiveBrush}"
                 BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,1" Padding="8,6">
             <DockPanel>
@@ -80,15 +110,16 @@
                     </Button>
                 </StackPanel>
 
-                <!-- Right Action Icons (pure Lucide vectors, 34x34 comfortable targets) -->
+                <!-- Right Action Icons -->
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
                     <Button Style="{StaticResource IconButtonStyle}" Click="OnAutofillPasswordClick" Margin="0,0,2,0"
                             ToolTip="Isi otomatis username/password dari Password Vault profil ini"
                             AutomationProperties.Name="Isi otomatis dari Password Vault">
                         <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconKey}"/>
                     </Button>
-                    <Button Style="{StaticResource IconButtonStyle}" Click="OnBookmarkMenuClick" Margin="0,0,2,0"
-                            ToolTip="Klik kiri: simpan bookmark; klik kanan: buka pengelola bookmark"
+                    <Button Style="{StaticResource IconButtonStyle}" Click="OnBookmarkMenuClick"
+                            MouseRightButtonUp="OnBookmarkRightClick" Margin="0,0,2,0"
+                            ToolTip="Klik kiri: simpan bookmark cepat; klik kanan: buka pengelola bookmark"
                             AutomationProperties.Name="Bookmark">
                         <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconStar}"/>
                     </Button>
@@ -98,9 +129,18 @@
                         <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconHistory}"/>
                     </Button>
                     <Button Style="{StaticResource IconButtonStyle}" Click="OnShowDownloadsClick" Margin="0,0,2,0"
-                            ToolTip="Lihat daftar unduhan profil ini"
+                            ToolTip="Unduhan profil ini (klik untuk buka panel unduhan cepat)"
                             AutomationProperties.Name="Unduhan">
-                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconDownload}"/>
+                        <Grid>
+                            <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconDownload}"/>
+                            <Ellipse x:Name="DownloadActiveDot" Width="7" Height="7" Fill="{DynamicResource AccentBrush}"
+                                     HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0" Visibility="Collapsed"/>
+                        </Grid>
+                    </Button>
+                    <Button Style="{StaticResource IconButtonStyle}" Click="OnFindToggleClick" Margin="0,0,2,0"
+                            ToolTip="Cari teks di halaman (Ctrl+F)"
+                            AutomationProperties.Name="Cari di halaman">
+                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconSearch}"/>
                     </Button>
                     <Button Style="{StaticResource IconButtonStyle}" Click="OnNewWindowClick"
                             ToolTip="Buka jendela terpisah (pop-out) dengan sesi profil yang sama"
@@ -109,25 +149,101 @@
                     </Button>
                 </StackPanel>
 
-                <!-- Compact Go Icon -->
-                <Button DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}"
-                        Click="OnNavigateClick" Margin="4,0,0,0"
-                        ToolTip="Buka URL (Enter)" AutomationProperties.Name="Buka URL">
-                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconCornerDownLeft}"/>
-                </Button>
+                <!-- Unified Modern Pill Omnibox (Security Lock + URL Input + Zoom Pill + Go) -->
+                <Border Background="{DynamicResource BgInputBrush}"
+                        CornerRadius="17" Height="34" Padding="10,0,4,0">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+                            <Setter Property="BorderThickness" Value="1"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                    <Setter Property="BorderThickness" Value="1.5"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <DockPanel>
+                        <Path x:Name="SecurityIconPath" DockPanel.Dock="Left"
+                              Data="{StaticResource IconGlobe}"
+                              Stroke="{DynamicResource TextMutedBrush}"
+                              StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                              Width="13" Height="13" Stretch="Uniform" VerticalAlignment="Center" Margin="2,0,8,0"
+                              ToolTip="Status koneksi halaman"/>
 
-                <!-- Expansive Pill Address Bar -->
-                <TextBox x:Name="AddressBox" Style="{StaticResource PillTextBoxStyle}"
-                         themes:TextBoxAssist.PlaceholderText="Masukkan URL atau alamat situs (Ctrl+L)..."
-                         KeyDown="OnAddressBoxKeyDown"
-                         AutomationProperties.Name="Address bar"
-                         ToolTip="Address bar (Ctrl+L)"/>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}"
+                                Click="OnNavigateClick" Width="26" Height="26" Padding="5"
+                                ToolTip="Buka URL atau cari (Enter)" AutomationProperties.Name="Buka URL">
+                            <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconCornerDownLeft}" Width="12" Height="12"/>
+                        </Button>
+
+                        <Button x:Name="ZoomBadgeButton" DockPanel.Dock="Right"
+                                Style="{StaticResource GhostButtonStyle}"
+                                Content="100%" FontSize="11" FontWeight="SemiBold"
+                                Foreground="{DynamicResource AccentBrush}"
+                                Padding="7,2" Margin="0,0,4,0" Visibility="Collapsed"
+                                Click="OnResetZoomClick"
+                                ToolTip="Klik untuk reset zoom ke 100% (Ctrl+0)"
+                                AutomationProperties.Name="Reset zoom ke 100 persen"/>
+
+                        <TextBox x:Name="AddressBox"
+                                 Background="Transparent" BorderThickness="0" Padding="0,4"
+                                 themes:TextBoxAssist.PlaceholderText="Masukkan URL atau cari di Google (Ctrl+L)..."
+                                 KeyDown="OnAddressBoxKeyDown"
+                                 AutomationProperties.Name="Address bar"
+                                 ToolTip="Address bar (Ctrl+L)">
+                            <TextBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Potong" Command="ApplicationCommands.Cut"/>
+                                    <MenuItem Header="Salin" Command="ApplicationCommands.Copy"/>
+                                    <MenuItem Header="Tempel" Command="ApplicationCommands.Paste"/>
+                                    <MenuItem Header="Tempel &amp; Buka" Click="OnAddressPasteAndGoClick"/>
+                                    <Separator/>
+                                    <MenuItem Header="Pilih Semua" Command="ApplicationCommands.SelectAll"/>
+                                </ContextMenu>
+                            </TextBox.ContextMenu>
+                        </TextBox>
+                    </DockPanel>
+                </Border>
             </DockPanel>
         </Border>
 
         <!-- Subtle 2px Indeterminate Loading Bar -->
         <ProgressBar x:Name="LoadingProgressBar" DockPanel.Dock="Top" Height="2"
                      IsIndeterminate="True" Visibility="Collapsed"/>
+
+        <!-- Inline Find-in-Page Bar (Ctrl+F) -->
+        <Border x:Name="FindBar" DockPanel.Dock="Top"
+                Background="{DynamicResource BgSurfaceElevatedBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}"
+                BorderThickness="0,0,0,1" Padding="10,6" Visibility="Collapsed">
+            <DockPanel HorizontalAlignment="Right">
+                <Button DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}" Width="28" Height="28" MinWidth="28"
+                        Click="OnCloseFindClick" Margin="4,0,0,0"
+                        ToolTip="Tutup pencarian (Esc)" AutomationProperties.Name="Tutup pencarian">
+                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconClose}" Width="12" Height="12"/>
+                </Button>
+                <Button DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}" Width="28" Height="28" MinWidth="28"
+                        Click="OnFindNextClick" Margin="4,0,0,0"
+                        ToolTip="Hasil berikutnya (Enter)" AutomationProperties.Name="Hasil berikutnya">
+                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconChevronDown}" Width="13" Height="13"/>
+                </Button>
+                <Button DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}" Width="28" Height="28" MinWidth="28"
+                        Click="OnFindPreviousClick" Margin="6,0,0,0"
+                        ToolTip="Hasil sebelumnya (Shift+Enter)" AutomationProperties.Name="Hasil sebelumnya">
+                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconChevronUp}" Width="13" Height="13"/>
+                </Button>
+                <TextBox x:Name="FindBox" Width="260" Height="30" Padding="10,4"
+                         themes:TextBoxAssist.PlaceholderText="Cari di halaman..."
+                         TextChanged="OnFindBoxTextChanged"
+                         KeyDown="OnFindBoxKeyDown"
+                         AutomationProperties.Name="Cari teks di halaman"/>
+            </DockPanel>
+        </Border>
 
         <!-- Non-Modal Renderer Crash Recovery Banner -->
         <Border x:Name="CrashRecoveryBanner" DockPanel.Dock="Top"
@@ -143,7 +259,135 @@
             </DockPanel>
         </Border>
 
-        <!-- Active Tab Browser Surface -->
-        <ContentControl x:Name="BrowserContainer"/>
+        <!-- Browser Surface + Non-Blocking Overlays (Hover URL Bubble + Toast Pill) -->
+        <Grid>
+            <ContentControl x:Name="BrowserContainer"/>
+
+            <!-- Bottom-Left Chrome-Style Link Hover Status Bubble -->
+            <Border x:Name="HoverStatusBubble"
+                    HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                    Margin="8,0,8,6" MaxWidth="520"
+                    Background="{DynamicResource BgSurfaceElevatedBrush}"
+                    BorderBrush="{DynamicResource BorderStrongBrush}"
+                    BorderThickness="1" CornerRadius="6" Padding="9,4"
+                    IsHitTestVisible="False" Visibility="Collapsed">
+                <TextBlock x:Name="HoverStatusText" FontSize="11.5"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           TextTrimming="CharacterEllipsis"/>
+            </Border>
+
+            <!-- Top-Right Native-Browser Download Flyout Popover -->
+            <Border x:Name="DownloadFlyoutPanel"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Margin="0,8,12,0" Width="370" MaxHeight="410"
+                    Background="{DynamicResource BgSurfaceElevatedBrush}"
+                    BorderBrush="{DynamicResource BorderStrongBrush}"
+                    BorderThickness="1" CornerRadius="11" Padding="14,12"
+                    Visibility="Collapsed">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}" Width="26" Height="26" MinWidth="26"
+                                Click="OnCloseDownloadFlyoutClick" ToolTip="Tutup panel unduhan" AutomationProperties.Name="Tutup panel unduhan">
+                            <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconClose}" Width="11" Height="11"/>
+                        </Button>
+                        <TextBlock Text="Unduhan Terbaru" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <Button DockPanel.Dock="Bottom" Style="{StaticResource GhostButtonStyle}"
+                            Foreground="{DynamicResource AccentBrush}" FontSize="12" FontWeight="SemiBold"
+                            Click="OnOpenFullDownloadsClick" Margin="0,8,0,0" Padding="8,6">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="Lihat semua riwayat unduhan" Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconArrowRight}"
+                                  Stroke="{DynamicResource AccentBrush}" Width="13" Height="13"/>
+                        </StackPanel>
+                    </Button>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="300">
+                        <StackPanel>
+                            <TextBlock x:Name="DownloadFlyoutEmptyText"
+                                       Text="Belum ada unduhan pada profil ini."
+                                       Foreground="{DynamicResource TextMutedBrush}" FontSize="12"
+                                       HorizontalAlignment="Center" Margin="0,18"/>
+
+                            <ItemsControl x:Name="DownloadFlyoutList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{DynamicResource BgSurfaceBrush}"
+                                                BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                                BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,6">
+                                            <StackPanel>
+                                                <DockPanel>
+                                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
+                                                        <Button Width="28" Height="28" MinWidth="28"
+                                                                Click="OnFlyoutOpenFileClick" Tag="{Binding}"
+                                                                ToolTip="Buka file" AutomationProperties.Name="Buka file">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsCompleted}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Button.Style>
+                                                            <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconExternalLink}" Width="13" Height="13"/>
+                                                        </Button>
+                                                        <Button Style="{StaticResource IconButtonStyle}" Width="28" Height="28" MinWidth="28"
+                                                                Click="OnFlyoutShowInFolderClick" Tag="{Binding}"
+                                                                ToolTip="Tampilkan di File Explorer" AutomationProperties.Name="Tampilkan di folder">
+                                                            <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconFolder}" Width="13" Height="13"/>
+                                                        </Button>
+                                                    </StackPanel>
+
+                                                    <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Fill="{Binding StatusColor}"
+                                                             VerticalAlignment="Center" Margin="0,0,9,0"/>
+
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding FileName}" FontSize="12.5" FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding StatusSummary}" FontSize="11"
+                                                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                </DockPanel>
+
+                                                <ProgressBar Height="4" Minimum="0" Maximum="100"
+                                                             Value="{Binding ProgressPercent, Mode=OneWay}"
+                                                             IsIndeterminate="{Binding IsIndeterminate, Mode=OneWay}"
+                                                             Margin="0,7,0,0">
+                                                    <ProgressBar.Style>
+                                                        <Style TargetType="ProgressBar" BasedOn="{StaticResource {x:Type ProgressBar}}">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsInProgress}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ProgressBar.Style>
+                                                </ProgressBar>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+
+            <!-- Top-Right Non-Blocking Feedback Toast Pill -->
+            <Border x:Name="ToastBanner"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Margin="0,10,14,0"
+                    Background="{DynamicResource BgSurfaceElevatedBrush}"
+                    BorderBrush="{DynamicResource AccentBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="12,7"
+                    IsHitTestVisible="False" Visibility="Collapsed">
+                <TextBlock x:Name="ToastText" FontSize="12" FontWeight="Medium"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+            </Border>
+        </Grid>
     </DockPanel>
 </UserControl>

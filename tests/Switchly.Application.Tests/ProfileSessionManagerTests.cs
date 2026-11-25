@@ -242,6 +242,10 @@ public class ProfileSessionManagerTests
 
         public event Action<BrowserShortcutCommand>? ShortcutPressed;
 
+        public event Action<string>? StatusMessageChanged;
+
+        public event Action<int>? ZoomPercentChanged;
+
         public void Navigate(string url)
         {
             Address = url;
@@ -269,9 +273,13 @@ public class ProfileSessionManagerTests
         {
         }
 
-        public void ResetZoom()
+        public void ResetZoom() => ZoomPercentChanged?.Invoke(100);
+
+        public void Find(string searchText, bool forward, bool matchCase, bool findNext)
         {
         }
+
+        public void StopFinding(bool clearSelection) => StatusMessageChanged?.Invoke(string.Empty);
 
         public Task<bool> FillLoginFormAsync(string username, string password) => Task.FromResult(true);
 

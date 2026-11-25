@@ -11,6 +11,7 @@ internal sealed class ProfileKeyboardHandler : IKeyboardHandler
 {
     private const int VkTab = 0x09;
     private const int Vk0 = 0x30;
+    private const int VkF = 0x46;
     private const int VkK = 0x4B;
     private const int VkL = 0x4C;
     private const int VkR = 0x52;
@@ -65,6 +66,7 @@ internal sealed class ProfileKeyboardHandler : IKeyboardHandler
             VkT when !shift => BrowserShortcutCommand.NewTab,
             VkW when !shift => BrowserShortcutCommand.CloseTab,
             VkL when !shift => BrowserShortcutCommand.FocusAddressBar,
+            VkF when !shift => BrowserShortcutCommand.FindInPage,
             VkK when !shift => BrowserShortcutCommand.QuickSearch,
             VkR when !shift => BrowserShortcutCommand.Reload,
             VkTab when !shift => BrowserShortcutCommand.NextTab,

@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Switchly.App.ViewModels;
 using Switchly.Application.Browser;
@@ -27,7 +28,9 @@ public partial class BrowserWorkspaceView : UserControl
     private readonly Action<BrowserWorkspaceView> _onAllTabsClosedCallback;
     private readonly Action? _onBackToDashboardCallback;
     private readonly ObservableCollection<BrowserTabItemViewModel> _tabs = [];
+    private readonly ObservableCollection<DownloadItemViewModel> _recentDownloads = [];
     private readonly Stack<string> _recentlyClosedUrls = new();
+    private readonly DispatcherTimer _toastTimer;
     private BrowserTabItemViewModel? _activeTab;
     private bool _disposed;
 
@@ -62,6 +65,14 @@ public partial class BrowserWorkspaceView : UserControl
         ApplyBadgeColor(profile.ColorHex);
         BackToDashboardButton.Visibility = onBackToDashboardCallback is not null ? Visibility.Visible : Visibility.Collapsed;
         TabStrip.ItemsSource = _tabs;
+        DownloadFlyoutList.ItemsSource = _recentDownloads;
+
+        _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2.2) };
+        _toastTimer.Tick += (_, _) =>
+        {
+            _toastTimer.Stop();
+            ToastBanner.Visibility = Visibility.Collapsed;
+        };
 
         AttachTab(initialHost, initialUrl);
     }
@@ -178,7 +189,7 @@ public partial class BrowserWorkspaceView : UserControl
                 await OpenTabAsync(url);
             }
         });
-        host.DownloadUpdated += evt => _ = RecordDownloadUpdateAsync(evt);
+        host.DownloadUpdated += evt => _ = HandleDownloadUpdateAsync(evt);
         host.RendererCrashed += reason => Dispatcher.BeginInvoke(() =>
         {
             if (_disposed)
@@ -198,6 +209,33 @@ public partial class BrowserWorkspaceView : UserControl
             {
                 await ExecuteShortcutAsync(cmd);
             }
+        });
+        host.StatusMessageChanged += message => Dispatcher.BeginInvoke(() =>
+        {
+            if (_disposed || _activeTab != tab)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                HoverStatusBubble.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                HoverStatusText.Text = message;
+                HoverStatusBubble.Visibility = Visibility.Visible;
+            }
+        });
+        host.ZoomPercentChanged += percent => Dispatcher.BeginInvoke(() =>
+        {
+            if (_disposed || _activeTab != tab)
+            {
+                return;
+            }
+
+            ZoomBadgeButton.Content = $"{percent}%";
+            ZoomBadgeButton.Visibility = percent == 100 ? Visibility.Collapsed : Visibility.Visible;
         });
 
         _tabs.Add(tab);
@@ -254,6 +292,9 @@ public partial class BrowserWorkspaceView : UserControl
         _activeTab = selected;
         BrowserContainer.Content = selected.Host.Control;
         AddressBox.Text = selected.Address;
+        UpdateSecurityIcon(selected.Address);
+        HoverStatusBubble.Visibility = Visibility.Collapsed;
+        DownloadFlyoutPanel.Visibility = Visibility.Collapsed;
         CrashRecoveryBanner.Visibility = Visibility.Collapsed;
         ActiveTitleChanged?.Invoke($"{selected.Title} — {_profile.Name} | Switchly");
         UpdateNavigationButtons();
@@ -272,11 +313,42 @@ public partial class BrowserWorkspaceView : UserControl
             if (_activeTab == tab)
             {
                 AddressBox.Text = address;
+                UpdateSecurityIcon(address);
                 UpdateNavigationButtons();
             }
         });
 
         _ = RecordVisitAsync(address, tab.Title);
+    }
+
+    private void UpdateSecurityIcon(string? address)
+    {
+        var isHttps = !string.IsNullOrWhiteSpace(address)
+            && address.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+
+        var iconKey = isHttps ? "IconLock" : "IconGlobe";
+        if (System.Windows.Application.Current?.TryFindResource(iconKey) is Geometry geometry)
+        {
+            SecurityIconPath.Data = geometry;
+        }
+
+        var brushKey = isHttps ? "SuccessTextBrush" : "TextMutedBrush";
+        if (System.Windows.Application.Current?.TryFindResource(brushKey) is Brush brush)
+        {
+            SecurityIconPath.Stroke = brush;
+        }
+
+        SecurityIconPath.ToolTip = isHttps
+            ? "Koneksi aman (HTTPS)"
+            : "Halaman lokal / non-HTTPS";
+    }
+
+    private void ShowToast(string message)
+    {
+        ToastText.Text = message;
+        ToastBanner.Visibility = Visibility.Visible;
+        _toastTimer.Stop();
+        _toastTimer.Start();
     }
 
     private async Task RecordVisitAsync(string address, string title)
@@ -359,11 +431,92 @@ public partial class BrowserWorkspaceView : UserControl
 
     private async void OnNewTabClick(object sender, RoutedEventArgs e) => await OpenTabAsync();
 
+    private void OnTabItemMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Middle && sender is FrameworkElement { Tag: BrowserTabItemViewModel tab })
+        {
+            e.Handled = true;
+            CloseTab(tab);
+        }
+    }
+
     private void OnCloseTabClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: BrowserTabItemViewModel tab })
         {
             CloseTab(tab);
+        }
+    }
+
+    private void OnTabReloadContextClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: BrowserTabItemViewModel tab })
+        {
+            tab.Host.Reload();
+        }
+    }
+
+    private async void OnTabDuplicateContextClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: BrowserTabItemViewModel tab })
+        {
+            await OpenTabAsync(tab.Address);
+        }
+    }
+
+    private void OnTabCopyUrlContextClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: BrowserTabItemViewModel tab } && !string.IsNullOrWhiteSpace(tab.Address))
+        {
+            try
+            {
+                Clipboard.SetText(tab.Address);
+                ShowToast("URL tab disalin ke clipboard");
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private void OnCloseOtherTabsContextClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: BrowserTabItemViewModel keepTab })
+        {
+            var others = _tabs.Where(t => t != keepTab).ToList();
+            foreach (var other in others)
+            {
+                CloseTab(other);
+            }
+
+            TabStrip.SelectedItem = keepTab;
+        }
+    }
+
+    private async void OnReopenClosedTabContextClick(object sender, RoutedEventArgs e)
+    {
+        if (_recentlyClosedUrls.Count > 0)
+        {
+            await OpenTabAsync(_recentlyClosedUrls.Pop());
+        }
+        else
+        {
+            ShowToast("Tidak ada tab tertutup yang bisa dibuka kembali");
+        }
+    }
+
+    private void OnAddressPasteAndGoClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (Clipboard.ContainsText())
+            {
+                AddressBox.Text = Clipboard.GetText().Trim();
+                NavigateToAddressBox();
+            }
+        }
+        catch
+        {
         }
     }
 
@@ -380,52 +533,163 @@ public partial class BrowserWorkspaceView : UserControl
     private async void OnNewWindowClick(object sender, RoutedEventArgs e)
         => await _openNewWindowCallback(_profile);
 
+    private void OnBookmarkRightClick(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        OpenLibraryDialog(ProfileLibraryTab.Bookmarks);
+    }
+
     private async void OnBookmarkMenuClick(object sender, RoutedEventArgs e)
     {
-        if (_activeTab is null || string.IsNullOrWhiteSpace(_activeTab.Address))
+        if (_activeTab is null || string.IsNullOrWhiteSpace(_activeTab.Address)
+            || _activeTab.Address.StartsWith("about:", StringComparison.OrdinalIgnoreCase))
         {
             OpenLibraryDialog(ProfileLibraryTab.Bookmarks);
             return;
         }
 
-        var address = _activeTab.Address;
-        if (address.StartsWith("about:", StringComparison.OrdinalIgnoreCase))
+        try
         {
-            OpenLibraryDialog(ProfileLibraryTab.Bookmarks);
-            return;
+            using var scope = App.Services.CreateScope();
+            var bookmarks = scope.ServiceProvider.GetRequiredService<IBookmarkService>();
+            await bookmarks.AddBookmarkAsync(_profile.ProfileId, _activeTab.Title, _activeTab.Address);
+            ShowToast($"Bookmark disimpan di profil {_profile.Name} (klik kanan untuk kelola)");
         }
-
-        var choice = MessageBox.Show(
-            $"Simpan '{_activeTab.Title}' ke Bookmark profil '{_profile.Name}'?\n\nPilih 'No' untuk membuka Pengelola Bookmark.",
-            "Bookmark Profil",
-            MessageBoxButton.YesNoCancel,
-            MessageBoxImage.Question);
-
-        if (choice == MessageBoxResult.Yes)
+        catch (Exception ex)
         {
-            try
-            {
-                using var scope = App.Services.CreateScope();
-                var bookmarks = scope.ServiceProvider.GetRequiredService<IBookmarkService>();
-                await bookmarks.AddBookmarkAsync(_profile.ProfileId, _activeTab.Title, address);
-                MessageBox.Show($"Bookmark disimpan untuk profil '{_profile.Name}'.", "Switchly", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Gagal menyimpan bookmark: {ex.Message}", "Switchly", MessageBoxButton.OK, MessageBoxImage.Warning);
-            }
+            ShowToast($"Gagal menyimpan bookmark: {ex.Message}");
         }
-        else if (choice == MessageBoxResult.No)
+    }
+
+    private void OnResetZoomClick(object sender, RoutedEventArgs e) => _activeTab?.Host.ResetZoom();
+
+    private void OnFindToggleClick(object sender, RoutedEventArgs e)
+    {
+        if (FindBar.Visibility == Visibility.Visible)
         {
-            OpenLibraryDialog(ProfileLibraryTab.Bookmarks);
+            CloseFindBar();
+        }
+        else
+        {
+            OpenFindBar();
+        }
+    }
+
+    private void OpenFindBar()
+    {
+        FindBar.Visibility = Visibility.Visible;
+        FindBox.Focus();
+        FindBox.SelectAll();
+    }
+
+    private void CloseFindBar()
+    {
+        FindBar.Visibility = Visibility.Collapsed;
+        _activeTab?.Host.StopFinding(clearSelection: true);
+    }
+
+    private void OnCloseFindClick(object sender, RoutedEventArgs e) => CloseFindBar();
+
+    private void OnFindNextClick(object sender, RoutedEventArgs e)
+        => _activeTab?.Host.Find(FindBox.Text, forward: true, matchCase: false, findNext: true);
+
+    private void OnFindPreviousClick(object sender, RoutedEventArgs e)
+        => _activeTab?.Host.Find(FindBox.Text, forward: false, matchCase: false, findNext: true);
+
+    private void OnFindBoxTextChanged(object sender, TextChangedEventArgs e)
+    {
+        var query = FindBox.Text;
+        if (string.IsNullOrEmpty(query))
+        {
+            _activeTab?.Host.StopFinding(clearSelection: true);
+        }
+        else
+        {
+            _activeTab?.Host.Find(query, forward: true, matchCase: false, findNext: false);
+        }
+    }
+
+    private void OnFindBoxKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            CloseFindBar();
+        }
+        else if (e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            var forward = (Keyboard.Modifiers & ModifierKeys.Shift) == 0;
+            _activeTab?.Host.Find(FindBox.Text, forward: forward, matchCase: false, findNext: true);
         }
     }
 
     private void OnShowHistoryClick(object sender, RoutedEventArgs e)
         => OpenLibraryDialog(ProfileLibraryTab.History);
 
-    private void OnShowDownloadsClick(object sender, RoutedEventArgs e)
-        => OpenLibraryDialog(ProfileLibraryTab.Downloads);
+    private async void OnShowDownloadsClick(object sender, RoutedEventArgs e)
+    {
+        if (DownloadFlyoutPanel.Visibility == Visibility.Visible)
+        {
+            DownloadFlyoutPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        await LoadRecentDownloadsAsync();
+        DownloadFlyoutPanel.Visibility = Visibility.Visible;
+    }
+
+    private void OnCloseDownloadFlyoutClick(object sender, RoutedEventArgs e)
+        => DownloadFlyoutPanel.Visibility = Visibility.Collapsed;
+
+    private void OnOpenFullDownloadsClick(object sender, RoutedEventArgs e)
+    {
+        DownloadFlyoutPanel.Visibility = Visibility.Collapsed;
+        OpenLibraryDialog(ProfileLibraryTab.Downloads);
+    }
+
+    private void OnFlyoutOpenFileClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: DownloadItemViewModel item })
+        {
+            DownloadItemViewModel.OpenDownloadedFile(item.TargetPath);
+        }
+    }
+
+    private void OnFlyoutShowInFolderClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: DownloadItemViewModel item })
+        {
+            DownloadItemViewModel.ShowInExplorer(item.TargetPath);
+        }
+    }
+
+    private async Task LoadRecentDownloadsAsync()
+    {
+        try
+        {
+            using var scope = App.Services.CreateScope();
+            var downloads = scope.ServiceProvider.GetRequiredService<IDownloadService>();
+            var records = await downloads.ListByProfileAsync(_profile.ProfileId, limit: 8);
+
+            _recentDownloads.Clear();
+            foreach (var record in records)
+            {
+                _recentDownloads.Add(DownloadItemViewModel.FromRecord(record));
+            }
+
+            UpdateDownloadIndicators();
+        }
+        catch
+        {
+        }
+    }
+
+    private void UpdateDownloadIndicators()
+    {
+        DownloadFlyoutEmptyText.Visibility = _recentDownloads.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        DownloadActiveDot.Visibility = _recentDownloads.Any(d => d.IsInProgress) ? Visibility.Visible : Visibility.Collapsed;
+    }
 
     private void OpenLibraryDialog(ProfileLibraryTab initialTab)
     {
@@ -497,6 +761,43 @@ public partial class BrowserWorkspaceView : UserControl
         }
     }
 
+    private async Task HandleDownloadUpdateAsync(DownloadUpdateEvent evt)
+    {
+        await RecordDownloadUpdateAsync(evt);
+
+        _ = Dispatcher.BeginInvoke(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            var existing = _recentDownloads.FirstOrDefault(d =>
+                string.Equals(d.TargetPath, evt.TargetPath, StringComparison.OrdinalIgnoreCase));
+
+            var wasCompleted = existing?.IsCompleted == true;
+            if (existing is not null)
+            {
+                existing.ApplyUpdate(evt);
+            }
+            else
+            {
+                _recentDownloads.Insert(0, DownloadItemViewModel.FromEvent(evt));
+                while (_recentDownloads.Count > 8)
+                {
+                    _recentDownloads.RemoveAt(_recentDownloads.Count - 1);
+                }
+            }
+
+            UpdateDownloadIndicators();
+
+            if (evt.State == Domain.Downloads.DownloadState.Completed && !wasCompleted)
+            {
+                ShowToast($"Unduhan selesai: {evt.SuggestedFileName}");
+            }
+        });
+    }
+
     private static async Task RecordDownloadUpdateAsync(DownloadUpdateEvent evt)
     {
         try
@@ -550,6 +851,9 @@ public partial class BrowserWorkspaceView : UserControl
             case BrowserShortcutCommand.ResetZoom:
                 _activeTab?.Host.ResetZoom();
                 break;
+            case BrowserShortcutCommand.FindInPage:
+                OpenFindBar();
+                break;
             case BrowserShortcutCommand.QuickSearch:
                 if (Window.GetWindow(this) is MainWindow mainWindow)
                 {
@@ -561,6 +865,23 @@ public partial class BrowserWorkspaceView : UserControl
 
     private async void OnWorkspacePreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.Escape)
+        {
+            if (DownloadFlyoutPanel.Visibility == Visibility.Visible)
+            {
+                DownloadFlyoutPanel.Visibility = Visibility.Collapsed;
+                e.Handled = true;
+                return;
+            }
+
+            if (FindBar.Visibility == Visibility.Visible)
+            {
+                CloseFindBar();
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (e.Key == Key.F5)
         {
             e.Handled = true;
@@ -589,6 +910,7 @@ public partial class BrowserWorkspaceView : UserControl
             Key.T => BrowserShortcutCommand.NewTab,
             Key.W when _activeTab is not null => BrowserShortcutCommand.CloseTab,
             Key.L => BrowserShortcutCommand.FocusAddressBar,
+            Key.F => BrowserShortcutCommand.FindInPage,
             Key.R => BrowserShortcutCommand.Reload,
             Key.Tab when _tabs.Count > 1 && _activeTab is not null => BrowserShortcutCommand.NextTab,
             Key.OemPlus or Key.Add => BrowserShortcutCommand.ZoomIn,

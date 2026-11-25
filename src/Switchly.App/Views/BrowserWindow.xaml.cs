@@ -27,7 +27,7 @@ public partial class BrowserWindow : Window
         InitializeComponent();
 
         _onWindowClosedCallback = onWindowClosedCallback;
-        Title = $"Switchly Next — {profile.Name}";
+        Title = $"Switchly — {profile.Name}";
 
         Workspace = new BrowserWorkspaceView(
             profile,

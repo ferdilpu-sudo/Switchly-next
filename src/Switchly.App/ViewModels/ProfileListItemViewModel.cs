@@ -68,7 +68,7 @@ public sealed class ProfileListItemViewModel : ViewModelBase
         set => SetProperty(ref _isCurrentlyDocked, value);
     }
 
-    public string ColorHex => string.IsNullOrWhiteSpace(Profile.ColorHex) ? "#1B6EF3" : Profile.ColorHex;
+    public string ColorHex => string.IsNullOrWhiteSpace(Profile.ColorHex) ? "#3B82F6" : Profile.ColorHex;
 
     public bool IsFavorite => Profile.IsFavorite;
 

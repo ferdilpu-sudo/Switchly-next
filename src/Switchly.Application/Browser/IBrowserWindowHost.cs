@@ -12,6 +12,7 @@ public enum BrowserShortcutCommand
     ZoomOut,
     ResetZoom,
     QuickSearch,
+    FindInPage,
 }
 
 /// <summary>Hosts a browser tab/surface bound to an isolated profile context (REQ-005, REQ-006).</summary>
@@ -32,6 +33,10 @@ public interface IBrowserWindowHost : IDisposable
     void ZoomOut();
 
     void ResetZoom();
+
+    void Find(string searchText, bool forward, bool matchCase, bool findNext);
+
+    void StopFinding(bool clearSelection);
 
     /// <summary>
     /// Explicitly fills a visible login form on the current page when triggered by user click (D6).
@@ -66,4 +71,10 @@ public interface IBrowserWindowHost : IDisposable
 
     /// <summary>Raised when a browser keyboard shortcut is captured inside the CEF surface.</summary>
     event Action<BrowserShortcutCommand>? ShortcutPressed;
+
+    /// <summary>Raised when hovering links or page status text changes (bottom-left URL preview bubble).</summary>
+    event Action<string>? StatusMessageChanged;
+
+    /// <summary>Raised when zoom percentage changes (e.g., 100, 110, 90).</summary>
+    event Action<int>? ZoomPercentChanged;
 }

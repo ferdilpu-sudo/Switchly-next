@@ -136,7 +136,7 @@ public partial class ImportWizardDialog : Window
             return;
         }
 
-        SetBusy(true, "Mengimpor data ke profil Switchly Next...");
+        SetBusy(true, "Mengimpor data ke profil Switchly...");
         try
         {
             var result = await Task.Run(async () =>
@@ -193,7 +193,7 @@ public partial class ImportWizardDialog : Window
 
         if (target is null)
         {
-            MessageBox.Show("Buat dan pilih profil tujuan Switchly Next terlebih dahulu.", "Impor Browser", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Buat dan pilih profil tujuan Switchly terlebih dahulu.", "Impor Browser", MessageBoxButton.OK, MessageBoxImage.Information);
             return false;
         }
 

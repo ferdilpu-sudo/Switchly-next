@@ -104,7 +104,7 @@ public partial class SecurityAndBackupDialog : Window
 
         var dlg = new SaveFileDialog
         {
-            Title = "Simpan Arsip Backup Switchly Next",
+            Title = "Simpan Arsip Backup Switchly",
             Filter = "Switchly Backup (*.snbak)|*.snbak",
             FileName = $"switchly-backup-{DateTime.Now:yyyyMMdd-HHmm}.snbak",
         };
@@ -135,7 +135,7 @@ public partial class SecurityAndBackupDialog : Window
     {
         var dlg = new OpenFileDialog
         {
-            Title = "Pilih Arsip Backup Switchly Next",
+            Title = "Pilih Arsip Backup Switchly",
             Filter = "Switchly Backup (*.snbak)|*.snbak|Semua File (*.*)|*.*",
         };
         if (dlg.ShowDialog(this) != true)
@@ -203,7 +203,7 @@ public partial class SecurityAndBackupDialog : Window
                     $"Staging selesai ({staged.ExtractedFileCount} file terverifikasi). Aplikasi perlu dimulai ulang untuk menyelesaikan pemulihan.";
 
                 var restart = MessageBox.Show(
-                    "Pemulihan telah diverifikasi dan siap diterapkan. Mulai ulang Switchly Next sekarang?",
+                    "Pemulihan telah diverifikasi dan siap diterapkan. Mulai ulang Switchly sekarang?",
                     "Restart untuk Pemulihan",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Information);
@@ -261,7 +261,7 @@ public partial class SecurityAndBackupDialog : Window
     {
         if (VaultProfileCombo.SelectedItem is not BrowserProfile profile)
         {
-            VaultFeedbackText.Text = "Pilih profil Switchly Next terlebih dahulu.";
+            VaultFeedbackText.Text = "Pilih profil Switchly terlebih dahulu.";
             return;
         }
 
@@ -304,7 +304,7 @@ public partial class SecurityAndBackupDialog : Window
     {
         if (VaultProfileCombo.SelectedItem is not BrowserProfile profile)
         {
-            VaultFeedbackText.Text = "Pilih profil Switchly Next terlebih dahulu.";
+            VaultFeedbackText.Text = "Pilih profil Switchly terlebih dahulu.";
             return;
         }
 

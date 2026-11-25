@@ -34,6 +34,19 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
             DownloadHandler = new ProfileDownloadHandler(profileContext.ProfileId, evt => DownloadUpdated?.Invoke(evt)),
             RequestHandler = new ProfileRequestHandler(reason => RendererCrashed?.Invoke(reason)),
             KeyboardHandler = new ProfileKeyboardHandler(cmd => ShortcutPressed?.Invoke(cmd)),
+            DisplayHandler = new ProfileDisplayHandler(msg => StatusMessageChanged?.Invoke(msg)),
+            MenuHandler = new ProfileContextMenuHandler(
+                url => NewTabRequested?.Invoke(url),
+                text => System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+                {
+                    try
+                    {
+                        Clipboard.SetText(text);
+                    }
+                    catch
+                    {
+                    }
+                })),
         };
 
         _browser.AddressChanged += OnBrowserAddressChanged;
@@ -66,6 +79,10 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
     public event Action<string>? RendererCrashed;
 
     public event Action<BrowserShortcutCommand>? ShortcutPressed;
+
+    public event Action<string>? StatusMessageChanged;
+
+    public event Action<int>? ZoomPercentChanged;
 
     public void Navigate(string url)
     {
@@ -118,6 +135,7 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
 
         _zoomLevel = Math.Min(MaxZoomLevel, _zoomLevel + ZoomStep);
         _browser.SetZoomLevel(_zoomLevel);
+        ZoomPercentChanged?.Invoke(CalculateZoomPercent(_zoomLevel));
     }
 
     public void ZoomOut()
@@ -129,6 +147,7 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
 
         _zoomLevel = Math.Max(MinZoomLevel, _zoomLevel - ZoomStep);
         _browser.SetZoomLevel(_zoomLevel);
+        ZoomPercentChanged?.Invoke(CalculateZoomPercent(_zoomLevel));
     }
 
     public void ResetZoom()
@@ -140,7 +159,31 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
 
         _zoomLevel = 0.0;
         _browser.SetZoomLevel(_zoomLevel);
+        ZoomPercentChanged?.Invoke(100);
     }
+
+    public void Find(string searchText, bool forward, bool matchCase, bool findNext)
+    {
+        if (_disposed || !_browser.IsBrowserInitialized || string.IsNullOrEmpty(searchText))
+        {
+            return;
+        }
+
+        _browser.Find(searchText, forward, matchCase, findNext);
+    }
+
+    public void StopFinding(bool clearSelection)
+    {
+        if (_disposed || !_browser.IsBrowserInitialized)
+        {
+            return;
+        }
+
+        _browser.StopFinding(clearSelection);
+    }
+
+    private static int CalculateZoomPercent(double zoomLevel)
+        => (int)Math.Round(Math.Pow(1.2, zoomLevel) * 100.0);
 
     public async Task<bool> FillLoginFormAsync(string username, string password)
     {

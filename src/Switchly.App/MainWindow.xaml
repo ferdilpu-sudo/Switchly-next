@@ -118,6 +118,14 @@
                                                         <Button Click="OnActiveWorkspaceClick" Tag="{Binding}" HorizontalContentAlignment="Stretch"
                                                                 Padding="8,5" Margin="6,0,0,3" Cursor="Hand"
                                                                 ToolTip="Klik untuk langsung pindah ke task aktif ini">
+                                                            <Button.ContextMenu>
+                                                                <ContextMenu>
+                                                                    <MenuItem Header="Buka / Fokus Task" Click="OnActiveWorkspaceClick" Tag="{Binding}"/>
+                                                                    <MenuItem Header="Tutup Task Ini" Click="OnCloseActiveWorkspaceClick" Tag="{Binding}"/>
+                                                                    <Separator/>
+                                                                    <MenuItem Header="Tutup Semua Sesi Profil Ini" Click="OnCloseAllSessionsForActiveTaskProfileClick" Tag="{Binding}"/>
+                                                                </ContextMenu>
+                                                            </Button.ContextMenu>
                                                             <Button.Style>
                                                                 <Style TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
                                                                     <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}"/>
@@ -178,7 +186,22 @@
                                 <DataTemplate>
                                     <Button Click="OnOpenProfileClick" Tag="{Binding}" HorizontalContentAlignment="Stretch"
                                             Padding="8,7" Margin="0,0,0,3" Cursor="Hand"
-                                            ToolTip="Klik untuk buka / pindah ke profil ini">
+                                            ToolTip="Klik untuk buka / pindah ke profil ini (klik kanan untuk opsi)">
+                                        <Button.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Buka di Workspace (Terintegrasi)" Click="OnOpenProfileClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Buka di Jendela Baru (Pop-out)" Click="OnOpenNewWindowClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Tutup Sesi" Click="OnCloseSessionClick" Tag="{Binding}" IsEnabled="{Binding IsActive}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Ubah Profil &amp; Atur Grup" Click="OnEditProfileClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Favorit / Hapus Favorit" Click="OnToggleFavoriteClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Duplikat Konfigurasi (Tanpa Sesi)" Click="OnDuplicateProfileClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Impor dari Chrome/Edge..." Click="OnImportForProfileClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Arsipkan / Pulihkan" Click="OnToggleArchiveClick" Tag="{Binding}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Hapus Profil" Click="OnDeleteProfileClick" Tag="{Binding}"/>
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
                                         <Button.Style>
                                             <Style TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
                                                 <Style.Triggers>
@@ -268,6 +291,14 @@
                                     <Border Background="{DynamicResource BgSurfaceBrush}"
                                             BorderBrush="{DynamicResource BorderSubtleBrush}"
                                             BorderThickness="1" CornerRadius="13" Margin="0,0,6,6">
+                                        <Border.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Buka Grup Ini" Click="OnCategoryChipClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Ganti Nama Grup..." Click="OnRenameManualGroupClick" Tag="{Binding}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Hapus Grup" Click="OnDeleteManualGroupClick" Tag="{Binding}"/>
+                                            </ContextMenu>
+                                        </Border.ContextMenu>
                                         <StackPanel Orientation="Horizontal">
                                             <Button Style="{StaticResource GhostButtonStyle}"
                                                     Content="{Binding Name}" Click="OnCategoryChipClick" Tag="{Binding}"
@@ -383,7 +414,7 @@
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="{Binding SectionTitle}" FontSize="20" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                <TextBlock Text="Klik kartu profil untuk membuka browser terisolasi. Atur grup dari menu Ubah Profil."
+                                <TextBlock Text="{Binding SectionSubtitle}"
                                            FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0"/>
                             </StackPanel>
                         </DockPanel>
@@ -408,7 +439,16 @@
                                     <DataTemplate>
                                         <Button Style="{StaticResource ChipButtonStyle}" Content="{Binding Name}"
                                                 Click="OnCategoryChipClick" Tag="{Binding}" Margin="0,0,6,4"
-                                                ToolTip="Tampilkan profil dalam grup ini"/>
+                                                ToolTip="Tampilkan profil dalam grup ini (klik kanan untuk ubah/hapus)">
+                                            <Button.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Buka Grup Ini" Click="OnCategoryChipClick" Tag="{Binding}"/>
+                                                    <MenuItem Header="Ganti Nama Grup..." Click="OnRenameManualGroupClick" Tag="{Binding}"/>
+                                                    <Separator/>
+                                                    <MenuItem Header="Hapus Grup" Click="OnDeleteManualGroupClick" Tag="{Binding}"/>
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
+                                        </Button>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
@@ -500,7 +540,7 @@
                                                 <ContextMenu>
                                                     <MenuItem Header="Buka di Workspace (Terintegrasi)" Click="OnOpenProfileClick" Tag="{Binding}"/>
                                                     <MenuItem Header="Buka di Jendela Baru (Pop-out)" Click="OnOpenNewWindowClick" Tag="{Binding}"/>
-                                                    <MenuItem Header="Tutup Sesi" Click="OnCloseSessionClick" Tag="{Binding}"/>
+                                                    <MenuItem Header="Tutup Sesi" Click="OnCloseSessionClick" Tag="{Binding}" IsEnabled="{Binding IsActive}"/>
                                                     <Separator/>
                                                     <MenuItem Header="Ubah Profil &amp; Atur Grup" Click="OnEditProfileClick" Tag="{Binding}"/>
                                                     <MenuItem Header="Favorit / Hapus Favorit" Click="OnToggleFavoriteClick" Tag="{Binding}"/>

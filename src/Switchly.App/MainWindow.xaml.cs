@@ -290,6 +290,30 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void OnCloseAllSessionsForActiveTaskProfileClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: ActiveWorkspaceItemViewModel item })
+        {
+            await _viewModel.CloseProfileSessionAsync(item.ProfileId);
+            _viewModel.RefreshResourceUsage();
+        }
+    }
+
+    private async void OnRenameManualGroupClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: ProfileGroup group })
+        {
+            var dialog = new TextInputDialog("Ganti Nama Grup", $"Nama baru untuk grup '{group.Name}':")
+            {
+                Owner = this,
+            };
+            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+            {
+                await _viewModel.RenameManualGroupAsync(group, dialog.InputText);
+            }
+        }
+    }
+
     private async void OnCloseSessionClick(object sender, RoutedEventArgs e)
     {
         e.Handled = true;

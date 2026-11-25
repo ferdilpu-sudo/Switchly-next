@@ -1,12 +1,10 @@
-using System.Diagnostics;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Switchly.App.ViewModels;
 using Switchly.Application.Browser;
 using Switchly.Domain.Bookmarks;
-using Switchly.Domain.Downloads;
 using Switchly.Domain.History;
 
 namespace Switchly.App.Views;
@@ -64,7 +62,7 @@ public partial class ProfileLibraryDialog : Window
         using var scope = App.Services.CreateScope();
         var service = scope.ServiceProvider.GetRequiredService<IDownloadService>();
         var list = await service.ListByProfileAsync(_profileId, limit: 100);
-        DownloadsList.ItemsSource = list;
+        DownloadsList.ItemsSource = list.Select(DownloadItemViewModel.FromRecord).ToList();
     }
 
     private async void OnBookmarkSearchChanged(object sender, TextChangedEventArgs e)
@@ -144,33 +142,72 @@ public partial class ProfileLibraryDialog : Window
         await RefreshHistoryAsync();
     }
 
+    private void OnOpenDownloadFileClick(object sender, RoutedEventArgs e)
+    {
+        if (DownloadsList.SelectedItem is DownloadItemViewModel item)
+        {
+            DownloadItemViewModel.OpenDownloadedFile(item.TargetPath);
+        }
+    }
+
     private void OnOpenDownloadFolderClick(object sender, RoutedEventArgs e)
         => OpenSelectedDownloadFolder();
 
     private void OnDownloadDoubleClick(object sender, MouseButtonEventArgs e)
-        => OpenSelectedDownloadFolder();
+    {
+        if (DownloadsList.SelectedItem is DownloadItemViewModel item)
+        {
+            if (item.IsCompleted)
+            {
+                DownloadItemViewModel.OpenDownloadedFile(item.TargetPath);
+            }
+            else
+            {
+                DownloadItemViewModel.ShowInExplorer(item.TargetPath);
+            }
+        }
+    }
 
     private void OpenSelectedDownloadFolder()
     {
-        if (DownloadsList.SelectedItem is not DownloadRecord record || string.IsNullOrWhiteSpace(record.TargetPath))
+        if (DownloadsList.SelectedItem is DownloadItemViewModel item)
         {
-            return;
+            DownloadItemViewModel.ShowInExplorer(item.TargetPath);
         }
+    }
 
-        if (File.Exists(record.TargetPath))
+    private void OnCopyBookmarkUrlClick(object sender, RoutedEventArgs e)
+    {
+        if (BookmarksList.SelectedItem is Bookmark bookmark && !string.IsNullOrWhiteSpace(bookmark.Url))
         {
-            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{record.TargetPath}\"") { UseShellExecute = true });
-            return;
+            TryCopyToClipboard(bookmark.Url);
         }
+    }
 
-        var dir = Path.GetDirectoryName(record.TargetPath);
-        if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+    private void OnCopyHistoryUrlClick(object sender, RoutedEventArgs e)
+    {
+        if (HistoryList.SelectedItem is HistoryEntry entry && !string.IsNullOrWhiteSpace(entry.Url))
         {
-            Process.Start(new ProcessStartInfo("explorer.exe", $"\"{dir}\"") { UseShellExecute = true });
+            TryCopyToClipboard(entry.Url);
         }
-        else
+    }
+
+    private void OnCopyDownloadPathClick(object sender, RoutedEventArgs e)
+    {
+        if (DownloadsList.SelectedItem is DownloadItemViewModel item && !string.IsNullOrWhiteSpace(item.TargetPath))
         {
-            MessageBox.Show("File atau folder unduhan sudah tidak ditemukan di disk.", "Unduhan", MessageBoxButton.OK, MessageBoxImage.Information);
+            TryCopyToClipboard(item.TargetPath);
+        }
+    }
+
+    private static void TryCopyToClipboard(string text)
+    {
+        try
+        {
+            Clipboard.SetText(text);
+        }
+        catch
+        {
         }
     }
 }

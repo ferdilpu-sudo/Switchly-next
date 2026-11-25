@@ -29,6 +29,14 @@
                     </DockPanel>
                     <ListBox x:Name="BookmarksList" Background="{DynamicResource BgAppBrush}"
                              MouseDoubleClick="OnBookmarkDoubleClick">
+                        <ListBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Buka Bookmark" Click="OnOpenBookmarkClick"/>
+                                <MenuItem Header="Salin URL" Click="OnCopyBookmarkUrlClick"/>
+                                <Separator/>
+                                <MenuItem Header="Hapus Bookmark" Click="OnDeleteBookmarkClick"/>
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="4,3">
@@ -57,6 +65,12 @@
                     </DockPanel>
                     <ListBox x:Name="HistoryList" Background="{DynamicResource BgAppBrush}"
                              MouseDoubleClick="OnHistoryDoubleClick">
+                        <ListBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Buka Halaman" Click="OnOpenHistoryClick"/>
+                                <MenuItem Header="Salin URL" Click="OnCopyHistoryUrlClick"/>
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="4,3">
@@ -74,23 +88,35 @@
             <TabItem Header="Unduhan">
                 <DockPanel Margin="14">
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                        <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Content="Buka Folder"
-                                Click="OnOpenDownloadFolderClick" Padding="14,6"/>
+                        <Button DockPanel.Dock="Right" Content="Tampilkan di Folder" Click="OnOpenDownloadFolderClick" Padding="12,6" Margin="6,0,0,0"/>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Content="Buka File"
+                                Click="OnOpenDownloadFileClick" Padding="14,6"/>
                         <TextBlock Text="Daftar unduhan milik profil ini:" VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                     </DockPanel>
                     <ListBox x:Name="DownloadsList" Background="{DynamicResource BgAppBrush}"
                              MouseDoubleClick="OnDownloadDoubleClick">
+                        <ListBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Buka File" Click="OnOpenDownloadFileClick"/>
+                                <MenuItem Header="Tampilkan di Folder" Click="OnOpenDownloadFolderClick"/>
+                                <Separator/>
+                                <MenuItem Header="Salin Path File" Click="OnCopyDownloadPathClick"/>
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Margin="4,3">
-                                    <TextBlock Text="{Binding SuggestedFileName}" FontWeight="SemiBold" FontSize="13"/>
-                                    <TextBlock FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}">
-                                        <Run Text="{Binding State}"/>
-                                        <Run Text="  •  "/>
-                                        <Run Text="{Binding TargetPath}"/>
-                                    </TextBlock>
-                                </StackPanel>
+                                <DockPanel Margin="4,4">
+                                    <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Fill="{Binding StatusColor}"
+                                             VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="13"/>
+                                        <TextBlock Text="{Binding StatusSummary}" FontSize="11.5"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                        <TextBlock Text="{Binding TargetPath}" FontSize="11"
+                                                   Foreground="{DynamicResource TextMutedBrush}" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </DockPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
