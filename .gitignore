@@ -23,3 +23,6 @@ artifacts/*
 logs/
 *.dmp
 *.core
+
+# Local proprietary-codec CEF binary overlay (large binaries, built per D13)
+third_party/cef-proprietary/

@@ -6,7 +6,7 @@
              PreviewKeyDown="OnWorkspacePreviewKeyDown">
     <DockPanel>
         <!-- Seamless Modern Tab Strip -->
-        <Border DockPanel.Dock="Top" Background="{DynamicResource BgTabStripBrush}" Padding="8,7,8,0">
+        <Border x:Name="TabStripBar" DockPanel.Dock="Top" Background="{DynamicResource BgTabStripBrush}" Padding="8,7,8,0">
             <DockPanel>
                 <Button x:Name="BackToDashboardButton" DockPanel.Dock="Left"
                         Style="{StaticResource GhostButtonStyle}"
@@ -91,7 +91,7 @@
         </Border>
 
         <!-- Modern Navigation Toolbar with Integrated HTTPS Omnibox -->
-        <Border DockPanel.Dock="Top" Background="{DynamicResource BgTabActiveBrush}"
+        <Border x:Name="NavigationToolbarBar" DockPanel.Dock="Top" Background="{DynamicResource BgTabActiveBrush}"
                 BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,1" Padding="8,6">
             <DockPanel>
                 <!-- Left Navigation Controls -->

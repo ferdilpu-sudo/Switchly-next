@@ -32,6 +32,7 @@ public partial class BrowserWorkspaceView : UserControl
     private readonly Stack<string> _recentlyClosedUrls = new();
     private readonly DispatcherTimer _toastTimer;
     private BrowserTabItemViewModel? _activeTab;
+    private bool _isFullscreen;
     private bool _disposed;
 
     public BrowserWorkspaceView(
@@ -91,6 +92,8 @@ public partial class BrowserWorkspaceView : UserControl
 
     public event Action<string>? ActiveTitleChanged;
 
+    public event Action<bool>? FullscreenModeChanged;
+
     public IReadOnlyList<TabSnapshotInput> CaptureOpenTabs()
         => _tabs.Select(t => new TabSnapshotInput(t.Address, t.Title)).ToList();
 
@@ -139,6 +142,11 @@ public partial class BrowserWorkspaceView : UserControl
         if (_disposed)
         {
             return;
+        }
+
+        if (_isFullscreen)
+        {
+            SetFullscreenMode(false);
         }
 
         _disposed = true;
@@ -237,9 +245,39 @@ public partial class BrowserWorkspaceView : UserControl
             ZoomBadgeButton.Content = $"{percent}%";
             ZoomBadgeButton.Visibility = percent == 100 ? Visibility.Collapsed : Visibility.Visible;
         });
+        host.FullscreenModeChanged += isFullscreen => Dispatcher.BeginInvoke(() =>
+        {
+            if (_disposed || _activeTab != tab)
+            {
+                return;
+            }
+
+            SetFullscreenMode(isFullscreen);
+        });
 
         _tabs.Add(tab);
         TabStrip.SelectedItem = tab;
+    }
+
+    private void SetFullscreenMode(bool isFullscreen)
+    {
+        if (_isFullscreen == isFullscreen)
+        {
+            return;
+        }
+
+        _isFullscreen = isFullscreen;
+        var chromeVisibility = isFullscreen ? Visibility.Collapsed : Visibility.Visible;
+        TabStripBar.Visibility = chromeVisibility;
+        NavigationToolbarBar.Visibility = chromeVisibility;
+        if (isFullscreen)
+        {
+            FindBar.Visibility = Visibility.Collapsed;
+            HoverStatusBubble.Visibility = Visibility.Collapsed;
+            DownloadFlyoutPanel.Visibility = Visibility.Collapsed;
+        }
+
+        FullscreenModeChanged?.Invoke(isFullscreen);
     }
 
     private async Task OpenTabAsync(string? url = null)

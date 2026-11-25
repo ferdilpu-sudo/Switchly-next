@@ -74,6 +74,9 @@ public sealed class WorkspaceViewModel : ViewModelBase
     private string? _errorMessage;
     private string? _memoryWarningMessage;
     private string _resourceStatusText = "Profil tersimpan: 0  •  Aktif: 0";
+    private string _footerProfileSummary = "Profil: 0  •  Aktif: 0";
+    private string _footerRamSummary = "RAM: —";
+    private bool _memoryWarningDismissed;
     private string _sectionTitle = "Semua Profil";
     private string _sectionSubtitle = "Klik kartu profil untuk membuka browser terisolasi. Atur grup dari menu Ubah Profil.";
     private int _totalSavedCount;
@@ -285,12 +288,30 @@ public sealed class WorkspaceViewModel : ViewModelBase
         }
     }
 
-    public bool HasMemoryWarning => !string.IsNullOrWhiteSpace(MemoryWarningMessage);
+    public bool HasMemoryWarning => !_memoryWarningDismissed && !string.IsNullOrWhiteSpace(MemoryWarningMessage);
+
+    public void DismissMemoryWarning()
+    {
+        _memoryWarningDismissed = true;
+        OnPropertyChanged(nameof(HasMemoryWarning));
+    }
 
     public string ResourceStatusText
     {
         get => _resourceStatusText;
         private set => SetProperty(ref _resourceStatusText, value);
+    }
+
+    public string FooterProfileSummary
+    {
+        get => _footerProfileSummary;
+        private set => SetProperty(ref _footerProfileSummary, value);
+    }
+
+    public string FooterRamSummary
+    {
+        get => _footerRamSummary;
+        private set => SetProperty(ref _footerRamSummary, value);
     }
 
     public void RefreshResourceUsage()
@@ -308,8 +329,18 @@ public sealed class WorkspaceViewModel : ViewModelBase
 
         var snapshot = _resourceMonitor.CaptureSnapshot(_totalSavedCount, _activeProfileCount);
         var assessment = ResourcePressureEvaluator.Evaluate(snapshot);
+        var appMb = Math.Max(0, snapshot.AppWorkingSetBytes) / (1024.0 * 1024.0);
         ResourceStatusText = assessment.StatusSummary;
+        FooterProfileSummary = $"Profil: {_totalSavedCount}  •  Aktif: {_activeProfileCount}";
+        FooterRamSummary = $"RAM App: {appMb:F0} MB  •  Sistem: {snapshot.SystemMemoryLoadPercent}%";
+
+        if (string.IsNullOrWhiteSpace(assessment.NonModalWarningMessage))
+        {
+            _memoryWarningDismissed = false;
+        }
+
         MemoryWarningMessage = assessment.NonModalWarningMessage;
+        OnPropertyChanged(nameof(HasMemoryWarning));
         OnPropertyChanged(nameof(HasActiveSessions));
         OnPropertyChanged(nameof(HasBackgroundSessions));
 

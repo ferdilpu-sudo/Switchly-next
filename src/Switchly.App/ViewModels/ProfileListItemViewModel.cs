@@ -106,10 +106,10 @@ public sealed class ProfileListItemViewModel : ViewModelBase
 
     public string StatusLabel => RuntimeState switch
     {
-        ProfileRuntimeState.Active => OpenWindowCount > 1 ? $"Aktif ({OpenWindowCount} jendela)" : "Aktif",
+        ProfileRuntimeState.Active => OpenWindowCount > 1 ? $"Aktif ({OpenWindowCount})" : "Aktif",
         ProfileRuntimeState.Starting => "Membuka...",
         ProfileRuntimeState.Suspending => "Menutup...",
-        ProfileRuntimeState.Suspended => "Suspended",
+        ProfileRuntimeState.Suspended => "Dijeda",
         ProfileRuntimeState.Error => "Error",
         _ => "Tertutup",
     };
@@ -117,8 +117,8 @@ public sealed class ProfileListItemViewModel : ViewModelBase
     public string StatusColor => RuntimeState switch
     {
         ProfileRuntimeState.Active => "#16A34A",
-        ProfileRuntimeState.Starting or ProfileRuntimeState.Suspending => "#D97706",
+        ProfileRuntimeState.Starting or ProfileRuntimeState.Suspending or ProfileRuntimeState.Suspended => "#D97706",
         ProfileRuntimeState.Error => "#DC2626",
-        _ => "#6B7280",
+        _ => "#64748B",
     };
 }

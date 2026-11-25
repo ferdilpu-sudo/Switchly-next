@@ -9,12 +9,28 @@
         ResizeMode="CanResize">
     <DockPanel Margin="20">
         <!-- Bottom Action Buttons -->
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-            <Button x:Name="PreviewButton" Content="Pratinjau" Click="OnPreviewClick" Padding="16,7" Margin="0,0,8,0"/>
-            <Button x:Name="ExecuteButton" Style="{StaticResource PrimaryButtonStyle}" Content="Mulai Impor"
-                    Click="OnExecuteClick" Padding="18,7" Margin="0,0,8,0" IsEnabled="False"/>
-            <Button Content="Tutup" IsCancel="True" Padding="16,7"/>
-        </StackPanel>
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button x:Name="PreviewButton" Content="Pratinjau" Click="OnPreviewClick" Padding="16,7" Margin="0,0,8,0"/>
+                <Button x:Name="ExecuteButton" Style="{StaticResource PrimaryButtonStyle}" Content="Mulai Impor"
+                        Click="OnExecuteClick" Padding="18,7" Margin="0,0,8,0" IsEnabled="False"/>
+                <Button Content="Tutup" IsCancel="True" Padding="16,7"/>
+            </StackPanel>
+            <TextBlock Text="Klik Pratinjau dulu untuk mengaktifkan Mulai Impor."
+                       FontSize="12" Foreground="{DynamicResource TextMutedBrush}"
+                       VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,12,0">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsEnabled, ElementName=ExecuteButton}" Value="False">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </DockPanel>
 
         <!-- Main Content -->
         <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -40,14 +56,28 @@
                     </StackPanel>
                 </DockPanel>
 
-                <ComboBox x:Name="SourceProfileCombo" DisplayMemberPath="DisplayLabel" Margin="0,0,0,4" Padding="10,6"/>
+                <ComboBox x:Name="SourceProfileCombo" Margin="0,0,0,4" Padding="10,6"
+                          AutomationProperties.Name="Pilih profil browser sumber">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding FriendlyLabel}" TextTrimming="CharacterEllipsis"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
                 <TextBlock x:Name="SourceEmptyHint" Foreground="{DynamicResource WarningSoftTextBrush}"
                            FontSize="12" Visibility="Collapsed" Margin="0,2,0,8"
                            Text="Tidak ada profil lokal yang terdeteksi untuk browser ini."/>
 
                 <!-- Step 2: Target Switchly Profile -->
                 <TextBlock Text="2. Pilih Profil Tujuan di Switchly" FontWeight="SemiBold" Margin="0,12,0,6"/>
-                <ComboBox x:Name="TargetProfileCombo" DisplayMemberPath="Name" Margin="0,0,0,12" Padding="10,6"/>
+                <ComboBox x:Name="TargetProfileCombo" Margin="0,0,0,12" Padding="10,6"
+                          AutomationProperties.Name="Pilih profil tujuan Switchly">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
 
                 <!-- Step 3: Categories -->
                 <TextBlock Text="3. Pilih Kategori Data" FontWeight="SemiBold" Margin="0,2,0,8"/>

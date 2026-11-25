@@ -77,4 +77,7 @@ public interface IBrowserWindowHost : IDisposable
 
     /// <summary>Raised when zoom percentage changes (e.g., 100, 110, 90).</summary>
     event Action<int>? ZoomPercentChanged;
+
+    /// <summary>Raised when an HTML5 element (such as a video player) enters or exits fullscreen mode.</summary>
+    event Action<bool>? FullscreenModeChanged;
 }

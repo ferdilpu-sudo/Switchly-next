@@ -122,8 +122,14 @@
                         </Border>
 
                         <TextBlock Text="Profil Switchly:" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                        <ComboBox x:Name="VaultProfileCombo" DisplayMemberPath="Name" SelectionChanged="OnVaultProfileChanged"
-                                  Padding="10,6" Margin="0,0,0,14"/>
+                        <ComboBox x:Name="VaultProfileCombo" SelectionChanged="OnVaultProfileChanged"
+                                  Padding="10,6" Margin="0,0,0,14" AutomationProperties.Name="Pilih profil Switchly">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
 
                         <!-- CSV Import (TASK-028) -->
                         <TextBlock Text="Impor Password CSV (Ekspor Resmi Chrome / Edge)" FontWeight="SemiBold" Margin="0,0,0,4"/>

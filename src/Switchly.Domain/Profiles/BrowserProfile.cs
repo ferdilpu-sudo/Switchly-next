@@ -28,4 +28,6 @@ public sealed class BrowserProfile
     public bool RestoreLastSession { get; set; } = true;
 
     public bool PersistSessionCookies { get; set; } = true;
+
+    public override string ToString() => Name;
 }

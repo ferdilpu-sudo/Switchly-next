@@ -31,4 +31,36 @@
     <ProjectReference Include="..\Switchly.Infrastructure\Switchly.Infrastructure.csproj" />
   </ItemGroup>
 
+  <!-- Optional proprietary-codec CEF binary overlay (D13): when third_party/cef-proprietary/win-x64/libcef.dll exists locally,
+       overwrite stock NuGet CEF binaries after Build and Publish so H.264/MP4/AAC playback works in-app. -->
+  <PropertyGroup>
+    <ProprietaryCefDir>$(MSBuildThisFileDirectory)..\..\third_party\cef-proprietary\win-x64</ProprietaryCefDir>
+  </PropertyGroup>
+
+  <Target Name="ApplyProprietaryCefOverlayOnBuild"
+          AfterTargets="Build"
+          Condition="Exists('$(ProprietaryCefDir)\libcef.dll')">
+    <ItemGroup>
+      <_ProprietaryCefFiles Include="$(ProprietaryCefDir)\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ProprietaryCefFiles)"
+          DestinationFiles="@(_ProprietaryCefFiles->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          OverwriteReadOnlyFiles="true"
+          SkipUnchangedFiles="true" />
+    <Message Importance="High" Text="[Switchly] Applied proprietary-codec CEF overlay to $(OutDir)" />
+  </Target>
+
+  <Target Name="ApplyProprietaryCefOverlayOnPublish"
+          AfterTargets="Publish"
+          Condition="Exists('$(ProprietaryCefDir)\libcef.dll')">
+    <ItemGroup>
+      <_ProprietaryCefPublishFiles Include="$(ProprietaryCefDir)\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ProprietaryCefPublishFiles)"
+          DestinationFiles="@(_ProprietaryCefPublishFiles->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          OverwriteReadOnlyFiles="true"
+          SkipUnchangedFiles="true" />
+    <Message Importance="High" Text="[Switchly] Applied proprietary-codec CEF overlay to $(PublishDir)" />
+  </Target>
+
 </Project>

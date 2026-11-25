@@ -17,6 +17,11 @@ public partial class MainWindow : Window
     private readonly WorkspaceViewModel _viewModel;
     private readonly BrowserWindowCoordinator _windowCoordinator;
     private readonly DispatcherTimer _resourceTimer;
+    private BrowserWorkspaceView? _currentDockedWorkspace;
+    private bool _isVideoFullscreen;
+    private WindowStyle _savedWindowStyle = WindowStyle.SingleBorderWindow;
+    private WindowState _savedWindowState = WindowState.Normal;
+    private ResizeMode _savedResizeMode = ResizeMode.CanResize;
 
     public MainWindow()
     {
@@ -60,6 +65,7 @@ public partial class MainWindow : Window
             ThemeIconPath.Data = geometry;
         }
 
+        ThemeLabelText.Text = isDark ? "Terang" : "Gelap";
         ThemeToggleButton.ToolTip = isDark
             ? "Beralih ke Mode Terang (Light)"
             : "Beralih ke Mode Gelap (Dark)";
@@ -146,11 +152,61 @@ public partial class MainWindow : Window
     {
         Dispatcher.Invoke(() =>
         {
+            if (_currentDockedWorkspace is not null)
+            {
+                _currentDockedWorkspace.FullscreenModeChanged -= OnWorkspaceFullscreenModeChanged;
+            }
+
+            if (_isVideoFullscreen)
+            {
+                OnWorkspaceFullscreenModeChanged(false);
+            }
+
+            _currentDockedWorkspace = workspace;
+            if (_currentDockedWorkspace is not null)
+            {
+                _currentDockedWorkspace.FullscreenModeChanged += OnWorkspaceFullscreenModeChanged;
+            }
+
             _viewModel.SetActiveDockedProfile(workspace?.ProfileId);
             DockedBrowserHost.Content = workspace;
             DockedBrowserHost.Visibility = workspace is not null ? Visibility.Visible : Visibility.Collapsed;
             DashboardView.Visibility = workspace is null ? Visibility.Visible : Visibility.Collapsed;
         });
+    }
+
+    private void OnWorkspaceFullscreenModeChanged(bool isFullscreen)
+    {
+        if (_isVideoFullscreen == isFullscreen)
+        {
+            return;
+        }
+
+        _isVideoFullscreen = isFullscreen;
+        if (isFullscreen)
+        {
+            _savedWindowStyle = WindowStyle;
+            _savedWindowState = WindowState;
+            _savedResizeMode = ResizeMode;
+
+            SidebarPanel.Visibility = Visibility.Collapsed;
+            SidebarColumn.Width = new GridLength(0);
+            FooterStatusBar.Visibility = Visibility.Collapsed;
+
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+            WindowState = WindowState.Maximized;
+        }
+        else
+        {
+            SidebarPanel.Visibility = Visibility.Visible;
+            SidebarColumn.Width = new GridLength(268);
+            FooterStatusBar.Visibility = Visibility.Visible;
+
+            WindowStyle = _savedWindowStyle;
+            ResizeMode = _savedResizeMode;
+            WindowState = _savedWindowState;
+        }
     }
 
     private async void OnAllProfilesClick(object sender, RoutedEventArgs e)
@@ -347,6 +403,12 @@ public partial class MainWindow : Window
 
         await _viewModel.CloseAllSessionsAsync();
     }
+
+    private void OnGroupChipMoreClick(object sender, RoutedEventArgs e)
+        => OnCardMoreClick(sender, e);
+
+    private void OnDismissMemoryWarningClick(object sender, RoutedEventArgs e)
+        => _viewModel.DismissMemoryWarning();
 
     private void OnToggleAutoSleepClick(object sender, RoutedEventArgs e)
     {

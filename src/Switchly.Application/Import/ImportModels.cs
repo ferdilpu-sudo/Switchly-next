@@ -9,7 +9,12 @@ public sealed record DetectedBrowserProfile(
     string ProfileDirectoryPath,
     bool HasBookmarks,
     bool HasHistory,
-    bool HasSessions);
+    bool HasSessions)
+{
+    public string FriendlyLabel => $"{Browser} · {DisplayLabel} ({ProfileDirectoryName})";
+
+    public override string ToString() => FriendlyLabel;
+}
 
 public sealed record ImportWarning(
     string Category,

@@ -246,6 +246,8 @@ public class ProfileSessionManagerTests
 
         public event Action<int>? ZoomPercentChanged;
 
+        public event Action<bool>? FullscreenModeChanged;
+
         public void Navigate(string url)
         {
             Address = url;
@@ -296,6 +298,8 @@ public class ProfileSessionManagerTests
         public void SimulatePopup(string url) => NewTabRequested?.Invoke(url);
 
         public void SimulateDownload(DownloadUpdateEvent evt) => DownloadUpdated?.Invoke(evt);
+
+        public void SimulateFullscreen(bool isFullscreen) => FullscreenModeChanged?.Invoke(isFullscreen);
 
         public void Dispose() => Disposed = true;
     }

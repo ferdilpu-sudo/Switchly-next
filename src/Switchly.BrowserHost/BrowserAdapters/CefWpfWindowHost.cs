@@ -34,7 +34,9 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
             DownloadHandler = new ProfileDownloadHandler(profileContext.ProfileId, evt => DownloadUpdated?.Invoke(evt)),
             RequestHandler = new ProfileRequestHandler(reason => RendererCrashed?.Invoke(reason)),
             KeyboardHandler = new ProfileKeyboardHandler(cmd => ShortcutPressed?.Invoke(cmd)),
-            DisplayHandler = new ProfileDisplayHandler(msg => StatusMessageChanged?.Invoke(msg)),
+            DisplayHandler = new ProfileDisplayHandler(
+                msg => StatusMessageChanged?.Invoke(msg),
+                isFullscreen => FullscreenModeChanged?.Invoke(isFullscreen)),
             MenuHandler = new ProfileContextMenuHandler(
                 url => NewTabRequested?.Invoke(url),
                 text => System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
@@ -83,6 +85,8 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
     public event Action<string>? StatusMessageChanged;
 
     public event Action<int>? ZoomPercentChanged;
+
+    public event Action<bool>? FullscreenModeChanged;
 
     public void Navigate(string url)
     {

@@ -10,22 +10,26 @@
         PreviewKeyDown="OnWindowPreviewKeyDown">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="268"/>
+            <ColumnDefinition x:Name="SidebarColumn" Width="268"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <!-- Clean Profile & Folder Group Sidebar -->
-        <Border Grid.Column="0" Background="{DynamicResource BgSidebarBrush}"
+        <Border x:Name="SidebarPanel" Grid.Column="0" Background="{DynamicResource BgSidebarBrush}"
                 BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,1,0" Padding="12,14,12,10">
             <DockPanel>
-                <!-- Top Brand Header + Theme Toggle -->
+                <!-- Top Brand Header + Labeled Theme Toggle -->
                 <DockPanel DockPanel.Dock="Top" Margin="2,0,0,12">
                     <Button x:Name="ThemeToggleButton" DockPanel.Dock="Right"
-                            Style="{StaticResource IconButtonStyle}"
-                            Click="OnToggleThemeClick"
+                            Style="{StaticResource GhostButtonStyle}"
+                            Click="OnToggleThemeClick" Padding="8,5"
                             ToolTip="Ganti tema Gelap / Terang"
                             AutomationProperties.Name="Ganti tema Gelap atau Terang">
-                        <Path x:Name="ThemeIconPath" Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconSun}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Path x:Name="ThemeIconPath" Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconSun}" Width="14" Height="14" Margin="0,0,5,0"/>
+                            <TextBlock x:Name="ThemeLabelText" Text="Terang" FontSize="11.5" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        </StackPanel>
                     </Button>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Border Width="28" Height="28" CornerRadius="8" Background="{DynamicResource AccentBrush}" Margin="0,0,9,0">
@@ -104,8 +108,8 @@
                                     </Style.Triggers>
                                 </Style>
                             </StackPanel.Style>
-                            <TextBlock Text="SEDANG AKTIF (TASK)" FontSize="11" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource AccentBrush}" Margin="4,0,0,6"/>
+                            <TextBlock Text="SEDANG AKTIF" FontSize="11.5" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextMutedBrush}" Margin="4,0,0,6"/>
                             <ItemsControl ItemsSource="{Binding ActiveWorkspaceGroups}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -169,15 +173,12 @@
                         <!-- Quick Profile Switcher with Active Highlight & Group Subtitle -->
                         <DockPanel Margin="4,0,2,6">
                             <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}"
-                                    Click="OnNewProfileClick" Padding="6,2"
+                                    Click="OnNewProfileClick" Padding="5,3"
                                     ToolTip="Buat profil baru" AutomationProperties.Name="Buat profil baru">
-                                <StackPanel Orientation="Horizontal">
-                                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconPlus}"
-                                          Stroke="{DynamicResource AccentBrush}" Width="12" Height="12" Margin="0,0,4,0"/>
-                                    <TextBlock Text="Baru" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}"/>
-                                </StackPanel>
+                                <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconPlus}"
+                                      Stroke="{DynamicResource TextSecondaryBrush}" Width="13" Height="13"/>
                             </Button>
-                            <TextBlock Text="PROFIL (1 KLIK BUKA)" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Text="PROFIL" FontSize="11.5" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
                         </DockPanel>
 
@@ -252,16 +253,13 @@
                         <!-- Folder Groups (Manual Groups Only — D9) -->
                         <DockPanel Margin="4,0,2,6">
                             <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}"
-                                    Click="OnCreateGroupClick" Padding="6,2"
-                                    ToolTip="Buat folder grup baru (mis. Kerja, Pribadi, Klien)"
+                                    Click="OnCreateGroupClick" Padding="5,3"
+                                    ToolTip="Buat grup / workspace web baru"
                                     AutomationProperties.Name="Buat folder grup baru">
-                                <StackPanel Orientation="Horizontal">
-                                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconPlus}"
-                                          Stroke="{DynamicResource AccentBrush}" Width="12" Height="12" Margin="0,0,4,0"/>
-                                    <TextBlock Text="Grup" FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}"/>
-                                </StackPanel>
+                                <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconPlus}"
+                                      Stroke="{DynamicResource TextSecondaryBrush}" Width="13" Height="13"/>
                             </Button>
-                            <TextBlock Text="GRUP / FOLDER" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Text="GRUP / WORKSPACE" FontSize="11.5" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
                         </DockPanel>
 
@@ -305,11 +303,11 @@
                                                     Padding="10,4,5,4" FontSize="12"
                                                     ToolTip="Tampilkan profil di dalam grup ini"/>
                                             <Button Style="{StaticResource GhostButtonStyle}"
-                                                    Click="OnDeleteManualGroupClick" Tag="{Binding}"
+                                                    Click="OnGroupChipMoreClick" Tag="{Binding}"
                                                     Padding="4,4,8,4"
-                                                    ToolTip="Hapus grup ini (profil di dalamnya tetap aman)"
-                                                    AutomationProperties.Name="Hapus grup">
-                                                <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconClose}" Width="9" Height="9"/>
+                                                    ToolTip="Opsi grup (Ganti Nama, Hapus)"
+                                                    AutomationProperties.Name="Opsi grup">
+                                                <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconMoreHorizontal}" Width="12" Height="12"/>
                                             </Button>
                                         </StackPanel>
                                     </Border>
@@ -323,46 +321,22 @@
 
         <!-- Main Right Area -->
         <DockPanel Grid.Column="1" Background="{DynamicResource BgAppBrush}">
-            <!-- Non-Modal Memory Pressure Warning Banner -->
-            <Border DockPanel.Dock="Top" Background="{DynamicResource WarningSoftBgBrush}"
-                    BorderBrush="{DynamicResource WarningSoftBorderBrush}" BorderThickness="0,0,0,1" Padding="18,10">
-                <Border.Style>
-                    <Style TargetType="Border">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding HasMemoryWarning}" Value="True">
-                                <Setter Property="Visibility" Value="Visible"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Border.Style>
-                <DockPanel>
-                    <Button DockPanel.Dock="Right" Content="Tutup Sesi Latar Belakang"
-                            Click="OnCloseBackgroundSessionsClick" Padding="10,4" FontSize="12" Margin="12,0,0,0"
-                            ToolTip="Matikan semua sesi profil yang tidak sedang Anda buka untuk menghemat RAM"/>
-                    <TextBlock Text="{Binding MemoryWarningMessage}" Foreground="{DynamicResource WarningSoftTextBrush}"
-                               FontSize="12.5" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                </DockPanel>
-            </Border>
+            <!-- Clean 3-Zone Footer Status Bar (D12) -->
+            <Border x:Name="FooterStatusBar" DockPanel.Dock="Bottom" Background="{DynamicResource BgSidebarBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0" Padding="18,6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-            <!-- Quiet Footer Status Bar with 1-Click Session Cleanup & Auto-Sleep Toggle (D12) -->
-            <Border DockPanel.Dock="Bottom" Background="{DynamicResource BgSidebarBrush}"
-                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0" Padding="16,5">
-                <DockPanel>
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Style="{StaticResource GhostButtonStyle}" Content="{Binding AutoSleepLabel}"
-                                Click="OnToggleAutoSleepClick" Padding="8,3" FontSize="11.5" Margin="0,0,10,0"
-                                Foreground="{DynamicResource TextSecondaryBrush}"
-                                ToolTip="Otomatis tidurkan profil latar belakang yang tidak dipakai selama 30 menit (klik untuk ON/OFF)"/>
-                        <TextBlock Text="Switchly 0.9.0-beta.1" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextMutedBrush}" FontSize="11.5"/>
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding ResourceStatusText}" Foreground="{DynamicResource TextSecondaryBrush}"
-                                   FontSize="12" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <!-- Left Zone: Profile Counts + Quick Close -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding FooterProfileSummary}" Foreground="{DynamicResource TextSecondaryBrush}"
+                                   FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
                         <Button Content="Tutup Sesi Lain" Click="OnCloseBackgroundSessionsClick"
-                                Padding="8,3" FontSize="11.5" Margin="0,0,6,0"
+                                Padding="8,3" FontSize="11.5" Margin="0,0,4,0"
                                 ToolTip="Tutup semua sesi di latar belakang kecuali profil yang sedang Anda lihat">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
@@ -392,18 +366,33 @@
                             </Button.Style>
                         </Button>
                     </StackPanel>
-                </DockPanel>
+
+                    <!-- Center Zone: Compact RAM Telemetry -->
+                    <TextBlock Grid.Column="1" Text="{Binding FooterRamSummary}"
+                               Foreground="{DynamicResource TextMutedBrush}" FontSize="11.5"
+                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+                    <!-- Right Zone: Auto-Sleep Toggle + Version -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button Style="{StaticResource GhostButtonStyle}" Content="{Binding AutoSleepLabel}"
+                                Click="OnToggleAutoSleepClick" Padding="8,3" FontSize="11.5" Margin="0,0,10,0"
+                                Foreground="{DynamicResource TextSecondaryBrush}"
+                                ToolTip="Otomatis tidurkan profil latar belakang yang tidak dipakai selama 30 menit (klik untuk ON/OFF)"/>
+                        <TextBlock Text="v0.9.0-beta.1" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextMutedBrush}" FontSize="11.5"/>
+                    </StackPanel>
+                </Grid>
             </Border>
 
             <Grid>
                 <!-- Mode A: Profile & Folder Group Dashboard -->
                 <DockPanel x:Name="DashboardView">
-                    <!-- Clean Header -->
+                    <!-- Clean Header with Strong 24px Visual Hierarchy -->
                     <Border DockPanel.Dock="Top" Background="{DynamicResource BgSurfaceElevatedBrush}"
-                            BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="24,16">
+                            BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="24,18">
                         <DockPanel>
                             <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}"
-                                    Click="OnNewProfileClick" Padding="16,8">
+                                    Click="OnNewProfileClick" Padding="16,9">
                                 <StackPanel Orientation="Horizontal">
                                     <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconPlus}"
                                           Stroke="White" Width="14" Height="14" Margin="0,0,7,0"/>
@@ -412,56 +401,12 @@
                             </Button>
 
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="{Binding SectionTitle}" FontSize="20" FontWeight="SemiBold"
+                                <TextBlock Text="{Binding SectionTitle}" FontSize="24" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"/>
                                 <TextBlock Text="{Binding SectionSubtitle}"
-                                           FontSize="12" Foreground="{DynamicResource TextMutedBrush}" Margin="0,2,0,0"/>
+                                           FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0"/>
                             </StackPanel>
                         </DockPanel>
-                    </Border>
-
-                    <!-- Clean 1-Click Folder Group Filter Bar -->
-                    <Border DockPanel.Dock="Top" Background="{DynamicResource BgAppBrush}"
-                            BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="24,10">
-                        <WrapPanel VerticalAlignment="Center">
-                            <Button Style="{StaticResource ChipButtonStyle}" Content="Semua Profil"
-                                    Click="OnAllProfilesClick" Margin="0,0,6,4"/>
-                            <Button Style="{StaticResource ChipButtonStyle}" Content="Favorit"
-                                    Click="OnFavoritesClick" Margin="0,0,8,4"/>
-
-                            <ItemsControl ItemsSource="{Binding ManualGroups}">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Style="{StaticResource ChipButtonStyle}" Content="{Binding Name}"
-                                                Click="OnCategoryChipClick" Tag="{Binding}" Margin="0,0,6,4"
-                                                ToolTip="Tampilkan profil dalam grup ini (klik kanan untuk ubah/hapus)">
-                                            <Button.ContextMenu>
-                                                <ContextMenu>
-                                                    <MenuItem Header="Buka Grup Ini" Click="OnCategoryChipClick" Tag="{Binding}"/>
-                                                    <MenuItem Header="Ganti Nama Grup..." Click="OnRenameManualGroupClick" Tag="{Binding}"/>
-                                                    <Separator/>
-                                                    <MenuItem Header="Hapus Grup" Click="OnDeleteManualGroupClick" Tag="{Binding}"/>
-                                                </ContextMenu>
-                                            </Button.ContextMenu>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-
-                            <Button Style="{StaticResource GhostButtonStyle}" Click="OnCreateGroupClick"
-                                    Padding="8,4" Margin="2,0,0,4" ToolTip="Buat folder grup baru">
-                                <StackPanel Orientation="Horizontal">
-                                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconPlus}"
-                                          Stroke="{DynamicResource AccentBrush}" Width="12" Height="12" Margin="0,0,4,0"/>
-                                    <TextBlock Text="Buat Grup" FontSize="12" Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
-                                </StackPanel>
-                            </Button>
-                        </WrapPanel>
                     </Border>
 
                     <!-- Error Banner -->
@@ -609,11 +554,15 @@
                                                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                                                     </Border>
 
-                                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                                        <Ellipse Width="7" Height="7" Fill="{Binding StatusColor}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                                        <TextBlock Text="{Binding StatusLabel}" FontSize="11.5"
-                                                                   Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                                                    </StackPanel>
+                                                    <Border DockPanel.Dock="Right" Background="{DynamicResource BgAppBrush}"
+                                                            BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1"
+                                                            CornerRadius="10" Padding="8,3" VerticalAlignment="Center">
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <Ellipse Width="7" Height="7" Fill="{Binding StatusColor}" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding StatusLabel}" FontSize="11.5" FontWeight="Medium"
+                                                                       Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
                                                 </DockPanel>
                                             </StackPanel>
                                         </Border>
@@ -626,6 +575,37 @@
 
                 <!-- Mode B: Active Docked Browser Workspace -->
                 <ContentControl x:Name="DockedBrowserHost" Visibility="Collapsed"/>
+
+                <!-- Non-Layout-Shifting Dismissible Memory Pressure Overlay Toast -->
+                <Border VerticalAlignment="Bottom" HorizontalAlignment="Right"
+                        Margin="20,0,20,16" MaxWidth="520"
+                        Background="{DynamicResource WarningSoftBgBrush}"
+                        BorderBrush="{DynamicResource WarningSoftBorderBrush}"
+                        BorderThickness="1" CornerRadius="10" Padding="14,10">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasMemoryWarning}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}"
+                                Click="OnDismissMemoryWarningClick" Width="26" Height="26" Padding="5" Margin="6,0,0,0"
+                                ToolTip="Tutup peringatan sementara" AutomationProperties.Name="Tutup peringatan memori">
+                            <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconClose}"
+                                  Stroke="{DynamicResource WarningSoftTextBrush}" Width="11" Height="11"/>
+                        </Button>
+                        <Button DockPanel.Dock="Right" Content="Tutup Sesi Lain"
+                                Click="OnCloseBackgroundSessionsClick" Padding="10,4" FontSize="12" Margin="10,0,0,0"
+                                ToolTip="Matikan sesi profil latar belakang untuk menghemat RAM"/>
+                        <TextBlock Text="{Binding MemoryWarningMessage}" Foreground="{DynamicResource WarningSoftTextBrush}"
+                                   FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                    </DockPanel>
+                </Border>
             </Grid>
         </DockPanel>
     </Grid>
