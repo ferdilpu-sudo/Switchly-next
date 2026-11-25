@@ -17,6 +17,8 @@ public sealed class ProfileGroup
 
     public string? DomainKey { get; set; }
 
+    public string? DefaultUrl { get; set; }
+
     public bool IsHidden { get; set; }
 
     public DateTimeOffset CreatedAtUtc { get; set; }

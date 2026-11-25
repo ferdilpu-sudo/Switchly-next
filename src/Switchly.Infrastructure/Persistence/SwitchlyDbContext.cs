@@ -62,6 +62,7 @@ public sealed class SwitchlyDbContext : DbContext
             e.Property(g => g.Name).IsRequired().HasMaxLength(80);
             e.Property(g => g.Kind).HasConversion<string>().HasMaxLength(32);
             e.Property(g => g.DomainKey).HasMaxLength(253);
+            e.Property(g => g.DefaultUrl).HasMaxLength(2048);
             e.Property(g => g.IsHidden).HasDefaultValue(false);
             e.HasIndex(g => new { g.Kind, g.DomainKey })
                 .IsUnique()

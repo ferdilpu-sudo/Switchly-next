@@ -1,12 +1,16 @@
 <Window x:Class="Switchly.App.Views.ProfileEditorDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Profil Browser"
-        Height="390" Width="440"
+        xmlns:themes="clr-namespace:Switchly.App.Themes"
+        Style="{StaticResource ThemedWindowStyle}"
+        Title="Profil Browser — Switchly"
+        Height="575" Width="470"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner">
-    <Grid Margin="16">
+    <Grid Margin="22">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -17,30 +21,86 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="0,0,0,10">
-            <TextBlock Text="Nama Profil *" FontWeight="SemiBold" Margin="0,0,0,4"/>
-            <TextBox x:Name="NameBox" MaxLength="80" Padding="6,4"/>
+        <!-- Live Avatar Preview Header -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,16">
+            <Border x:Name="AvatarPreviewBorder" DockPanel.Dock="Left" Width="44" Height="44" CornerRadius="12"
+                    Background="#3B82F6" Margin="0,0,14,0">
+                <TextBlock x:Name="AvatarPreviewLetter" Text="P" Foreground="White" FontSize="19" FontWeight="Bold"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock x:Name="PreviewTitleText" Text="Profil Baru" FontSize="15" FontWeight="SemiBold"/>
+                <TextBlock Text="Satu profil bisa dipakai untuk banyak website secara terisolasi."
+                           FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
+            </StackPanel>
+        </DockPanel>
+
+        <StackPanel Grid.Row="1" Margin="0,0,0,12">
+            <TextBlock Text="Nama Profil *" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <TextBox x:Name="NameBox" MaxLength="80" TextChanged="OnNameChanged"
+                     themes:TextBoxAssist.PlaceholderText="Contoh: Kerja Utama, Akun Klien A, Pribadi..."/>
         </StackPanel>
 
-        <StackPanel Grid.Row="1" Margin="0,0,0,10">
-            <TextBlock Text="URL Awal (opsional, http/https)" FontWeight="SemiBold" Margin="0,0,0,4"/>
-            <TextBox x:Name="StartupUrlBox" Padding="6,4" ToolTip="Contoh: https://chatgpt.com"/>
+        <StackPanel Grid.Row="2" Margin="0,0,0,12">
+            <TextBlock Text="Grup / Workspace (bisa pilih lebih dari satu)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <Border Background="{DynamicResource BgInputBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                    BorderThickness="1" CornerRadius="7" Padding="10,8" MaxHeight="96">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid>
+                        <TextBlock x:Name="NoGroupsHint" Text="Belum ada grup. Buat grup dulu lewat tombol + Grup di halaman utama."
+                                   FontSize="12" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" Visibility="Collapsed"/>
+                        <ItemsControl x:Name="GroupsItemsControl">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                              Margin="0,0,14,6" FontSize="12.5"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </ScrollViewer>
+            </Border>
         </StackPanel>
 
-        <StackPanel Grid.Row="2" Margin="0,0,0,10">
-            <TextBlock Text="Warna Label (#RRGGBB, opsional)" FontWeight="SemiBold" Margin="0,0,0,4"/>
-            <TextBox x:Name="ColorHexBox" MaxLength="7" Padding="6,4" ToolTip="Contoh: #1B6EF3"/>
+        <StackPanel Grid.Row="3" Margin="0,0,0,12">
+            <TextBlock Text="URL Awal (opsional, http/https)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+            <TextBox x:Name="StartupUrlBox"
+                     themes:TextBoxAssist.PlaceholderText="Kosongkan atau isi misal: https://chatgpt.com"/>
         </StackPanel>
 
-        <CheckBox Grid.Row="3" x:Name="FavoriteCheck" Content="Tandai sebagai Favorit" Margin="0,4,0,6"/>
-        <CheckBox Grid.Row="4" x:Name="RestoreSessionCheck" Content="Pulihkan sesi terakhir saat dibuka" IsChecked="True" Margin="0,0,0,6"/>
-        <CheckBox Grid.Row="5" x:Name="PersistCookiesCheck" Content="Simpan session cookies antar-restart" IsChecked="True" Margin="0,0,0,8"/>
+        <!-- Curated 8-Color Swatch Picker + Hex Input -->
+        <StackPanel Grid.Row="4" Margin="0,0,0,12">
+            <TextBlock Text="Warna Label" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <Button Width="26" Height="26" Padding="0" Margin="0,0,8,0" Background="#3B82F6" BorderThickness="0" Click="OnColorSwatchClick" Tag="#3B82F6" ToolTip="Biru" AutomationProperties.Name="Warna Biru"/>
+                <Button Width="26" Height="26" Padding="0" Margin="0,0,8,0" Background="#6366F1" BorderThickness="0" Click="OnColorSwatchClick" Tag="#6366F1" ToolTip="Indigo" AutomationProperties.Name="Warna Indigo"/>
+                <Button Width="26" Height="26" Padding="0" Margin="0,0,8,0" Background="#8B5CF6" BorderThickness="0" Click="OnColorSwatchClick" Tag="#8B5CF6" ToolTip="Ungu" AutomationProperties.Name="Warna Ungu"/>
+                <Button Width="26" Height="26" Padding="0" Margin="0,0,8,0" Background="#EC4899" BorderThickness="0" Click="OnColorSwatchClick" Tag="#EC4899" ToolTip="Merah Muda" AutomationProperties.Name="Warna Merah Muda"/>
+                <Button Width="26" Height="26" Padding="0" Margin="0,0,8,0" Background="#EF4444" BorderThickness="0" Click="OnColorSwatchClick" Tag="#EF4444" ToolTip="Merah" AutomationProperties.Name="Warna Merah"/>
+                <Button Width="26" Height="26" Padding="0" Margin="0,0,8,0" Background="#F59E0B" BorderThickness="0" Click="OnColorSwatchClick" Tag="#F59E0B" ToolTip="Kuning" AutomationProperties.Name="Warna Kuning"/>
+                <Button Width="26" Height="26" Padding="0" Margin="0,0,8,0" Background="#10B981" BorderThickness="0" Click="OnColorSwatchClick" Tag="#10B981" ToolTip="Hijau" AutomationProperties.Name="Warna Hijau"/>
+                <Button Width="26" Height="26" Padding="0" Background="#06B6D4" BorderThickness="0" Click="OnColorSwatchClick" Tag="#06B6D4" ToolTip="Cyan" AutomationProperties.Name="Warna Cyan"/>
+            </StackPanel>
+            <TextBox x:Name="ColorHexBox" MaxLength="7" TextChanged="OnColorHexChanged"
+                     themes:TextBoxAssist.PlaceholderText="#3B82F6"/>
+        </StackPanel>
 
-        <TextBlock Grid.Row="6" x:Name="ErrorText" Foreground="#DC2626" TextWrapping="Wrap" VerticalAlignment="Top"/>
+        <CheckBox Grid.Row="5" x:Name="FavoriteCheck" Content="Tandai sebagai Favorit" Margin="0,2,0,8"/>
+        <CheckBox Grid.Row="6" x:Name="RestoreSessionCheck" Content="Pulihkan sesi terakhir saat dibuka" IsChecked="True" Margin="0,0,0,8"/>
+        <CheckBox Grid.Row="7" x:Name="PersistCookiesCheck" Content="Simpan session cookies antar-restart" IsChecked="True" Margin="0,0,0,8"/>
 
-        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="Batal" IsCancel="True" Padding="14,6" Margin="0,0,8,0"/>
-            <Button Content="Simpan" IsDefault="True" Click="OnSaveClick" Padding="16,6" Background="#1B6EF3" Foreground="White"/>
+        <TextBlock Grid.Row="8" x:Name="ErrorText" Foreground="{DynamicResource DangerSoftTextBrush}"
+                   FontSize="12" TextWrapping="Wrap" VerticalAlignment="Top"/>
+
+        <StackPanel Grid.Row="9" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Batal" IsCancel="True" Padding="16,7" Margin="0,0,8,0"/>
+            <Button Style="{StaticResource PrimaryButtonStyle}" Content="Simpan" IsDefault="True"
+                    Click="OnSaveClick" Padding="18,7"/>
         </StackPanel>
     </Grid>
 </Window>

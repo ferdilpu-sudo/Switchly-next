@@ -8,13 +8,27 @@ public sealed class ProfileListItemViewModel : ViewModelBase
 {
     private ProfileRuntimeState _runtimeState;
     private int _openWindowCount;
+    private bool _isCurrentlyDocked;
 
-    public ProfileListItemViewModel(BrowserProfile profile, ProfileRuntimeState runtimeState, int openWindowCount)
+    public ProfileListItemViewModel(
+        BrowserProfile profile,
+        ProfileRuntimeState runtimeState,
+        int openWindowCount,
+        bool isCurrentlyDocked = false,
+        string? manualGroupName = null)
     {
         Profile = profile;
         _runtimeState = runtimeState;
         _openWindowCount = openWindowCount;
+        _isCurrentlyDocked = isCurrentlyDocked;
+        ManualGroupName = manualGroupName;
     }
+
+    public string? ManualGroupName { get; }
+
+    public bool HasManualGroup => !string.IsNullOrWhiteSpace(ManualGroupName);
+
+    public string GroupBadgeLabel => string.IsNullOrWhiteSpace(ManualGroupName) ? "Tanpa Grup" : ManualGroupName;
 
     public BrowserProfile Profile { get; }
 
@@ -22,7 +36,37 @@ public sealed class ProfileListItemViewModel : ViewModelBase
 
     public string Name => Profile.Name;
 
+    public string InitialLetter => string.IsNullOrWhiteSpace(Profile.Name)
+        ? "?"
+        : Profile.Name.Trim()[0].ToString().ToUpperInvariant();
+
     public string StartupUrlDisplay => string.IsNullOrWhiteSpace(Profile.StartupUrl) ? "Halaman kosong (about:blank)" : Profile.StartupUrl;
+
+    public string DomainLabel
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Profile.StartupUrl))
+            {
+                return "Umum";
+            }
+
+            if (Uri.TryCreate(Profile.StartupUrl, UriKind.Absolute, out var uri) && !string.IsNullOrWhiteSpace(uri.Host))
+            {
+                return uri.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+                    ? uri.Host[4..]
+                    : uri.Host;
+            }
+
+            return Profile.StartupUrl;
+        }
+    }
+
+    public bool IsCurrentlyDocked
+    {
+        get => _isCurrentlyDocked;
+        set => SetProperty(ref _isCurrentlyDocked, value);
+    }
 
     public string ColorHex => string.IsNullOrWhiteSpace(Profile.ColorHex) ? "#1B6EF3" : Profile.ColorHex;
 

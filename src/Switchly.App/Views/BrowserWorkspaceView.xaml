@@ -1,20 +1,39 @@
 <UserControl x:Class="Switchly.App.Views.BrowserWorkspaceView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:themes="clr-namespace:Switchly.App.Themes"
+             Background="{DynamicResource BgAppBrush}"
              PreviewKeyDown="OnWorkspacePreviewKeyDown">
     <DockPanel>
-        <!-- Tab Strip -->
-        <Border DockPanel.Dock="Top" Background="#E5E7EB" Padding="6,6,6,0">
+        <!-- Seamless Modern Tab Strip -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource BgTabStripBrush}" Padding="8,7,8,0">
             <DockPanel>
-                <Button x:Name="BackToDashboardButton" DockPanel.Dock="Left" Content="← Profil" Click="OnBackToDashboardClick"
-                        Padding="8,4" Margin="0,0,6,4" Visibility="Collapsed"
-                        ToolTip="Kembali ke daftar manajemen profil" AutomationProperties.Name="Kembali ke daftar profil"/>
-                <Border x:Name="ProfileBadge" DockPanel.Dock="Left" CornerRadius="4" Padding="8,4" Margin="0,0,8,4" Background="#1B6EF3">
-                    <TextBlock x:Name="ProfileNameText" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <Button x:Name="BackToDashboardButton" DockPanel.Dock="Left"
+                        Style="{StaticResource GhostButtonStyle}"
+                        Click="OnBackToDashboardClick"
+                        Padding="8,5" Margin="0,0,6,5" Visibility="Collapsed"
+                        ToolTip="Kembali ke daftar manajemen profil"
+                        AutomationProperties.Name="Kembali ke daftar profil">
+                    <StackPanel Orientation="Horizontal">
+                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconArrowLeft}" Width="13" Height="13" Margin="0,0,6,0"/>
+                        <TextBlock Text="Profil" FontSize="12.5" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Border x:Name="ProfileBadge" DockPanel.Dock="Left" CornerRadius="6"
+                        Padding="10,4" Margin="0,0,8,5" Background="{DynamicResource AccentBrush}">
+                    <TextBlock x:Name="ProfileNameText" Foreground="White" FontSize="12"
+                               FontWeight="SemiBold" VerticalAlignment="Center"/>
                 </Border>
-                <Button DockPanel.Dock="Right" Content="+ Tab" Click="OnNewTabClick" Padding="10,4" Margin="6,0,0,4"
-                        ToolTip="Tab baru (Ctrl+T)"/>
-                <ListBox x:Name="TabStrip" BorderThickness="0" Background="Transparent"
+
+                <Button DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}"
+                        Click="OnNewTabClick" Margin="6,0,0,4"
+                        ToolTip="Tab baru (Ctrl+T)" AutomationProperties.Name="Tab baru">
+                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconPlus}" Width="15" Height="15"/>
+                </Button>
+
+                <ListBox x:Name="TabStrip" BorderThickness="0" Background="Transparent" Padding="0"
+                         ItemContainerStyle="{StaticResource BrowserTabItemStyle}"
                          SelectionChanged="OnTabSelectionChanged"
                          ScrollViewer.HorizontalScrollBarVisibility="Auto"
                          ScrollViewer.VerticalScrollBarVisibility="Disabled">
@@ -25,55 +44,98 @@
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="White" BorderBrush="#D1D5DB" BorderThickness="1,1,1,0" CornerRadius="4,4,0,0"
-                                    Padding="8,4" Margin="0,0,4,0" MaxWidth="220">
-                                <DockPanel>
-                                    <Button DockPanel.Dock="Right" Content="×" Click="OnCloseTabClick" Tag="{Binding}"
-                                            Background="Transparent" BorderThickness="0" Padding="4,0" Margin="6,0,0,0"
-                                            ToolTip="Tutup tab (Ctrl+W)" AutomationProperties.Name="Tutup tab"/>
-                                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
-                                </DockPanel>
-                            </Border>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}"
+                                        Click="OnCloseTabClick" Tag="{Binding}"
+                                        Width="22" Height="22" Padding="5" Margin="8,0,0,0"
+                                        ToolTip="Tutup tab (Ctrl+W)" AutomationProperties.Name="Tutup tab">
+                                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconClose}" Width="10" Height="10"/>
+                                </Button>
+                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center" FontSize="12"/>
+                            </DockPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
             </DockPanel>
         </Border>
 
-        <!-- Navigation Toolbar -->
-        <Border DockPanel.Dock="Top" Background="#F3F4F6" BorderBrush="#D1D5DB" BorderThickness="0,1,0,1" Padding="8,6">
+        <!-- Pure-Vector Navigation Toolbar -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource BgTabActiveBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,1" Padding="8,6">
             <DockPanel>
+                <!-- Left Navigation Controls -->
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Margin="0,0,8,0">
-                    <Button x:Name="BackButton" Content="←" Click="OnBackClick" Padding="8,4" Margin="0,0,4,0"
-                            ToolTip="Kembali" AutomationProperties.Name="Kembali"/>
-                    <Button x:Name="ForwardButton" Content="→" Click="OnForwardClick" Padding="8,4" Margin="0,0,4,0"
-                            ToolTip="Maju" AutomationProperties.Name="Maju"/>
-                    <Button x:Name="ReloadButton" Content="↻" Click="OnReloadClick" Padding="8,4"
-                            ToolTip="Muat ulang" AutomationProperties.Name="Muat ulang"/>
+                    <Button x:Name="BackButton" Style="{StaticResource IconButtonStyle}" Click="OnBackClick" Margin="0,0,2,0"
+                            ToolTip="Kembali" AutomationProperties.Name="Kembali">
+                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconArrowLeft}"/>
+                    </Button>
+                    <Button x:Name="ForwardButton" Style="{StaticResource IconButtonStyle}" Click="OnForwardClick" Margin="0,0,2,0"
+                            ToolTip="Maju" AutomationProperties.Name="Maju">
+                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconArrowRight}"/>
+                    </Button>
+                    <Button x:Name="ReloadButton" Style="{StaticResource IconButtonStyle}" Click="OnReloadClick"
+                            ToolTip="Muat ulang" AutomationProperties.Name="Muat ulang">
+                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconRefresh}"/>
+                    </Button>
                 </StackPanel>
-                <Button DockPanel.Dock="Right" Content="↗ Jendela Baru" Click="OnNewWindowClick" Padding="10,4" Margin="6,0,0,0"
-                        ToolTip="Buka jendela terpisah (pop-out) dengan sesi profil yang sama"/>
-                <Button DockPanel.Dock="Right" Content="Unduhan" Click="OnShowDownloadsClick" Padding="8,4" Margin="6,0,0,0"
-                        ToolTip="Lihat daftar unduhan profil ini"/>
-                <Button DockPanel.Dock="Right" Content="Riwayat" Click="OnShowHistoryClick" Padding="8,4" Margin="6,0,0,0"
-                        ToolTip="Lihat &amp; cari riwayat profil ini"/>
-                <Button DockPanel.Dock="Right" Content="★ Bookmark" Click="OnBookmarkMenuClick" Padding="8,4" Margin="6,0,0,0"
-                        ToolTip="Klik kiri: simpan bookmark; klik kanan: buka pengelola bookmark"/>
-                <Button DockPanel.Dock="Right" Content="🔑 Isi" Click="OnAutofillPasswordClick" Padding="8,4" Margin="6,0,0,0"
-                        ToolTip="Isi otomatis username/password dari Password Vault profil ini"/>
-                <Button DockPanel.Dock="Right" Content="Buka" Click="OnNavigateClick" Padding="12,4" Margin="6,0,0,0"/>
-                <TextBox x:Name="AddressBox" VerticalContentAlignment="Center" Padding="6,4" KeyDown="OnAddressBoxKeyDown"
+
+                <!-- Right Action Icons (pure Lucide vectors, 34x34 comfortable targets) -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
+                    <Button Style="{StaticResource IconButtonStyle}" Click="OnAutofillPasswordClick" Margin="0,0,2,0"
+                            ToolTip="Isi otomatis username/password dari Password Vault profil ini"
+                            AutomationProperties.Name="Isi otomatis dari Password Vault">
+                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconKey}"/>
+                    </Button>
+                    <Button Style="{StaticResource IconButtonStyle}" Click="OnBookmarkMenuClick" Margin="0,0,2,0"
+                            ToolTip="Klik kiri: simpan bookmark; klik kanan: buka pengelola bookmark"
+                            AutomationProperties.Name="Bookmark">
+                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconStar}"/>
+                    </Button>
+                    <Button Style="{StaticResource IconButtonStyle}" Click="OnShowHistoryClick" Margin="0,0,2,0"
+                            ToolTip="Lihat &amp; cari riwayat profil ini"
+                            AutomationProperties.Name="Riwayat">
+                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconHistory}"/>
+                    </Button>
+                    <Button Style="{StaticResource IconButtonStyle}" Click="OnShowDownloadsClick" Margin="0,0,2,0"
+                            ToolTip="Lihat daftar unduhan profil ini"
+                            AutomationProperties.Name="Unduhan">
+                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconDownload}"/>
+                    </Button>
+                    <Button Style="{StaticResource IconButtonStyle}" Click="OnNewWindowClick"
+                            ToolTip="Buka jendela terpisah (pop-out) dengan sesi profil yang sama"
+                            AutomationProperties.Name="Buka di jendela baru">
+                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconExternalLink}"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- Compact Go Icon -->
+                <Button DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}"
+                        Click="OnNavigateClick" Margin="4,0,0,0"
+                        ToolTip="Buka URL (Enter)" AutomationProperties.Name="Buka URL">
+                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconCornerDownLeft}"/>
+                </Button>
+
+                <!-- Expansive Pill Address Bar -->
+                <TextBox x:Name="AddressBox" Style="{StaticResource PillTextBoxStyle}"
+                         themes:TextBoxAssist.PlaceholderText="Masukkan URL atau alamat situs (Ctrl+L)..."
+                         KeyDown="OnAddressBoxKeyDown"
+                         AutomationProperties.Name="Address bar"
                          ToolTip="Address bar (Ctrl+L)"/>
             </DockPanel>
         </Border>
 
-        <!-- Non-Modal Renderer Crash Recovery Banner (TASK-035) -->
-        <Border x:Name="CrashRecoveryBanner" DockPanel.Dock="Top" Background="#FEF2F2" BorderBrush="#FECACA"
-                BorderThickness="0,0,0,1" Padding="12,8" Visibility="Collapsed">
+        <!-- Non-Modal Renderer Crash Recovery Banner -->
+        <Border x:Name="CrashRecoveryBanner" DockPanel.Dock="Top"
+                Background="{DynamicResource DangerSoftBgBrush}"
+                BorderBrush="{DynamicResource DangerSoftBorderBrush}"
+                BorderThickness="0,0,0,1" Padding="14,8" Visibility="Collapsed">
             <DockPanel>
-                <Button DockPanel.Dock="Right" Content="Muat Ulang Tab" Click="OnRecoverCrashedTabClick"
-                        Background="#DC2626" Foreground="White" FontWeight="SemiBold" Padding="10,4" Margin="10,0,0,0"/>
-                <TextBlock x:Name="CrashRecoveryMessageText" Foreground="#991B1B" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                <Button DockPanel.Dock="Right" Style="{StaticResource DangerButtonStyle}"
+                        Content="Muat Ulang Tab" Click="OnRecoverCrashedTabClick"
+                        Padding="12,5" Margin="10,0,0,0"/>
+                <TextBlock x:Name="CrashRecoveryMessageText" Foreground="{DynamicResource DangerSoftTextBrush}"
+                           VerticalAlignment="Center" TextWrapping="Wrap"/>
             </DockPanel>
         </Border>
 

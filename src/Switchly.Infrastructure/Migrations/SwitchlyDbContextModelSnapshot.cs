@@ -112,6 +112,10 @@ namespace Switchly.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DefaultUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("DomainKey")
                         .HasMaxLength(253)
                         .HasColumnType("TEXT");

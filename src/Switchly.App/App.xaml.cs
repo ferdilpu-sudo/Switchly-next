@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Switchly.App.Diagnostics;
 using Switchly.App.Navigation;
+using Switchly.App.Themes;
 using Switchly.App.ViewModels;
 using Switchly.App.Views;
 using Switchly.Application.Browser;
@@ -59,6 +60,17 @@ public partial class App : System.Windows.Application
         ProfilesRootPath = Path.Combine(appData, "Profiles");
         Directory.CreateDirectory(dataDirectory);
         Directory.CreateDirectory(ProfilesRootPath);
+        ThemeManager.Initialize(dataDirectory);
+        EventManager.RegisterClassHandler(
+            typeof(Window),
+            FrameworkElement.LoadedEvent,
+            new RoutedEventHandler((sender, _) =>
+            {
+                if (sender is Window window)
+                {
+                    ThemeManager.ApplyWindowChrome(window);
+                }
+            }));
         var dbPath = Path.Combine(dataDirectory, "switchly-next.db");
 
         // Composition root: DI + logging + persistence + browser host.

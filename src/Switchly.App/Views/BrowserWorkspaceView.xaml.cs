@@ -39,11 +39,15 @@ public partial class BrowserWorkspaceView : UserControl
         Func<BrowserProfile, Task> openNewWindowCallback,
         Func<Guid, string, Task> onUrlVisitedCallback,
         Action<BrowserWorkspaceView> onAllTabsClosedCallback,
-        Action? onBackToDashboardCallback = null)
+        Action? onBackToDashboardCallback = null,
+        Guid? workspaceGroupId = null,
+        string? workspaceGroupName = null)
     {
         InitializeComponent();
 
         _profile = profile;
+        WorkspaceGroupId = workspaceGroupId;
+        WorkspaceGroupName = workspaceGroupName;
         _createTabHostCallback = createTabHostCallback;
         _closeTabHostCallback = closeTabHostCallback;
         _openNewWindowCallback = openNewWindowCallback;
@@ -51,7 +55,9 @@ public partial class BrowserWorkspaceView : UserControl
         _onAllTabsClosedCallback = onAllTabsClosedCallback;
         _onBackToDashboardCallback = onBackToDashboardCallback;
 
-        ProfileNameText.Text = profile.Name;
+        ProfileNameText.Text = string.IsNullOrWhiteSpace(workspaceGroupName)
+            ? profile.Name
+            : $"{workspaceGroupName}  •  {profile.Name}";
         ApplyBadgeColor(profile.ColorHex);
         BackToDashboardButton.Visibility = onBackToDashboardCallback is not null ? Visibility.Visible : Visibility.Collapsed;
         TabStrip.ItemsSource = _tabs;
@@ -61,6 +67,14 @@ public partial class BrowserWorkspaceView : UserControl
 
     public Guid ProfileId => _profile.ProfileId;
 
+    public string ProfileName => _profile.Name;
+
+    public string ProfileColorHex => string.IsNullOrWhiteSpace(_profile.ColorHex) ? "#3B82F6" : _profile.ColorHex;
+
+    public Guid? WorkspaceGroupId { get; }
+
+    public string? WorkspaceGroupName { get; }
+
     public Guid WindowId { get; } = Guid.NewGuid();
 
     public event Action<string>? ActiveTitleChanged;
@@ -69,6 +83,44 @@ public partial class BrowserWorkspaceView : UserControl
         => _tabs.Select(t => new TabSnapshotInput(t.Address, t.Title)).ToList();
 
     public Task AddRestoredTabAsync(string url) => OpenTabAsync(url);
+
+    /// <summary>
+    /// Focuses an existing tab matching the target URL's host if one is already open,
+    /// otherwise opens a new tab directly to <paramref name="targetUrl"/> (D10).
+    /// </summary>
+    public async Task FocusOrOpenUrlAsync(string targetUrl)
+    {
+        if (string.IsNullOrWhiteSpace(targetUrl))
+        {
+            return;
+        }
+
+        var targetHost = ExtractNormalizedHost(targetUrl);
+        if (!string.IsNullOrEmpty(targetHost))
+        {
+            var existing = _tabs.FirstOrDefault(t =>
+                string.Equals(ExtractNormalizedHost(t.Address), targetHost, StringComparison.OrdinalIgnoreCase));
+            if (existing is not null)
+            {
+                TabStrip.SelectedItem = existing;
+                return;
+            }
+        }
+
+        await OpenTabAsync(targetUrl);
+    }
+
+    private static string? ExtractNormalizedHost(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url, UriKind.Absolute, out var uri) || string.IsNullOrWhiteSpace(uri.Host))
+        {
+            return null;
+        }
+
+        return uri.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+            ? uri.Host[4..]
+            : uri.Host;
+    }
 
     public void DisposeAllTabs()
     {

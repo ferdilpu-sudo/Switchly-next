@@ -5,7 +5,7 @@ namespace Switchly.Application.Groups;
 /// <summary>Application use cases for manual and automatic WebsiteDomain grouping (REQ-004, AC-005).</summary>
 public interface IGroupService
 {
-    Task<ProfileGroup> CreateManualGroupAsync(string name, CancellationToken cancellationToken = default);
+    Task<ProfileGroup> CreateManualGroupAsync(string name, string? defaultUrl = null, CancellationToken cancellationToken = default);
 
     Task<ProfileGroup> RenameManualGroupAsync(Guid groupId, string newName, CancellationToken cancellationToken = default);
 

@@ -1,5 +1,6 @@
 using Switchly.Application.Profiles;
 using Switchly.Domain.Groups;
+using Switchly.Domain.Profiles;
 
 namespace Switchly.Application.Groups;
 
@@ -20,7 +21,7 @@ public sealed class GroupService : IGroupService
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
-    public async Task<ProfileGroup> CreateManualGroupAsync(string name, CancellationToken cancellationToken = default)
+    public async Task<ProfileGroup> CreateManualGroupAsync(string name, string? defaultUrl = null, CancellationToken cancellationToken = default)
     {
         var now = _timeProvider.GetUtcNow();
         var group = new ProfileGroup
@@ -29,6 +30,7 @@ public sealed class GroupService : IGroupService
             Name = GroupValidation.NormalizeAndValidateName(name),
             Kind = GroupKind.Manual,
             DomainKey = null,
+            DefaultUrl = ProfileValidation.NormalizeAndValidateStartupUrl(defaultUrl),
             IsHidden = false,
             CreatedAtUtc = now,
             UpdatedAtUtc = now,

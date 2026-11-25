@@ -20,8 +20,10 @@ Anda dapat memilih salah satu dari dua paket rilis Beta:
 
 ## 2. Alur Kerja Utama
 
-- **Buat Profil:** Klik **+ Profil Baru** di panel *Kelola Profil*. Setiap profil otomatis mendapatkan penyimpanan browser terisolasi sendiri.
-- **1-Klik Pindah Profil (Hybrid Workspace):** Klik nama profil di sidebar kiri untuk membuka atau berpindah tampilan browser di panel kanan tanpa menutup profil lain yang sedang aktif.
+- **Buat Profil & Atur Grup:** Klik **+ Profil Baru** untuk membuat profil terisolasi. Anda dapat memilih warna avatar dan mencentang 1 atau lebih grup sekaligus.
+- **Grup Web / Web-Space Mode:** Klik **+ Grup** dan pilih preset cepat (**ChatGPT**, **Google Flow**, **Dola**, **SeaArt**) atau isi URL custom. Saat Anda memilih grup web lalu mengklik profil mana saja, Switchly membuka ruang kerja khusus situs tersebut (berlabel `Google Flow • Profil A`) tanpa mencampur tab browsing umum.
+- **Pindah Task Aktif & Cari Cepat (`Ctrl+K`):** Semua task terbuka otomatis dikelompokkan di bagian **`SEDANG AKTIF (TASK)`** di puncak Sidebar. Tekan **`Ctrl+K`** kapan saja untuk mencari profil dengan cepat, dan klik ikon **Matahari/Bulan** di pojok sidebar untuk beralih tema Dark / Light.
+- **Kelola RAM & Auto-Sleep:** Gunakan tombol **`×`** di Sidebar untuk menutup 1 task/sesi, atau **`Tutup Sesi Lain`** / **`Tutup Semua`** di Footer Status Bar. **Auto-Sleep 30m** otomatis menidurkan profil latar belakang yang tidak dipakai 30 menit (dapat di-toggle ON/OFF di pojok kanan footer).
 - **Pop-out Multi-Jendela:** Klik tombol **↗ Jendela Baru** pada toolbar profil jika ingin memisahkan profil ke jendela sendiri (misalnya untuk layar ganda / *side-by-side*).
 - **Tab & Pemulihan Sesi:** Gunakan tombol `+` untuk tab baru, `Ctrl+Shift+T` untuk membuka kembali tab terakhir yang ditutup, serta tombol **Bookmark / Riwayat / Unduhan** pada toolbar profil.
 - **Impor Chrome/Edge:** Klik **Impor Browser** untuk menyalin bookmark, riwayat, dan URL tab terbuka secara *read-only* (tutup Chrome/Edge terlebih dahulu jika database riwayat sedang terkunci).
