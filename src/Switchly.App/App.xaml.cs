@@ -10,6 +10,7 @@ using Switchly.App.ViewModels;
 using Switchly.App.Views;
 using Switchly.Application.Browser;
 using Switchly.Application.Diagnostics;
+using Switchly.Application.Entitlements;
 using Switchly.Application.Groups;
 using Switchly.Application.Import;
 using Switchly.Application.Profiles;
@@ -41,8 +42,8 @@ public partial class App : System.Windows.Application
         if (IsRunningAsAdministrator())
         {
             MessageBox.Show(
-                "Switchly Next (Release) tidak dapat dijalankan sebagai Administrator karena kebijakan keamanan CEF (exit code 38). Jalankan sebagai user standar (non-elevated), atau gunakan build Debug untuk pengujian lokal.",
-                "Switchly Next",
+                "Switchly (Release) tidak dapat dijalankan sebagai Administrator karena kebijakan keamanan CEF (exit code 38). Jalankan sebagai user standar (non-elevated), atau gunakan build Debug untuk pengujian lokal.",
+                "Switchly",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             Shutdown(38);
@@ -70,6 +71,7 @@ public partial class App : System.Windows.Application
         services.AddDbContextFactory<SwitchlyDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
         services.AddDbContext<SwitchlyDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
         services.AddScoped<DatabaseHealthCheck>();
+        services.AddSingleton<IFeatureEntitlementService, FreeBetaEntitlementService>();
         services.AddSingleton<IAppInstanceGuard>(_ => new SingleInstanceMutexGuard(ProfilesRootPath));
         services.AddSingleton<IProfileLockManager, InProcessProfileLockManager>();
         services.AddSingleton<IProfileSessionStore, EfProfileSessionStore>();

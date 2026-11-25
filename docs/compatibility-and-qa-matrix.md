@@ -41,7 +41,7 @@
 | `TEST-012` | `REQ-011` | **PASS** | `SecurityAndBackupIntegrationTests` (chunked AES-256-GCM backup, cache/cookie exclusion D3, restart-to-restore swap). |
 | `TEST-013` | `REQ-011` | **PASS** | `SecurityAndBackupIntegrationTests` (wrong passphrase, byte tamper, header tamper, truncation, trailing bytes, future version, `../` path traversal). |
 | `TEST-014` | `REQ-012` | **PASS** | Offline Free MVP launches and creates profiles without registration/sign-in. |
-| `TEST-015` | `REQ-013` | **NOT RUN (M-009)** | Pending M-009 Freemium entitlement decisions (`OPEN-001`, `OPEN-005`). |
+| `TEST-015` | `REQ-013` | **PASS** | `FreeBetaEntitlementServiceTests` (108/108 Release tests PASS on 2026-11-25): Free Beta runs offline with no account requirement and no artificial profile quotas (D8). |
 | `TEST-016` | `REQ-005` | **PARTIAL (M-001 Baseline PASS / Full 10-profile WPF stress NOT RUN)** | M-001 resource baseline recorded in `artifacts/engine-spike/task-005-results.md`; live RAM monitor added in M-008. |
 | `TEST-017` | `REQ-003` | **PASS** | `ProfileLockingTests` (`SingleInstanceMutexGuard`, `InProcessProfileLockManager`). |
 | `TEST-018` | `REQ-008` | **PASS** | `BrowserImportIntegrationTests` (locked History DB detection without killing Chrome/Edge, malformed DB, unsupported schema/SNSS version). |

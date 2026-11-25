@@ -14,7 +14,7 @@
 | ADR-005 | Proposed (Implemented M-007/D6) | DPAPI local protection + optional master password/Hello unlock + encrypted Password Vault (`ENT-009`, reopened per D6) | REQ-010 | Threat model or Hello API PoC |
 | ADR-006 | Proposed (Implemented M-007) | Manual AES-256-GCM chunked portable backup; device-bound cookies excluded; scheduled backup deferred post-MVP | REQ-011 | KDF performance, restore PoC, or scheduled-backup reprioritization |
 | ADR-007 | Accepted | Local structured logs, secrets redacted; no telemetry without opt-in | NFR-SEC | Privacy review requests telemetry |
-| ADR-008 | Open | MSIX vs signed setup installer | REQ-014 | Installation/update PoC |
+| ADR-008 | Accepted | Per-user Inno Setup EXE + Portable ZIP for Beta; code-signing before public release | REQ-014 | Public release signing or Store distribution |
 | ADR-009 | Accepted | No registration for basic use; Pro login only for upgrade/activation | REQ-012, REQ-013 | Product business model evolves |
 | ADR-010 | Accepted | No source cookies/session import; CSV password vault reopened & implemented per D6 | REQ-008, REQ-009 | Product owner explicitly expands scope |
 | ADR-011 | Accepted | Profile dirs are direct children of RootCachePath; backups exclude CEF global state | REQ-003, REQ-011 | CEF profile-path rules change |
@@ -94,12 +94,11 @@
 
 ## 9. ADR-008 — Installer and update channel
 
-- **Status:** Open.
-- **Options:** MSIX; signed EXE/MSI installer; portable ZIP.
-- **Proposed default:** Signed installer with per-user install option, subject to testing with CEF runtime files, VC++ prerequisites, auto-update, and code-signing budget.
-- **Owner:** Product owner + engineering.
-- **Impact:** Affects update mechanism, installer size, SmartScreen reputation and support.
-- **Next validation:** Build install/uninstall/upgrade PoC before beta (`M-009` `TASK-040`, or earlier if packaging risk increases).
+- **Status:** Accepted (2026-11-25 — Product Owner Decision D8).
+- **Options:** MSIX; signed EXE/MSI installer; Inno Setup per-user EXE + portable ZIP.
+- **Decision:** Ship Beta as a **per-user Setup Installer (Inno Setup EXE)** alongside a **Portable ZIP** archive for Windows 11 x64 (`win-x64`). Authenticode code-signing is deferred until public GA release (documented clearly in Beta release notes / SmartScreen guidance).
+- **Consequences:** Works cleanly with CEF native binaries (`libcef.dll`, `locales/*.pak`, `CefSharp.BrowserSubprocess.exe`) without MSIX virtualization quirks; per-user install avoids UAC elevation (keeping CEF non-elevated policy intact).
+- **Revisit when:** Preparing signed public GA release or Microsoft Store distribution.
 
 ## 10. ADR-009 — Basic use without registration
 
@@ -145,17 +144,18 @@
   - **D5:** Strict `Switchly.BrowserHost` isolation enforced in M-002; `Infrastructure/BrowserEngine` removed; `Microsoft.Extensions.*` aligned to `10.x` LTS via `Directory.Packages.props`.
   - **D6 (2026-11-24):** Product Owner explicitly reopened **D1** after M-007 DPAPI verification to implement **`ENT-009 VaultCredential`** (single-payload AES-256-GCM with unique 96-bit CSPRNG nonce + AAD `(CryptoVersion, CredentialId, ProfileId, Origin)` wrapped by Windows DPAPI `CurrentUser`), **Chrome/Edge CSV Password Import (`TASK-028`, `AC-010`, `TEST-010`)**, and **explicit-click origin-matched Autofill** (no unrestricted JS bridge).
   - **D7 (2026-11-24):** Product Owner approved **Hybrid Integrated Workspace UX**: clicking a profile in the sidebar opens/switches its isolated `BrowserWorkspaceView` directly inside `MainWindow`'s right pane (1-click switching while keeping other active profiles alive), while retaining **Pop-out (`↗ Jendela Baru`)** for side-by-side / multi-monitor workflows, plus interactive per-profile Bookmark (`UI-005`), History (`UI-006`), and Downloads (`UI-007`) dialogs.
+  - **D8 (2026-11-25):** Product Owner finalized M-009 Beta release decisions: (1) **Beta Free-only** — no artificial quotas and no remote license/payment backend in Beta; expose a clean local entitlement interface (`IFeatureEntitlementService`) for future Pro tiers (`OPEN-001`, `OPEN-005`); (2) **Windows 11 x64 only** as officially supported OS (Windows 10 best-effort/unsupported, `OPEN-002`); (3) **Per-user Inno Setup EXE + Portable ZIP** for Beta with code-signing before public GA (`OPEN-007`, `ADR-008`); (4) Official product name **`Switchly`**, **UI Bahasa Indonesia**, **Telemetry OFF (local-only)** (`OPEN-004`, `OPEN-010`).
 
 ## 14. Open decisions with impact
 
 | ID | Missing decision | Assumption for draft | Impact | Owner / next step |
 |---|---|---|---|---|
-| OPEN-001 | Free vs Pro limits/benefits | No artificial quotas in prototype | Subscription model and UX | Product owner defines after product prototype |
-| OPEN-002 | Windows 10 Home/Pro support guarantee | Best-effort only | Public minimum OS and support workload | Product owner decides before public beta |
+| OPEN-001 | Free vs Pro limits/benefits | **Closed for Beta by D8 (2026-11-25):** Beta Free-only (no artificial quotas; local entitlement interface only) | Subscription model deferred to post-Beta GA | Reopen when launching paid Pro tier |
+| OPEN-002 | Windows 10 Home/Pro support guarantee | **Closed by D8 (2026-11-25):** Official support is Windows 11 x64 only; Win10 best-effort/unsupported | Clear minimum OS policy without false claims | Closed |
 | OPEN-003 | Optional extension scope | Extensions are not an MVP priority | Post-MVP feature scope | Reopen only if product owner reprioritizes |
-| OPEN-004 | Product branding | Switchly Next working name | Package identity, domain, icon | Product owner |
-| OPEN-005 | License/account provider | Not integrated in MVP | Pro activation flow | Product owner after package definition |
+| OPEN-004 | Product branding | **Closed by D8 (2026-11-25):** Official product name is **Switchly** | Installer, app title, docs use `Switchly` | Closed |
+| OPEN-005 | License/account provider | **Closed for Beta by D8 (2026-11-25):** No remote license/payment backend in Beta | Free offline experience preserved (`ADR-009`) | Reopen when launching paid Pro tier |
 | OPEN-006 | Post-MVP scheduled backup schedule/retention | Deferred post-MVP (daily/7-snapshot proposal) | Disk usage and crypto design (hybrid public-key) | Product owner when reopening `REQ-017` |
-| OPEN-007 | Installer technology/signing | Signed per-user installer proposal | Distribution and cost | Product owner before beta |
+| OPEN-007 | Installer technology/signing | **Closed by D8 (2026-11-25):** Per-user Inno Setup EXE + Portable ZIP for Beta; code-signing before GA (`ADR-008` Accepted) | Beta distribution ready in `TASK-040` | Acquire signing cert before public GA |
 | OPEN-009 | Password vault & CSV import | **Closed by D6 (2026-11-24):** reopened & implemented (`ENT-009`, `TASK-028`, explicit-click autofill) | Security surface and Vault UI covered by `PasswordVaultIntegrationTests` (`TEST-010`) | Closed |
-| OPEN-010 | Telemetry opt-in & English UI / theme tokens | Telemetry OFF; Indonesian MVP UI; system theme | Privacy notice & UX polish | Product owner before beta |
+| OPEN-010 | Telemetry opt-in & English UI / theme tokens | **Closed by D8 (2026-11-25):** Telemetry OFF (local-only); UI Bahasa Indonesia; system theme | Privacy notice & Beta UX finalized | Closed |

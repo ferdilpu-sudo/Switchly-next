@@ -1,6 +1,6 @@
 # Implementation Plan — Switchly Next
 
-**Status:** M-008 Complete (Win11 verified; Win10 physical test pending `OPEN-002`) — ready for M-009 (Freemium & Release Readiness, gated on `OPEN-001`/`002`/`004`/`005`/`007`)  
+**Status:** M-009 In Progress (D8 decisions locked: Beta Free-only, Win11 x64 official, Inno Setup EXE + Portable ZIP, branding `Switchly`, UI Bahasa Indonesia, Telemetry OFF)  
 **Strategy:** prove the browser engine risk before implementing the full product.
 
 ## 1. Delivery strategy
@@ -157,7 +157,7 @@ Key assumptions:
 | D6 (Password Vault) | Complete | `TASK-028` reopened & implemented per D6 (commit `c0bf4df`): `ENT-009 VaultCredential` (unique-nonce AES-256-GCM + AAD wrapped by DPAPI `CurrentUser`), Chrome/Edge CSV import, explicit-click origin-matched autofill (`CredentialPickerDialog`); `PasswordVaultIntegrationTests` (`TEST-010`) PASS |
 | M-008 | Complete (Win11; Win10 physical test pending `OPEN-002`) | `TASK-034`..`038A` done (commit `e5c22a2`): `WindowsResourceMonitor`, `ResourcePressureEvaluator`, memory-pressure warning banner, renderer crash recovery (`ProfileRequestHandler`), PerMonitorV2 DPI, `Ctrl+Shift+T`, `docs/compatibility-and-qa-matrix.md`; `ResourcePressureEvaluatorTests` (`TEST-026`) PASS |
 | D7 (Hybrid Workspace UX) | Complete | Hybrid Integrated Workspace implemented per D7 (commit `b1d7936`): 1-click sidebar switching in `MainWindow` (`BrowserWorkspaceView`), pop-out `BrowserWindow`, interactive per-profile Bookmark/History/Downloads dialog (`ProfileLibraryDialog`) |
-| M-009 | Not started | `TASK-039`..`043` gated on Product Owner decisions `OPEN-001`, `OPEN-002`, `OPEN-004`, `OPEN-005`, `OPEN-007` (`ADR-008`), and `OPEN-010` |
+| M-009 | In Progress (`TASK-039`..`042` done; `TASK-043` awaiting PO Beta approval) | D8 locked (`decisions.md`); `TASK-039` (`IFeatureEntitlementService`, `FreeBetaEntitlementService`, `FreeBetaEntitlementServiceTests` `TEST-015` PASS, `Switchly` branding `0.9.0-beta.1`); `TASK-040` (`packaging/Switchly.iss`, `packaging/package-beta.ps1`); `TASK-041` (`THIRD-PARTY-NOTICES.md`, `SECURITY.md`); `TASK-042` (`docs/PRIVACY.md`, `docs/USER-GUIDE-BETA.md`, `docs/BETA-RELEASE-NOTES.md`); Release build 0 warnings/0 errors, **108/108 tests PASS** (`Domain` 62, `Application` 20, `Infrastructure` 26) on 2026-11-25 |
 
 ## 7. Milestone definition of done
 

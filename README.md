@@ -1,7 +1,7 @@
 # Switchly Next
 
-> **Project phase:** M-008 complete — M-001..M-004, M-006..M-008, D6 (Encrypted Password Vault + CSV Import + Autofill), and D7 (Hybrid Integrated Workspace) verified on Win11; ready for M-009 (Release Readiness & Packaging).  
-> **Product name:** Switchly Next (working name).  
+> **Project phase:** M-009 Release Readiness (`TASK-039`..`042` complete; **108/108 tests PASS** on Win11) — awaiting Product Owner Beta approval (`TASK-043`).  
+> **Product name:** Switchly (official name per D8; `0.9.0-beta.1`).  
 > **Purpose:** Windows desktop workspace for managing many isolated web browser profiles, tabs and windows.
 
 ## 1. At a glance
@@ -119,4 +119,4 @@ The original Switchly repository is reference-only. This generation starts from 
 
 ## 11. Current next step
 
-Resolve the open Product Owner decisions (`OPEN-001`, `OPEN-002`, `OPEN-004`, `OPEN-005`, `OPEN-007` / `ADR-008`, `OPEN-010`) and start **M-009: Freemium and release readiness** (`TASK-039`–`TASK-043`).
+Run `.\packaging\package-beta.ps1` to generate the `0.9.0-beta.1` Portable ZIP / Inno Setup EXE, verify clean install/launch on Windows 11 x64, and record Product Owner Beta approval (`M-009` `TASK-043`).
