@@ -47,7 +47,7 @@
                     BorderThickness="1" CornerRadius="7" Padding="10,8" MaxHeight="96">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <Grid>
-                        <TextBlock x:Name="NoGroupsHint" Text="Belum ada grup. Buat grup dulu lewat tombol + Grup di halaman utama."
+                        <TextBlock x:Name="NoGroupsHint" Text="Belum ada grup. Buat grup dulu lewat tombol + pada seksi GRUP / WORKSPACE di sidebar."
                                    FontSize="12" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap" Visibility="Collapsed"/>
                         <ItemsControl x:Name="GroupsItemsControl">
                             <ItemsControl.ItemsPanel>

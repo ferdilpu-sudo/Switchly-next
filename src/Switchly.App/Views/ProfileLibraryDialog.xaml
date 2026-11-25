@@ -18,9 +18,10 @@
             <TabItem Header="Bookmark">
                 <DockPanel Margin="14">
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                        <Button DockPanel.Dock="Right" Content="Hapus" Click="OnDeleteBookmarkClick" Padding="12,6" Margin="6,0,0,0"/>
                         <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Content="Buka"
-                                Click="OnOpenBookmarkClick" Padding="14,6" Margin="8,0,0,0"/>
+                                Click="OnOpenBookmarkClick" Padding="14,6" Margin="6,0,0,0"/>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource DangerButtonStyle}" Content="Hapus"
+                                Click="OnDeleteBookmarkClick" Padding="12,6" Margin="8,0,0,0"/>
                         <TextBox x:Name="BookmarkSearchBox" Style="{StaticResource PillTextBoxStyle}"
                                  themes:TextBoxAssist.PlaceholderText="Cari bookmark berdasarkan judul atau URL..."
                                  AutomationProperties.Name="Cari bookmark"
@@ -40,8 +41,9 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="4,3">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13"/>
-                                    <TextBlock Text="{Binding Url}" FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}"
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" LineHeight="18"/>
+                                    <TextBlock Text="{Binding Url}" FontSize="11.5" LineHeight="17" Padding="0,0,0,1"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
                                                TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
                             </DataTemplate>
@@ -54,9 +56,10 @@
             <TabItem Header="Riwayat">
                 <DockPanel Margin="14">
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                        <Button DockPanel.Dock="Right" Content="Hapus Semua" Click="OnClearHistoryClick" Padding="12,6" Margin="6,0,0,0"/>
                         <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Content="Buka"
-                                Click="OnOpenHistoryClick" Padding="14,6" Margin="8,0,0,0"/>
+                                Click="OnOpenHistoryClick" Padding="14,6" Margin="6,0,0,0"/>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource DangerButtonStyle}" Content="Hapus Semua"
+                                Click="OnClearHistoryClick" Padding="12,6" Margin="8,0,0,0"/>
                         <TextBox x:Name="HistorySearchBox" Style="{StaticResource PillTextBoxStyle}"
                                  themes:TextBoxAssist.PlaceholderText="Cari riwayat kunjungan profil ini..."
                                  AutomationProperties.Name="Cari riwayat"
@@ -74,8 +77,9 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="4,3">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13"/>
-                                    <TextBlock Text="{Binding Url}" FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}"
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" LineHeight="18"/>
+                                    <TextBlock Text="{Binding Url}" FontSize="11.5" LineHeight="17" Padding="0,0,0,1"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"
                                                TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
                             </DataTemplate>
@@ -88,9 +92,9 @@
             <TabItem Header="Unduhan">
                 <DockPanel Margin="14">
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                        <Button DockPanel.Dock="Right" Content="Tampilkan di Folder" Click="OnOpenDownloadFolderClick" Padding="12,6" Margin="6,0,0,0"/>
                         <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Content="Buka File"
-                                Click="OnOpenDownloadFileClick" Padding="14,6"/>
+                                Click="OnOpenDownloadFileClick" Padding="14,6" Margin="6,0,0,0"/>
+                        <Button DockPanel.Dock="Right" Content="Tampilkan di Folder" Click="OnOpenDownloadFolderClick" Padding="12,6"/>
                         <TextBlock Text="Daftar unduhan milik profil ini:" VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                     </DockPanel>
@@ -110,10 +114,10 @@
                                     <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Fill="{Binding StatusColor}"
                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
                                     <StackPanel>
-                                        <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="13"/>
-                                        <TextBlock Text="{Binding StatusSummary}" FontSize="11.5"
+                                        <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="13" LineHeight="18"/>
+                                        <TextBlock Text="{Binding StatusSummary}" FontSize="11.5" LineHeight="17"
                                                    Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
-                                        <TextBlock Text="{Binding TargetPath}" FontSize="11"
+                                        <TextBlock Text="{Binding TargetPath}" FontSize="11" LineHeight="16" Padding="0,0,0,1"
                                                    Foreground="{DynamicResource TextMutedBrush}" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </DockPanel>

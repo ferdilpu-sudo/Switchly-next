@@ -11,10 +11,10 @@
         <!-- Bottom Action Buttons -->
         <DockPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="Tutup" IsCancel="True" Padding="16,7" Margin="0,0,8,0"/>
                 <Button x:Name="PreviewButton" Content="Pratinjau" Click="OnPreviewClick" Padding="16,7" Margin="0,0,8,0"/>
                 <Button x:Name="ExecuteButton" Style="{StaticResource PrimaryButtonStyle}" Content="Mulai Impor"
-                        Click="OnExecuteClick" Padding="18,7" Margin="0,0,8,0" IsEnabled="False"/>
-                <Button Content="Tutup" IsCancel="True" Padding="16,7"/>
+                        Click="OnExecuteClick" Padding="18,7" IsEnabled="False"/>
             </StackPanel>
             <TextBlock Text="Klik Pratinjau dulu untuk mengaktifkan Mulai Impor."
                        FontSize="12" Foreground="{DynamicResource TextMutedBrush}"

@@ -64,7 +64,9 @@ public partial class BrowserWorkspaceView : UserControl
             ? profile.Name
             : $"{workspaceGroupName}  •  {profile.Name}";
         ApplyBadgeColor(profile.ColorHex);
-        BackToDashboardButton.Visibility = onBackToDashboardCallback is not null ? Visibility.Visible : Visibility.Collapsed;
+        // D14: TopProfileStripBar in MainWindow already provides Profil & Aktivitas navigation when browsing,
+        // so keep the tab-strip BackToDashboardButton collapsed to avoid stacked duplicate Profil buttons.
+        BackToDashboardButton.Visibility = Visibility.Collapsed;
         TabStrip.ItemsSource = _tabs;
         DownloadFlyoutList.ItemsSource = _recentDownloads;
 
