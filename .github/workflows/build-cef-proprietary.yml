@@ -11,12 +11,16 @@ on:
         description: "Exact CEF commit matching 156.0.30+g6028375+chromium-156.0.8078.96"
         required: true
         default: "6028375"
+      runner_label:
+        description: "Runner label (use self-hosted or a GitHub Larger Runner with >=150 GB free disk)"
+        required: true
+        default: "windows-latest"
 
 jobs:
   build-cef-win64:
     # Note: Building Chromium/CEF from source requires >= 16 GB RAM and >= 150 GB free disk space.
-    # Use a self-hosted Windows x64 runner or GitHub Larger Runner (e.g., windows-latest-8-cores / 16-cores).
-    runs-on: windows-latest
+    # Standard free windows-latest runners (~20 GB free) will run out of disk during Chromium checkout.
+    runs-on: ${{ inputs.runner_label }}
     timeout-minutes: 360
 
     env:
@@ -25,12 +29,20 @@ jobs:
       CEF_ARCHIVE_FORMAT: "tar.bz2"
 
     steps:
-      - name: Prepare build workspace
+      - name: Check available disk space & prepare workspace
         shell: pwsh
         run: |
+          Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N='FreeGB';E={[math]::Round($_.Free/1GB,1)}} | Format-Table -AutoSize
+          $freeGb = (Get-PSDrive C).Free / 1GB
+          if ($freeGb -lt 120) {
+            Write-Warning "Free space on C: is $([math]::Round($freeGb,1)) GB. Chromium/CEF source builds typically require >= 150 GB free disk space."
+          }
           New-Item -ItemType Directory -Force -Path "C:\cef-build\automate" | Out-Null
           New-Item -ItemType Directory -Force -Path "C:\cef-build\chromium_git" | Out-Null
-          New-Item -ItemType Directory -Force -Path "C:\cef-build\depot_tools" | Out-Null
+          # Do NOT pre-create C:\cef-build\depot_tools — automate-git.py downloads depot_tools only when the folder does not exist.
+          if ((Test-Path "C:\cef-build\depot_tools") -and -not (Test-Path "C:\cef-build\depot_tools\update_depot_tools.bat")) {
+            Remove-Item -Recurse -Force "C:\cef-build\depot_tools"
+          }
 
       - name: Download official CEF automate-git.py
         shell: pwsh
