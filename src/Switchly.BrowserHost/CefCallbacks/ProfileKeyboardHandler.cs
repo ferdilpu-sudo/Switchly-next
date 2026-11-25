@@ -67,7 +67,7 @@ internal sealed class ProfileKeyboardHandler : IKeyboardHandler
             VkW when !shift => BrowserShortcutCommand.CloseTab,
             VkL when !shift => BrowserShortcutCommand.FocusAddressBar,
             VkF when !shift => BrowserShortcutCommand.FindInPage,
-            VkK when !shift => BrowserShortcutCommand.QuickSearch,
+            VkK when shift => BrowserShortcutCommand.QuickSearch,
             VkR when !shift => BrowserShortcutCommand.Reload,
             VkTab when !shift => BrowserShortcutCommand.NextTab,
             VkOemPlus or VkAdd => BrowserShortcutCommand.ZoomIn,

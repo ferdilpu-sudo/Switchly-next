@@ -4,8 +4,8 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- Index 0 is dynamically swapped by ThemeManager between DarkTheme and LightTheme -->
-                <ResourceDictionary Source="Themes/DarkTheme.xaml"/>
+                <!-- Index 0 is dynamically swapped by ThemeManager between LightTheme (D14 default) and DarkTheme -->
+                <ResourceDictionary Source="Themes/LightTheme.xaml"/>
                 <ResourceDictionary Source="Themes/Icons.xaml"/>
                 <ResourceDictionary Source="Themes/Controls.xaml"/>
             </ResourceDictionary.MergedDictionaries>

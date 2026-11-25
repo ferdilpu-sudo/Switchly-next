@@ -895,7 +895,7 @@ public partial class BrowserWorkspaceView : UserControl
             case BrowserShortcutCommand.QuickSearch:
                 if (Window.GetWindow(this) is MainWindow mainWindow)
                 {
-                    mainWindow.FocusQuickSearch();
+                    mainWindow.OpenProfileSwitcher();
                 }
                 break;
         }

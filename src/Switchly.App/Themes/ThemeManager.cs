@@ -19,14 +19,14 @@ public static class ThemeManager
 
     private static string? _preferenceFilePath;
 
-    public static AppTheme CurrentTheme { get; private set; } = AppTheme.Dark;
+    public static AppTheme CurrentTheme { get; private set; } = AppTheme.Light;
 
     public static event EventHandler<AppTheme>? ThemeChanged;
 
     public static void Initialize(string dataDirectory)
     {
         _preferenceFilePath = Path.Combine(dataDirectory, "ui-theme.txt");
-        var initialTheme = AppTheme.Dark;
+        var initialTheme = AppTheme.Light;
 
         try
         {

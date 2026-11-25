@@ -124,8 +124,7 @@ jobs:
             --no-distrib ^
             --no-debug-build ^
             --no-debug-tests ^
-            --no-release-tests ^
-            --shallow
+            --no-release-tests
 
       - name: Configure GN with sccache & proprietary codecs
         shell: pwsh

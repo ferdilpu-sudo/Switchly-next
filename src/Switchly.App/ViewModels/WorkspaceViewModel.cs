@@ -22,6 +22,22 @@ public enum WorkspaceSection
     Group,
 }
 
+public enum ProfileStatusFilter
+{
+    All = 0,
+    Running = 1,
+    Inactive = 2,
+}
+
+public enum ProfileSortOrder
+{
+    NameAsc = 0,
+    StatusActiveFirst = 1,
+    RecentlyUsed = 2,
+    NewestCreated = 3,
+    GroupAsc = 4,
+}
+
 public sealed record ActiveWorkspaceItemViewModel(
     Guid ProfileId,
     Guid? WorkspaceGroupId,
@@ -68,6 +84,8 @@ public sealed class WorkspaceViewModel : ViewModelBase
     private List<BrowserProfile> _allProfiles = [];
     private Dictionary<Guid, string> _profileManualGroupMap = [];
     private WorkspaceSection _activeSection = WorkspaceSection.AllProfiles;
+    private ProfileStatusFilter _statusFilter = ProfileStatusFilter.All;
+    private ProfileSortOrder _sortOrder = ProfileSortOrder.StatusActiveFirst;
     private ProfileGroup? _selectedGroup;
     private Guid? _activeDockedProfileId;
     private string _searchText = string.Empty;
@@ -115,6 +133,169 @@ public sealed class WorkspaceViewModel : ViewModelBase
     public ObservableCollection<ActiveWorkspaceGroupViewModel> ActiveWorkspaceGroups { get; } = [];
 
     public bool HasActiveWorkspaces => ActiveWorkspaces.Count > 0;
+
+    public ProfileStatusFilter StatusFilter
+    {
+        get => _statusFilter;
+        set
+        {
+            if (SetProperty(ref _statusFilter, value))
+            {
+                _ = ApplyFilterAsync();
+            }
+        }
+    }
+
+    public ProfileSortOrder SortOrder
+    {
+        get => _sortOrder;
+        set
+        {
+            if (SetProperty(ref _sortOrder, value))
+            {
+                _ = ApplyFilterAsync();
+            }
+        }
+    }
+
+    public string VisibleProfileCountLabel =>
+        $"Menampilkan {VisibleProfiles.Count} dari {_totalSavedCount} profil";
+
+    public int SelectedProfileCount => VisibleProfiles.Count(p => p.IsSelected);
+
+    public bool HasSelectedProfiles => SelectedProfileCount > 0;
+
+    public string SelectionSummary => $"{SelectedProfileCount} profil dipilih";
+
+    public void NotifySelectionChanged()
+    {
+        OnPropertyChanged(nameof(SelectedProfileCount));
+        OnPropertyChanged(nameof(HasSelectedProfiles));
+        OnPropertyChanged(nameof(SelectionSummary));
+    }
+
+    public void SetAllVisibleSelected(bool isSelected)
+    {
+        foreach (var item in VisibleProfiles)
+        {
+            item.IsSelected = isSelected;
+        }
+
+        NotifySelectionChanged();
+    }
+
+    public async Task CloseSelectedSessionsAsync()
+    {
+        ErrorMessage = null;
+        var selectedActiveIds = VisibleProfiles
+            .Where(p => p.IsSelected && p.IsActive)
+            .Select(p => p.ProfileId)
+            .ToList();
+
+        foreach (var id in selectedActiveIds)
+        {
+            await _windowCoordinator.CloseProfileWindowsAsync(id);
+            _profileLastActiveUtc.Remove(id);
+        }
+
+        SetAllVisibleSelected(false);
+        RefreshResourceUsage();
+    }
+
+    public async Task ArchiveSelectedProfilesAsync()
+    {
+        ErrorMessage = null;
+        var selected = VisibleProfiles.Where(p => p.IsSelected).ToList();
+        if (selected.Count == 0)
+        {
+            return;
+        }
+
+        using var scope = _scopeFactory.CreateScope();
+        var profileService = scope.ServiceProvider.GetRequiredService<IProfileService>();
+
+        foreach (var item in selected)
+        {
+            if (!item.IsArchived && _sessionManager.GetState(item.ProfileId) == ProfileRuntimeState.Active)
+            {
+                await _windowCoordinator.CloseProfileWindowsAsync(item.ProfileId);
+            }
+
+            await profileService.SetArchivedAsync(item.ProfileId, !item.IsArchived);
+        }
+
+        await LoadAsync();
+    }
+
+    public async Task DeleteSelectedProfilesAsync()
+    {
+        ErrorMessage = null;
+        var selected = VisibleProfiles.Where(p => p.IsSelected).ToList();
+        if (selected.Count == 0)
+        {
+            return;
+        }
+
+        var skippedActive = 0;
+        using var scope = _scopeFactory.CreateScope();
+        var profileService = scope.ServiceProvider.GetRequiredService<IProfileService>();
+
+        foreach (var item in selected)
+        {
+            var isActive = _sessionManager.GetState(item.ProfileId) == ProfileRuntimeState.Active;
+            if (isActive)
+            {
+                skippedActive++;
+                continue;
+            }
+
+            await profileService.DeleteAsync(item.ProfileId, isProfileActive: false);
+        }
+
+        await LoadAsync();
+        if (skippedActive > 0)
+        {
+            ErrorMessage = $"{skippedActive} profil dilewati karena sesinya masih berjalan. Tutup sesinya dulu sebelum menghapus.";
+        }
+    }
+
+    /// <summary>
+    /// Returns ranked profile candidates for the Ctrl+Shift+K Profile Switcher Command Palette (D14):
+    /// Running/Current profiles first, then Favorites, then alphabetical, filtered by name/group/URL.
+    /// </summary>
+    public IReadOnlyList<ProfileListItemViewModel> GetSwitcherCandidates(string? query)
+    {
+        var trimmed = (query ?? string.Empty).Trim();
+        var activeSessions = _sessionManager.GetActiveSessions()
+            .ToDictionary(s => s.ProfileId);
+
+        IEnumerable<BrowserProfile> source = _allProfiles.Where(p => !p.IsArchived);
+        if (!string.IsNullOrEmpty(trimmed))
+        {
+            source = source.Where(p =>
+                p.Name.Contains(trimmed, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrWhiteSpace(p.StartupUrl) && p.StartupUrl.Contains(trimmed, StringComparison.OrdinalIgnoreCase)) ||
+                (_profileManualGroupMap.TryGetValue(p.ProfileId, out var groupName) &&
+                 groupName.Contains(trimmed, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        return source
+            .Select(p =>
+            {
+                var hasSession = activeSessions.TryGetValue(p.ProfileId, out var session);
+                var state = hasSession ? session!.State : ProfileRuntimeState.Closed;
+                var windowCount = hasSession ? session!.OpenWindowCount : 0;
+                var isDocked = _activeDockedProfileId.HasValue && _activeDockedProfileId.Value == p.ProfileId;
+                _profileManualGroupMap.TryGetValue(p.ProfileId, out var manualGroupName);
+                return new ProfileListItemViewModel(p, state, windowCount, isDocked, manualGroupName);
+            })
+            .OrderByDescending(i => i.IsCurrentlyDocked)
+            .ThenByDescending(i => i.IsActive)
+            .ThenByDescending(i => i.IsFavorite)
+            .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
+            .Take(25)
+            .ToList();
+    }
 
     public void FocusActiveWorkspace(ActiveWorkspaceItemViewModel item)
         => _windowCoordinator.FocusDockedWorkspace(item.ProfileId, item.WorkspaceGroupId);
@@ -762,17 +943,51 @@ public sealed class WorkspaceViewModel : ViewModelBase
         var filtered = ProfileFilter.Apply(_allProfiles, criteria);
         var activeMap = _sessionManager.GetActiveSessions().ToDictionary(s => s.ProfileId, s => s.OpenWindowCount);
 
-        VisibleProfiles.Clear();
-        foreach (var profile in filtered)
+        var items = filtered.Select(profile =>
         {
             var state = _sessionManager.GetState(profile.ProfileId);
             var windowCount = activeMap.TryGetValue(profile.ProfileId, out var c) ? c : 0;
             var isDocked = _activeDockedProfileId.HasValue && profile.ProfileId == _activeDockedProfileId.Value;
             _profileManualGroupMap.TryGetValue(profile.ProfileId, out var groupName);
-            VisibleProfiles.Add(new ProfileListItemViewModel(profile, state, windowCount, isDocked, groupName));
+            return new ProfileListItemViewModel(profile, state, windowCount, isDocked, groupName);
+        });
+
+        items = _statusFilter switch
+        {
+            ProfileStatusFilter.Running => items.Where(i => i.IsActive),
+            ProfileStatusFilter.Inactive => items.Where(i => !i.IsActive),
+            _ => items,
+        };
+
+        items = _sortOrder switch
+        {
+            ProfileSortOrder.NameAsc => items.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
+            ProfileSortOrder.RecentlyUsed => items
+                .OrderByDescending(i => i.LastOpenedUtc ?? DateTimeOffset.MinValue)
+                .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
+            ProfileSortOrder.NewestCreated => items
+                .OrderByDescending(i => i.CreatedUtc)
+                .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
+            ProfileSortOrder.GroupAsc => items
+                .OrderBy(i => i.HasManualGroup ? 0 : 1)
+                .ThenBy(i => i.GroupBadgeLabel, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
+            _ => items
+                .OrderByDescending(i => i.IsCurrentlyDocked)
+                .ThenByDescending(i => i.IsActive)
+                .ThenByDescending(i => i.IsFavorite)
+                .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
+        };
+
+        VisibleProfiles.Clear();
+        foreach (var item in items)
+        {
+            VisibleProfiles.Add(item);
         }
 
         IsEmpty = VisibleProfiles.Count == 0;
+        OnPropertyChanged(nameof(VisibleProfileCountLabel));
+        NotifySelectionChanged();
     }
 
     private void OnSessionStateChanged(ProfileSessionSnapshot snapshot)

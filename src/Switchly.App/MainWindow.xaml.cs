@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private readonly BrowserWindowCoordinator _windowCoordinator;
     private readonly DispatcherTimer _resourceTimer;
     private BrowserWorkspaceView? _currentDockedWorkspace;
+    private bool _isSidebarCollapsed;
     private bool _isVideoFullscreen;
     private WindowStyle _savedWindowStyle = WindowStyle.SingleBorderWindow;
     private WindowState _savedWindowState = WindowState.Normal;
@@ -69,6 +70,50 @@ public partial class MainWindow : Window
         ThemeToggleButton.ToolTip = isDark
             ? "Beralih ke Mode Terang (Light)"
             : "Beralih ke Mode Gelap (Dark)";
+
+        if (SettingsLightThemeButton is not null && SettingsDarkThemeButton is not null)
+        {
+            var activeStyle = (Style)FindResource("NavButtonActiveStyle");
+            var normalStyle = (Style)FindResource("NavButtonStyle");
+            SettingsLightThemeButton.Style = isDark ? normalStyle : activeStyle;
+            SettingsDarkThemeButton.Style = isDark ? activeStyle : normalStyle;
+        }
+    }
+
+    private void ShowMainRightPanel(UIElement panel)
+    {
+        DashboardView.Visibility = panel == DashboardView ? Visibility.Visible : Visibility.Collapsed;
+        DockedBrowserHost.Visibility = panel == DockedBrowserHost ? Visibility.Visible : Visibility.Collapsed;
+        ActivityView.Visibility = panel == ActivityView ? Visibility.Visible : Visibility.Collapsed;
+        SettingsView.Visibility = panel == SettingsView ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnOpenActivityViewClick(object sender, RoutedEventArgs e)
+    {
+        _windowCoordinator.ShowDashboard();
+        _viewModel.RefreshResourceUsage();
+        SetSidebarCollapsed(false);
+        ShowMainRightPanel(ActivityView);
+    }
+
+    private void OnOpenSettingsViewClick(object sender, RoutedEventArgs e)
+    {
+        _windowCoordinator.ShowDashboard();
+        SetSidebarCollapsed(false);
+        UpdateThemeToggleIcon();
+        ShowMainRightPanel(SettingsView);
+    }
+
+    private void OnSelectLightThemeClick(object sender, RoutedEventArgs e)
+    {
+        ThemeManager.ApplyTheme(AppTheme.Light, persist: true);
+        UpdateThemeToggleIcon();
+    }
+
+    private void OnSelectDarkThemeClick(object sender, RoutedEventArgs e)
+    {
+        ThemeManager.ApplyTheme(AppTheme.Dark, persist: true);
+        UpdateThemeToggleIcon();
     }
 
     private void UpdateActiveNav(WorkspaceSection section)
@@ -83,15 +128,180 @@ public partial class MainWindow : Window
 
     public void FocusQuickSearch()
     {
+        if (_isSidebarCollapsed)
+        {
+            SetSidebarCollapsed(false);
+        }
+
         SidebarSearchBox.Focus();
         SidebarSearchBox.SelectAll();
     }
 
+    public void OpenProfileSwitcher()
+    {
+        ProfileSwitcherOverlay.Visibility = Visibility.Visible;
+        SwitcherSearchBox.Text = string.Empty;
+        RefreshSwitcherResults();
+        SwitcherSearchBox.Focus();
+    }
+
+    private void CloseProfileSwitcher()
+    {
+        ProfileSwitcherOverlay.Visibility = Visibility.Collapsed;
+    }
+
+    private void RefreshSwitcherResults()
+    {
+        var items = _viewModel.GetSwitcherCandidates(SwitcherSearchBox.Text);
+        SwitcherResultsList.ItemsSource = items;
+        if (items.Count > 0)
+        {
+            SwitcherResultsList.SelectedIndex = 0;
+        }
+    }
+
+    private void SetSidebarCollapsed(bool collapsed)
+    {
+        _isSidebarCollapsed = collapsed;
+        if (_isVideoFullscreen)
+        {
+            return;
+        }
+
+        SidebarPanel.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        SidebarColumn.Width = collapsed ? new GridLength(0) : new GridLength(268);
+    }
+
+    private void OnToggleSidebarClick(object sender, RoutedEventArgs e)
+        => SetSidebarCollapsed(!_isSidebarCollapsed);
+
+    private void OnOpenProfileSwitcherClick(object sender, RoutedEventArgs e)
+        => OpenProfileSwitcher();
+
+    private void OnProfileSwitcherBackdropMouseDown(object sender, MouseButtonEventArgs e)
+        => CloseProfileSwitcher();
+
+    private void OnProfileSwitcherCardMouseDown(object sender, MouseButtonEventArgs e)
+        => e.Handled = true;
+
+    private void OnSwitcherSearchTextChanged(object sender, TextChangedEventArgs e)
+        => RefreshSwitcherResults();
+
+    private async void OnSwitcherSearchPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            CloseProfileSwitcher();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Down && SwitcherResultsList.Items.Count > 0)
+        {
+            SwitcherResultsList.SelectedIndex = Math.Min(SwitcherResultsList.Items.Count - 1, SwitcherResultsList.SelectedIndex + 1);
+            SwitcherResultsList.ScrollIntoView(SwitcherResultsList.SelectedItem);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Up && SwitcherResultsList.Items.Count > 0)
+        {
+            SwitcherResultsList.SelectedIndex = Math.Max(0, SwitcherResultsList.SelectedIndex - 1);
+            SwitcherResultsList.ScrollIntoView(SwitcherResultsList.SelectedItem);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Enter && SwitcherResultsList.SelectedItem is ProfileListItemViewModel selected)
+        {
+            e.Handled = true;
+            await ActivateSwitcherItemAsync(selected);
+        }
+    }
+
+    private async void OnSwitcherListPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            CloseProfileSwitcher();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Enter && SwitcherResultsList.SelectedItem is ProfileListItemViewModel selected)
+        {
+            e.Handled = true;
+            await ActivateSwitcherItemAsync(selected);
+        }
+    }
+
+    private async void OnSwitcherResultActivate(object sender, MouseButtonEventArgs e)
+    {
+        if (SwitcherResultsList.SelectedItem is ProfileListItemViewModel selected)
+        {
+            await ActivateSwitcherItemAsync(selected);
+        }
+    }
+
+    private async void OnSwitcherRowClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: ProfileListItemViewModel item })
+        {
+            e.Handled = true;
+            await ActivateSwitcherItemAsync(item);
+        }
+    }
+
+    private async Task ActivateSwitcherItemAsync(ProfileListItemViewModel item)
+    {
+        CloseProfileSwitcher();
+        await _viewModel.OpenOrFocusProfileAsync(item.Profile);
+    }
+
+    private async void OnSwitcherBrowseAllClick(object sender, RoutedEventArgs e)
+    {
+        CloseProfileSwitcher();
+        _windowCoordinator.ShowDashboard();
+        UpdateActiveNav(WorkspaceSection.AllProfiles);
+        await _viewModel.SelectSectionAsync(WorkspaceSection.AllProfiles);
+    }
+
+    private void OnSwitcherNewProfileClick(object sender, RoutedEventArgs e)
+    {
+        CloseProfileSwitcher();
+        OnNewProfileClick(sender, e);
+    }
+
     private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.K && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+        if (e.Key == Key.Escape && ProfileSwitcherOverlay.Visibility == Visibility.Visible)
         {
-            FocusQuickSearch();
+            CloseProfileSwitcher();
+            e.Handled = true;
+            return;
+        }
+
+        var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control;
+        var shift = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
+
+        if (ctrl && shift && e.Key == Key.K)
+        {
+            if (ProfileSwitcherOverlay.Visibility == Visibility.Visible)
+            {
+                CloseProfileSwitcher();
+            }
+            else
+            {
+                OpenProfileSwitcher();
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (ctrl && !shift && e.Key == Key.B && DockedBrowserHost.Visibility == Visibility.Visible)
+        {
+            SetSidebarCollapsed(!_isSidebarCollapsed);
             e.Handled = true;
         }
     }
@@ -120,11 +330,11 @@ public partial class MainWindow : Window
 
     private async void OnProfileCardClick(object sender, MouseButtonEventArgs e)
     {
-        // Ignore clicks originating from action buttons inside the card.
+        // Ignore clicks originating from action buttons or selection checkboxes inside the row.
         DependencyObject? source = e.OriginalSource as DependencyObject;
         while (source is not null && source != sender)
         {
-            if (source is Button)
+            if (source is Button or CheckBox)
             {
                 return;
             }
@@ -138,11 +348,110 @@ public partial class MainWindow : Window
         }
     }
 
+    private void UpdateStatusFilterButtons(ProfileStatusFilter filter)
+    {
+        var activeStyle = (Style)FindResource("NavButtonActiveStyle");
+        var normalStyle = (Style)FindResource("NavButtonStyle");
+
+        StatusAllButton.Style = filter == ProfileStatusFilter.All ? activeStyle : normalStyle;
+        StatusRunningButton.Style = filter == ProfileStatusFilter.Running ? activeStyle : normalStyle;
+        StatusInactiveButton.Style = filter == ProfileStatusFilter.Inactive ? activeStyle : normalStyle;
+    }
+
+    private void OnStatusFilterAllClick(object sender, RoutedEventArgs e)
+    {
+        UpdateStatusFilterButtons(ProfileStatusFilter.All);
+        _viewModel.StatusFilter = ProfileStatusFilter.All;
+        SelectAllProfilesCheckBox.IsChecked = false;
+    }
+
+    private void OnStatusFilterRunningClick(object sender, RoutedEventArgs e)
+    {
+        UpdateStatusFilterButtons(ProfileStatusFilter.Running);
+        _viewModel.StatusFilter = ProfileStatusFilter.Running;
+        SelectAllProfilesCheckBox.IsChecked = false;
+    }
+
+    private void OnStatusFilterInactiveClick(object sender, RoutedEventArgs e)
+    {
+        UpdateStatusFilterButtons(ProfileStatusFilter.Inactive);
+        _viewModel.StatusFilter = ProfileStatusFilter.Inactive;
+        SelectAllProfilesCheckBox.IsChecked = false;
+    }
+
+    private void OnSortOrderSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_viewModel is null || sender is not ComboBox { SelectedItem: ComboBoxItem { Tag: string tag } })
+        {
+            return;
+        }
+
+        if (Enum.TryParse<ProfileSortOrder>(tag, out var sortOrder))
+        {
+            _viewModel.SortOrder = sortOrder;
+        }
+    }
+
+    private void OnSelectAllProfilesClick(object sender, RoutedEventArgs e)
+    {
+        var isChecked = SelectAllProfilesCheckBox.IsChecked == true;
+        _viewModel.SetAllVisibleSelected(isChecked);
+    }
+
+    private void OnRowSelectionCheckboxClick(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        _viewModel.NotifySelectionChanged();
+        SelectAllProfilesCheckBox.IsChecked =
+            _viewModel.VisibleProfiles.Count > 0 &&
+            _viewModel.SelectedProfileCount == _viewModel.VisibleProfiles.Count;
+    }
+
+    private void OnBulkClearSelectionClick(object sender, RoutedEventArgs e)
+    {
+        _viewModel.SetAllVisibleSelected(false);
+        SelectAllProfilesCheckBox.IsChecked = false;
+    }
+
+    private async void OnBulkCloseSessionsClick(object sender, RoutedEventArgs e)
+    {
+        await _viewModel.CloseSelectedSessionsAsync();
+        SelectAllProfilesCheckBox.IsChecked = false;
+    }
+
+    private async void OnBulkArchiveClick(object sender, RoutedEventArgs e)
+    {
+        await _viewModel.ArchiveSelectedProfilesAsync();
+        SelectAllProfilesCheckBox.IsChecked = false;
+    }
+
+    private async void OnBulkDeleteClick(object sender, RoutedEventArgs e)
+    {
+        var count = _viewModel.SelectedProfileCount;
+        if (count == 0)
+        {
+            return;
+        }
+
+        var confirm = MessageBox.Show(
+            $"Hapus {count} profil terpilih secara permanen?\n\nSemua data sesi browser (cookies, cache, localStorage) milik profil yang tidak aktif akan dihapus. Profil yang masih berjalan akan dilewati dengan aman.",
+            "Konfirmasi Hapus Massal",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (confirm == MessageBoxResult.Yes)
+        {
+            await _viewModel.DeleteSelectedProfilesAsync();
+            SelectAllProfilesCheckBox.IsChecked = false;
+        }
+    }
+
     private async void OnCategoryChipClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement element && element.Tag is ProfileGroup group)
         {
             _windowCoordinator.ShowDashboard();
+            ShowMainRightPanel(DashboardView);
             UpdateActiveNav(WorkspaceSection.Group);
             await _viewModel.SelectSectionAsync(WorkspaceSection.Group, group);
         }
@@ -170,8 +479,11 @@ public partial class MainWindow : Window
 
             _viewModel.SetActiveDockedProfile(workspace?.ProfileId);
             DockedBrowserHost.Content = workspace;
-            DockedBrowserHost.Visibility = workspace is not null ? Visibility.Visible : Visibility.Collapsed;
-            DashboardView.Visibility = workspace is null ? Visibility.Visible : Visibility.Collapsed;
+            ShowMainRightPanel(workspace is not null ? DockedBrowserHost : DashboardView);
+
+            // Browser-first (D14): collapse sidebar automatically while browsing so the viewport is maximized;
+            // restore sidebar when returning to the Profile Library / Dashboard.
+            SetSidebarCollapsed(workspace is not null);
         });
     }
 
@@ -191,7 +503,9 @@ public partial class MainWindow : Window
 
             SidebarPanel.Visibility = Visibility.Collapsed;
             SidebarColumn.Width = new GridLength(0);
+            TopProfileStripBar.Visibility = Visibility.Collapsed;
             FooterStatusBar.Visibility = Visibility.Collapsed;
+            ProfileSwitcherOverlay.Visibility = Visibility.Collapsed;
 
             WindowStyle = WindowStyle.None;
             ResizeMode = ResizeMode.NoResize;
@@ -199,8 +513,9 @@ public partial class MainWindow : Window
         }
         else
         {
-            SidebarPanel.Visibility = Visibility.Visible;
-            SidebarColumn.Width = new GridLength(268);
+            SidebarPanel.Visibility = _isSidebarCollapsed ? Visibility.Collapsed : Visibility.Visible;
+            SidebarColumn.Width = _isSidebarCollapsed ? new GridLength(0) : new GridLength(268);
+            TopProfileStripBar.Visibility = Visibility.Visible;
             FooterStatusBar.Visibility = Visibility.Visible;
 
             WindowStyle = _savedWindowStyle;
@@ -212,6 +527,7 @@ public partial class MainWindow : Window
     private async void OnAllProfilesClick(object sender, RoutedEventArgs e)
     {
         _windowCoordinator.ShowDashboard();
+        ShowMainRightPanel(DashboardView);
         UpdateActiveNav(WorkspaceSection.AllProfiles);
         await _viewModel.SelectSectionAsync(WorkspaceSection.AllProfiles);
     }
@@ -219,6 +535,7 @@ public partial class MainWindow : Window
     private async void OnFavoritesClick(object sender, RoutedEventArgs e)
     {
         _windowCoordinator.ShowDashboard();
+        ShowMainRightPanel(DashboardView);
         UpdateActiveNav(WorkspaceSection.Favorites);
         await _viewModel.SelectSectionAsync(WorkspaceSection.Favorites);
     }
@@ -226,6 +543,7 @@ public partial class MainWindow : Window
     private async void OnArchivedClick(object sender, RoutedEventArgs e)
     {
         _windowCoordinator.ShowDashboard();
+        ShowMainRightPanel(DashboardView);
         UpdateActiveNav(WorkspaceSection.Archived);
         await _viewModel.SelectSectionAsync(WorkspaceSection.Archived);
     }

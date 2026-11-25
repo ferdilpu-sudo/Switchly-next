@@ -9,6 +9,7 @@ public sealed class ProfileListItemViewModel : ViewModelBase
     private ProfileRuntimeState _runtimeState;
     private int _openWindowCount;
     private bool _isCurrentlyDocked;
+    private bool _isSelected;
 
     public ProfileListItemViewModel(
         BrowserProfile profile,
@@ -62,10 +63,31 @@ public sealed class ProfileListItemViewModel : ViewModelBase
         }
     }
 
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set => SetProperty(ref _isSelected, value);
+    }
+
+    public DateTimeOffset? LastOpenedUtc => Profile.LastOpenedAtUtc;
+
+    public DateTimeOffset CreatedUtc => Profile.CreatedAtUtc;
+
+    public string LastUsedDisplay => Profile.LastOpenedAtUtc.HasValue
+        ? Profile.LastOpenedAtUtc.Value.ToLocalTime().ToString("dd MMM, HH:mm")
+        : "Belum dibuka";
+
     public bool IsCurrentlyDocked
     {
         get => _isCurrentlyDocked;
-        set => SetProperty(ref _isCurrentlyDocked, value);
+        set
+        {
+            if (SetProperty(ref _isCurrentlyDocked, value))
+            {
+                OnPropertyChanged(nameof(StatusLabel));
+                OnPropertyChanged(nameof(StatusColor));
+            }
+        }
     }
 
     public string ColorHex => string.IsNullOrWhiteSpace(Profile.ColorHex) ? "#3B82F6" : Profile.ColorHex;
@@ -106,7 +128,8 @@ public sealed class ProfileListItemViewModel : ViewModelBase
 
     public string StatusLabel => RuntimeState switch
     {
-        ProfileRuntimeState.Active => OpenWindowCount > 1 ? $"Aktif ({OpenWindowCount})" : "Aktif",
+        ProfileRuntimeState.Active when IsCurrentlyDocked => "Tampil",
+        ProfileRuntimeState.Active => OpenWindowCount > 1 ? $"Berjalan ({OpenWindowCount})" : "Berjalan",
         ProfileRuntimeState.Starting => "Membuka...",
         ProfileRuntimeState.Suspending => "Menutup...",
         ProfileRuntimeState.Suspended => "Dijeda",
@@ -116,6 +139,7 @@ public sealed class ProfileListItemViewModel : ViewModelBase
 
     public string StatusColor => RuntimeState switch
     {
+        ProfileRuntimeState.Active when IsCurrentlyDocked => "#2563EB",
         ProfileRuntimeState.Active => "#16A34A",
         ProfileRuntimeState.Starting or ProfileRuntimeState.Suspending or ProfileRuntimeState.Suspended => "#D97706",
         ProfileRuntimeState.Error => "#DC2626",
