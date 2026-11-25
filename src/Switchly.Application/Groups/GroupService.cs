@@ -56,6 +56,23 @@ public sealed class GroupService : IGroupService
         return group;
     }
 
+    public async Task<ProfileGroup> UpdateManualGroupAsync(Guid groupId, string newName, string? defaultUrl, CancellationToken cancellationToken = default)
+    {
+        var group = await _groups.GetByIdAsync(groupId, cancellationToken)
+            ?? throw new GroupNotFoundException(groupId);
+
+        if (group.Kind == GroupKind.WebsiteDomain)
+        {
+            throw new SystemGroupReadOnlyException(groupId, "update");
+        }
+
+        group.Name = GroupValidation.NormalizeAndValidateName(newName);
+        group.DefaultUrl = ProfileValidation.NormalizeAndValidateStartupUrl(defaultUrl);
+        group.UpdatedAtUtc = _timeProvider.GetUtcNow();
+        await _groups.UpdateAsync(group, cancellationToken);
+        return group;
+    }
+
     public async Task DeleteManualGroupAsync(Guid groupId, CancellationToken cancellationToken = default)
     {
         var group = await _groups.GetByIdAsync(groupId, cancellationToken)

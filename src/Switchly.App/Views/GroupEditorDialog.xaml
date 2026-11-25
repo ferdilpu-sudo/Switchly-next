@@ -4,60 +4,56 @@
         xmlns:themes="clr-namespace:Switchly.App.Themes"
         Style="{StaticResource ThemedWindowStyle}"
         Title="Buat Grup / Workspace Web — Switchly"
-        Height="370" Width="470"
+        Width="480" MinWidth="440" MaxHeight="620"
+        SizeToContent="Height"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner">
-    <Grid Margin="22">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <StackPanel Grid.Row="0" Margin="0,0,0,14">
-            <TextBlock Text="Buat Grup atau Workspace Web" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
-            <TextBlock Text="Jika URL diisi, memilih profil di dalam grup ini otomatis membuka situs tersebut."
-                       FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
-        </StackPanel>
-
-        <!-- 1-Click Web Workspace Presets (D10) -->
-        <StackPanel Grid.Row="1" Margin="0,0,0,14">
-            <TextBlock Text="Preset Cepat (1 Klik)" FontSize="12" FontWeight="SemiBold"
-                       Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,6"/>
-            <WrapPanel>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="ChatGPT" Click="OnPresetClick"
-                        Tag="ChatGPT|https://chatgpt.com" Margin="0,0,6,6"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="Google Flow" Click="OnPresetClick"
-                        Tag="Google Flow|https://flow.google" Margin="0,0,6,6"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="Dola" Click="OnPresetClick"
-                        Tag="Dola|https://dola.com" Margin="0,0,6,6"/>
-                <Button Style="{StaticResource ChipButtonStyle}" Content="SeaArt" Click="OnPresetClick"
-                        Tag="SeaArt|https://seaart.ai" Margin="0,0,6,6"/>
-            </WrapPanel>
-        </StackPanel>
-
-        <StackPanel Grid.Row="2" Margin="0,0,0,12">
-            <TextBlock Text="Nama Grup *" FontWeight="SemiBold" Margin="0,0,0,5"/>
-            <TextBox x:Name="NameBox" MaxLength="80"
-                     themes:TextBoxAssist.PlaceholderText="Contoh: ChatGPT, Google Flow, Kerja..."/>
-        </StackPanel>
-
-        <StackPanel Grid.Row="3" Margin="0,0,0,10">
-            <TextBlock Text="URL Workspace (opsional, http/https)" FontWeight="SemiBold" Margin="0,0,0,5"/>
-            <TextBox x:Name="DefaultUrlBox"
-                     themes:TextBoxAssist.PlaceholderText="Kosongkan untuk folder biasa, atau isi mis. https://chatgpt.com"/>
-        </StackPanel>
-
-        <TextBlock Grid.Row="4" x:Name="ErrorText" Foreground="{DynamicResource DangerSoftTextBrush}"
-                   FontSize="12" TextWrapping="Wrap" VerticalAlignment="Top"/>
-
-        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">
+    <DockPanel Margin="22">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
             <Button Content="Batal" IsCancel="True" Padding="16,7" Margin="0,0,8,0"/>
             <Button Style="{StaticResource PrimaryButtonStyle}" Content="Simpan Grup" IsDefault="True"
                     Click="OnSaveClick" Padding="18,7"/>
         </StackPanel>
-    </Grid>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <StackPanel Margin="0,0,0,14">
+                    <TextBlock x:Name="DialogHeaderTitle" Text="Buat Grup atau Workspace Web" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock Text="Jika URL diisi, memilih profil di dalam grup ini otomatis membuka situs tersebut."
+                               FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <!-- 1-Click Web Workspace Presets (D10) -->
+                <StackPanel Margin="0,0,0,14">
+                    <TextBlock Text="Preset Cepat (1 Klik)" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextMutedBrush}" Margin="0,0,0,6"/>
+                    <WrapPanel>
+                        <Button Style="{StaticResource ChipButtonStyle}" Content="ChatGPT" Click="OnPresetClick"
+                                Tag="ChatGPT|https://chatgpt.com" Margin="0,0,6,6"/>
+                        <Button Style="{StaticResource ChipButtonStyle}" Content="Google Flow" Click="OnPresetClick"
+                                Tag="Google Flow|https://flow.google.com" Margin="0,0,6,6"/>
+                        <Button Style="{StaticResource ChipButtonStyle}" Content="Dola" Click="OnPresetClick"
+                                Tag="Dola|https://dola.com" Margin="0,0,6,6"/>
+                        <Button Style="{StaticResource ChipButtonStyle}" Content="SeaArt" Click="OnPresetClick"
+                                Tag="SeaArt|https://seaart.ai" Margin="0,0,6,6"/>
+                    </WrapPanel>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,0,12">
+                    <TextBlock Text="Nama Grup *" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <TextBox x:Name="NameBox" MaxLength="80"
+                             themes:TextBoxAssist.PlaceholderText="Contoh: ChatGPT, Google Flow, Kerja..."/>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,0,10">
+                    <TextBlock Text="URL Workspace (opsional, http/https)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                    <TextBox x:Name="DefaultUrlBox"
+                             themes:TextBoxAssist.PlaceholderText="Kosongkan untuk folder biasa, atau isi mis. https://flow.google.com"/>
+                </StackPanel>
+
+                <TextBlock x:Name="ErrorText" Foreground="{DynamicResource DangerSoftTextBrush}"
+                           FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
 </Window>

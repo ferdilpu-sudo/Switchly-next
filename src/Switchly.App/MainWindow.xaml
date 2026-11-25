@@ -295,38 +295,117 @@
                             </TextBlock.Style>
                         </TextBlock>
 
-                        <ItemsControl ItemsSource="{Binding ManualGroups}" Margin="0,0,0,8">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel/>
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
+                        <ItemsControl ItemsSource="{Binding ManualGroupItems}" Margin="0,0,0,8">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="{DynamicResource BgSurfaceBrush}"
-                                            BorderBrush="{DynamicResource BorderSubtleBrush}"
-                                            BorderThickness="1" CornerRadius="13" Margin="0,0,6,6">
+                                    <Border CornerRadius="8" Margin="0,0,0,4" BorderThickness="1"
+                                            Cursor="Hand" MouseLeftButtonUp="OnGroupRowMouseUp" Tag="{Binding}">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
+                                                    </Trigger>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+                                                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
                                         <Border.ContextMenu>
                                             <ContextMenu>
                                                 <MenuItem Header="Buka Grup Ini" Click="OnCategoryChipClick" Tag="{Binding}"/>
-                                                <MenuItem Header="Ganti Nama Grup..." Click="OnRenameManualGroupClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Ubah Grup &amp; URL..." Click="OnRenameManualGroupClick" Tag="{Binding}"/>
+                                                <MenuItem Header="Tutup Semua Sesi Grup Ini" Click="OnCloseGroupSessionsClick" Tag="{Binding}"/>
                                                 <Separator/>
                                                 <MenuItem Header="Hapus Grup" Click="OnDeleteManualGroupClick" Tag="{Binding}"/>
                                             </ContextMenu>
                                         </Border.ContextMenu>
-                                        <StackPanel Orientation="Horizontal">
-                                            <Button Style="{StaticResource GhostButtonStyle}"
-                                                    Content="{Binding Name}" Click="OnCategoryChipClick" Tag="{Binding}"
-                                                    Padding="10,4,5,4" FontSize="12"
-                                                    ToolTip="Tampilkan profil di dalam grup ini"/>
-                                            <Button Style="{StaticResource GhostButtonStyle}"
-                                                    Click="OnGroupChipMoreClick" Tag="{Binding}"
-                                                    Padding="4,4,8,4"
-                                                    ToolTip="Opsi grup (Ganti Nama, Hapus)"
-                                                    AutomationProperties.Name="Opsi grup">
-                                                <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconMoreHorizontal}" Width="12" Height="12"/>
-                                            </Button>
-                                        </StackPanel>
+                                        <DockPanel Margin="8,6,6,6">
+                                            <!-- Right: Member Count Pill + More Menu -->
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
+                                                <Border Background="{DynamicResource BgAppBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                                        BorderThickness="1" CornerRadius="9" Padding="6,1" Margin="0,0,4,0" VerticalAlignment="Center"
+                                                        ToolTip="Jumlah profil terhubung ke grup ini">
+                                                    <TextBlock Text="{Binding MemberCount}" FontSize="10.5" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                </Border>
+                                                <Button Style="{StaticResource GhostButtonStyle}"
+                                                        Click="OnGroupChipMoreClick" Tag="{Binding}"
+                                                        Width="24" Height="24" Padding="4"
+                                                        ToolTip="Opsi grup (Ubah URL, Tutup Sesi, Hapus)"
+                                                        AutomationProperties.Name="Opsi grup">
+                                                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconMoreHorizontal}" Width="12" Height="12"/>
+                                                </Button>
+                                            </StackPanel>
+
+                                            <!-- Left: Website Favicon Thumbnail or Web Workspace (Globe) / Folder Icon Badge -->
+                                            <Border DockPanel.Dock="Left" Width="28" Height="28" CornerRadius="7"
+                                                    Margin="0,0,9,0" VerticalAlignment="Center" BorderThickness="1">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="{DynamicResource BgAppBrush}"/>
+                                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsWebWorkspace}" Value="True">
+                                                                <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding HasFavicon}" Value="True">
+                                                                <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}"/>
+                                                                <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Grid>
+                                                    <Image Source="{Binding Favicon}" Width="18" Height="18"
+                                                           RenderOptions.BitmapScalingMode="HighQuality"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <Image.Style>
+                                                            <Style TargetType="Image">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding HasFavicon}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Image.Style>
+                                                    </Image>
+                                                    <Path Width="14" Height="14" Stretch="Uniform" StrokeThickness="1.8"
+                                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <Path.Style>
+                                                            <Style TargetType="Path">
+                                                                <Setter Property="Data" Value="{StaticResource IconFolder}"/>
+                                                                <Setter Property="Stroke" Value="{DynamicResource TextSecondaryBrush}"/>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsWebWorkspace}" Value="True">
+                                                                        <Setter Property="Data" Value="{StaticResource IconGlobe}"/>
+                                                                        <Setter Property="Stroke" Value="{DynamicResource AccentBrush}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding HasFavicon}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Path.Style>
+                                                    </Path>
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- Center: Group Name + Domain Subtitle -->
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold" LineHeight="17"
+                                                           Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding DomainSubtitle}" FontSize="11" LineHeight="16" Padding="0,0,0,1"
+                                                           Foreground="{DynamicResource TextMutedBrush}" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </DockPanel>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -1152,7 +1231,7 @@
         <Grid x:Name="ProfileSwitcherOverlay" Grid.ColumnSpan="2"
               Background="#66000000" Visibility="Collapsed"
               MouseDown="OnProfileSwitcherBackdropMouseDown">
-            <Border Width="540" MaxHeight="520" VerticalAlignment="Top" Margin="0,72,0,0"
+            <Border MaxWidth="540" MinWidth="420" MaxHeight="480" VerticalAlignment="Top" Margin="24,48,24,24"
                     Background="{DynamicResource BgSurfaceElevatedBrush}"
                     BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1"
                     CornerRadius="12" Padding="0"

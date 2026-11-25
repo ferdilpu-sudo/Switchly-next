@@ -460,9 +460,46 @@ public partial class MainWindow : Window
         }
     }
 
+    private static ProfileGroup? ExtractGroup(object sender)
+    {
+        if (sender is FrameworkElement { Tag: ManualGroupItemViewModel item })
+        {
+            return item.Group;
+        }
+
+        if (sender is FrameworkElement { Tag: ProfileGroup group })
+        {
+            return group;
+        }
+
+        return null;
+    }
+
+    private async void OnGroupRowMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        DependencyObject? source = e.OriginalSource as DependencyObject;
+        while (source is not null && source != sender)
+        {
+            if (source is Button)
+            {
+                return;
+            }
+
+            source = System.Windows.Media.VisualTreeHelper.GetParent(source);
+        }
+
+        if (ExtractGroup(sender) is { } group)
+        {
+            _windowCoordinator.ShowDashboard();
+            ShowMainRightPanel(DashboardView);
+            UpdateActiveNav(WorkspaceSection.Group);
+            await _viewModel.SelectSectionAsync(WorkspaceSection.Group, group);
+        }
+    }
+
     private async void OnCategoryChipClick(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement element && element.Tag is ProfileGroup group)
+        if (ExtractGroup(sender) is { } group)
         {
             _windowCoordinator.ShowDashboard();
             ShowMainRightPanel(DashboardView);
@@ -574,9 +611,14 @@ public partial class MainWindow : Window
 
     private async void OnNewProfileClick(object sender, RoutedEventArgs e)
     {
+        IReadOnlyCollection<Guid>? preselectedGroupIds = _viewModel.SelectedGroup is { } activeGroup
+            ? [activeGroup.GroupId]
+            : null;
+
         var dialog = new ProfileEditorDialog(
             existing: null,
-            availableManualGroups: _viewModel.ManualGroups.ToList())
+            availableManualGroups: _viewModel.ManualGroups.ToList(),
+            currentManualGroupIds: preselectedGroupIds)
         {
             Owner = this,
         };
@@ -630,7 +672,7 @@ public partial class MainWindow : Window
     private async void OnDeleteManualGroupClick(object sender, RoutedEventArgs e)
     {
         e.Handled = true;
-        if (sender is FrameworkElement element && element.Tag is ProfileGroup group)
+        if (ExtractGroup(sender) is { } group)
         {
             var confirm = MessageBox.Show(
                 $"Hapus grup '{group.Name}'? Profil di dalamnya tidak akan terhapus.",
@@ -689,16 +731,24 @@ public partial class MainWindow : Window
 
     private async void OnRenameManualGroupClick(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement { Tag: ProfileGroup group })
+        if (ExtractGroup(sender) is { } group)
         {
-            var dialog = new TextInputDialog("Ganti Nama Grup", $"Nama baru untuk grup '{group.Name}':")
+            var dialog = new GroupEditorDialog(group)
             {
                 Owner = this,
             };
-            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.InputText))
+            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.GroupName))
             {
-                await _viewModel.RenameManualGroupAsync(group, dialog.InputText);
+                await _viewModel.UpdateManualGroupAsync(group, dialog.GroupName, dialog.DefaultUrl);
             }
+        }
+    }
+
+    private async void OnCloseGroupSessionsClick(object sender, RoutedEventArgs e)
+    {
+        if (ExtractGroup(sender) is { } group)
+        {
+            await _viewModel.CloseGroupWorkspacesAsync(group);
         }
     }
 

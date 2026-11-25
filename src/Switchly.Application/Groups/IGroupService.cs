@@ -9,6 +9,8 @@ public interface IGroupService
 
     Task<ProfileGroup> RenameManualGroupAsync(Guid groupId, string newName, CancellationToken cancellationToken = default);
 
+    Task<ProfileGroup> UpdateManualGroupAsync(Guid groupId, string newName, string? defaultUrl, CancellationToken cancellationToken = default);
+
     Task DeleteManualGroupAsync(Guid groupId, CancellationToken cancellationToken = default);
 
     Task<ProfileGroup> SetGroupHiddenAsync(Guid groupId, bool isHidden, CancellationToken cancellationToken = default);

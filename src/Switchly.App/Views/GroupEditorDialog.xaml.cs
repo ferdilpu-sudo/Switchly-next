@@ -5,13 +5,26 @@ using Switchly.Domain.Profiles;
 
 namespace Switchly.App.Views;
 
-/// <summary>Modal dialog for creating a Manual / Web Workspace Group with 1-click presets (D10).</summary>
+/// <summary>Modal dialog for creating or editing a Manual / Web Workspace Group with 1-click presets (D10).</summary>
 public partial class GroupEditorDialog : Window
 {
-    public GroupEditorDialog()
+    public GroupEditorDialog(ProfileGroup? existing = null)
     {
         InitializeComponent();
-        Loaded += (_, _) => NameBox.Focus();
+
+        if (existing is not null)
+        {
+            Title = "Ubah Grup / Workspace Web — Switchly";
+            DialogHeaderTitle.Text = "Ubah Grup atau Workspace Web";
+            NameBox.Text = existing.Name;
+            DefaultUrlBox.Text = existing.DefaultUrl ?? string.Empty;
+        }
+
+        Loaded += (_, _) =>
+        {
+            NameBox.Focus();
+            NameBox.SelectAll();
+        };
     }
 
     public string GroupName { get; private set; } = string.Empty;

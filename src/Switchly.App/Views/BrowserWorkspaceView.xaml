@@ -279,7 +279,7 @@
             <!-- Top-Right Native-Browser Download Flyout Popover -->
             <Border x:Name="DownloadFlyoutPanel"
                     HorizontalAlignment="Right" VerticalAlignment="Top"
-                    Margin="0,8,12,0" Width="370" MaxHeight="410"
+                    Margin="12,8,12,12" Width="370" MaxHeight="380"
                     Background="{DynamicResource BgSurfaceElevatedBrush}"
                     BorderBrush="{DynamicResource BorderStrongBrush}"
                     BorderThickness="1" CornerRadius="11" Padding="14,12"
@@ -303,7 +303,7 @@
                         </StackPanel>
                     </Button>
 
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="300">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="260">
                         <StackPanel>
                             <TextBlock x:Name="DownloadFlyoutEmptyText"
                                        Text="Belum ada unduhan pada profil ini."

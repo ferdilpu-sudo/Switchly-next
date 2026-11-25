@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Windows.Media;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Switchly.App.Common;
@@ -64,6 +65,91 @@ public sealed record ActiveWorkspaceGroupViewModel(
     IReadOnlyList<ActiveWorkspaceItemViewModel> Items)
 {
     public string HeaderLabel => $"{GroupTitle} ({Items.Count})";
+}
+
+public sealed class ManualGroupItemViewModel : ViewModelBase
+{
+    private bool _isSelected;
+    private ImageSource? _favicon;
+
+    public ManualGroupItemViewModel(ProfileGroup group, int memberCount, bool isSelected)
+    {
+        Group = group;
+        MemberCount = memberCount;
+        _isSelected = isSelected;
+
+        if (!string.IsNullOrWhiteSpace(group.DefaultUrl))
+        {
+            _ = LoadFaviconAsync(group.DefaultUrl);
+        }
+    }
+
+    public ProfileGroup Group { get; }
+
+    public Guid GroupId => Group.GroupId;
+
+    public string Name => Group.Name;
+
+    public string? DefaultUrl => Group.DefaultUrl;
+
+    public bool IsWebWorkspace => !string.IsNullOrWhiteSpace(Group.DefaultUrl);
+
+    public int MemberCount { get; }
+
+    public ImageSource? Favicon
+    {
+        get => _favicon;
+        private set
+        {
+            if (SetProperty(ref _favicon, value))
+            {
+                OnPropertyChanged(nameof(HasFavicon));
+            }
+        }
+    }
+
+    public bool HasFavicon => _favicon is not null;
+
+    private async Task LoadFaviconAsync(string url)
+    {
+        var icon = await FaviconCacheService.GetFaviconForUrlAsync(url);
+        if (icon is null)
+        {
+            return;
+        }
+
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is not null)
+        {
+            _ = dispatcher.BeginInvoke(() => Favicon = icon);
+        }
+    }
+
+    public string DomainSubtitle
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Group.DefaultUrl))
+            {
+                return "Folder Grup";
+            }
+
+            if (Uri.TryCreate(Group.DefaultUrl, UriKind.Absolute, out var uri) && !string.IsNullOrWhiteSpace(uri.Host))
+            {
+                return uri.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+                    ? uri.Host[4..]
+                    : uri.Host;
+            }
+
+            return Group.DefaultUrl;
+        }
+    }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set => SetProperty(ref _isSelected, value);
+    }
 }
 
 /// <summary>Coordinates Main Workspace state: profiles, manual/auto groups, search/filter, and live status (UI-001).</summary>
@@ -344,6 +430,10 @@ public sealed class WorkspaceViewModel : ViewModelBase
     }
 
     public ObservableCollection<ProfileGroup> ManualGroups { get; } = [];
+
+    public ObservableCollection<ManualGroupItemViewModel> ManualGroupItems { get; } = [];
+
+    public ProfileGroup? SelectedGroup => _activeSection == WorkspaceSection.Group ? _selectedGroup : null;
 
     public ObservableCollection<ProfileGroup> WebsiteGroups { get; } = [];
 
@@ -665,6 +755,12 @@ public sealed class WorkspaceViewModel : ViewModelBase
             _ => "Klik baris profil untuk membuka sesi browser terisolasi, atau tekan Ctrl+Shift+K untuk pindah cepat.",
         };
 
+        foreach (var item in ManualGroupItems)
+        {
+            item.IsSelected = section == WorkspaceSection.Group && group is not null && item.GroupId == group.GroupId;
+        }
+
+        OnPropertyChanged(nameof(SelectedGroup));
         await ApplyFilterAsync();
     }
 
@@ -823,16 +919,36 @@ public sealed class WorkspaceViewModel : ViewModelBase
 
     public async Task RenameManualGroupAsync(ProfileGroup group, string newName)
     {
+        await UpdateManualGroupAsync(group, newName, group.DefaultUrl);
+    }
+
+    public async Task UpdateManualGroupAsync(ProfileGroup group, string newName, string? defaultUrl)
+    {
         ErrorMessage = null;
         using var scope = _scopeFactory.CreateScope();
         var groupService = scope.ServiceProvider.GetRequiredService<IGroupService>();
-        var updated = await groupService.RenameManualGroupAsync(group.GroupId, newName);
+        var updated = await groupService.UpdateManualGroupAsync(group.GroupId, newName, defaultUrl);
         if (_selectedGroup?.GroupId == group.GroupId)
         {
             await SelectSectionAsync(WorkspaceSection.Group, updated);
         }
 
         await LoadAsync();
+    }
+
+    public async Task CloseGroupWorkspacesAsync(ProfileGroup group)
+    {
+        ErrorMessage = null;
+        var matching = ActiveWorkspaces
+            .Where(w => w.WorkspaceGroupId == group.GroupId)
+            .ToList();
+
+        foreach (var item in matching)
+        {
+            await _windowCoordinator.CloseDockedWorkspaceAsync(item.ProfileId, item.WorkspaceGroupId);
+        }
+
+        RefreshResourceUsage();
     }
 
     public async Task DeleteManualGroupAsync(ProfileGroup group)
@@ -882,6 +998,7 @@ public sealed class WorkspaceViewModel : ViewModelBase
     {
         var groups = await groupService.ListGroupsAsync(includeHidden: false);
         ManualGroups.Clear();
+        ManualGroupItems.Clear();
         WebsiteGroups.Clear();
         var groupNamesByProfile = new Dictionary<Guid, List<string>>();
 
@@ -891,6 +1008,8 @@ public sealed class WorkspaceViewModel : ViewModelBase
             {
                 ManualGroups.Add(group);
                 var memberIds = await groupService.GetProfileIdsInGroupAsync(group.GroupId);
+                var isSelected = _activeSection == WorkspaceSection.Group && _selectedGroup?.GroupId == group.GroupId;
+                ManualGroupItems.Add(new ManualGroupItemViewModel(group, memberIds.Count, isSelected));
                 foreach (var profileId in memberIds)
                 {
                     if (!groupNamesByProfile.TryGetValue(profileId, out var list))
