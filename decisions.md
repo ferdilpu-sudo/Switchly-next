@@ -1,7 +1,7 @@
 # Decisions / ADR Log — Switchly Next
 
 **Status:** ACTIVE — core M-001/M-002 ADRs accepted; remaining decisions tracked below  
-**Date:** 2026-11-24
+**Date:** 2026-11-25
 
 ## 1. Decision index
 
@@ -11,12 +11,12 @@
 | ADR-002 | Accepted | .NET 10 LTS | REQ-001, REQ-014 | Win10 Home/Pro support requirement conflicts |
 | ADR-003 | Accepted | C# + WPF + CEF (Chrome Runtime) through CefSharp 156.0.300 | REQ-001, REQ-003, REQ-005, REQ-007 | Provider compatibility or isolation regresses |
 | ADR-004 | Accepted | Plain SQLite for non-secret app metadata; CEF owns browser storage | REQ-002, REQ-006 | Local data volume/performance or whole-DB encryption demands |
-| ADR-005 | Proposed | DPAPI local protection + optional master password/Hello unlock (custom password vault deferred post-MVP) | REQ-010 | Threat model, Hello API PoC, or vault reprioritization |
-| ADR-006 | Proposed | Manual AES-256-GCM chunked portable backup; device-bound cookies excluded; scheduled backup deferred post-MVP | REQ-011 | KDF performance, restore PoC, or scheduled-backup reprioritization |
+| ADR-005 | Proposed (Implemented M-007/D6) | DPAPI local protection + optional master password/Hello unlock + encrypted Password Vault (`ENT-009`, reopened per D6) | REQ-010 | Threat model or Hello API PoC |
+| ADR-006 | Proposed (Implemented M-007) | Manual AES-256-GCM chunked portable backup; device-bound cookies excluded; scheduled backup deferred post-MVP | REQ-011 | KDF performance, restore PoC, or scheduled-backup reprioritization |
 | ADR-007 | Accepted | Local structured logs, secrets redacted; no telemetry without opt-in | NFR-SEC | Privacy review requests telemetry |
 | ADR-008 | Open | MSIX vs signed setup installer | REQ-014 | Installation/update PoC |
 | ADR-009 | Accepted | No registration for basic use; Pro login only for upgrade/activation | REQ-012, REQ-013 | Product business model evolves |
-| ADR-010 | Accepted | No source cookies/session import; CSV password vault deferred post-MVP | REQ-008, REQ-009 | Product owner explicitly expands scope |
+| ADR-010 | Accepted | No source cookies/session import; CSV password vault reopened & implemented per D6 | REQ-008, REQ-009 | Product owner explicitly expands scope |
 | ADR-011 | Accepted | Profile dirs are direct children of RootCachePath; backups exclude CEF global state | REQ-003, REQ-011 | CEF profile-path rules change |
 
 ## 2. ADR-001 — WPF desktop shell
@@ -67,10 +67,10 @@
 
 ## 6. ADR-005 — Local security and unlock
 
-- **Status:** Proposed (scope updated 2026-11-24 per Product Owner decision D1).
-- **Context:** User requested Windows security, optional master password, and Windows Hello where available. Custom CSV password vault (`ENT-009`) is deferred to post-MVP so MVP avoids maintaining a separate password manager.
-- **Options:** Windows account protection only; application master password only; Windows DPAPI protection plus optional master-password and Windows Hello local app unlock.
-- **Decision:** Protect local app secrets/unlock state with Windows DPAPI (`CurrentUser`), and provide optional master-password and Windows Hello local unlock if the API PoC succeeds in M-007. Custom CSV password import and `ENT-009 VaultCredential` are deferred to post-MVP (if later enabled, must use unique-nonce AEAD single-payload encryption with AAD binding `(CryptoVersion, CredentialId, ProfileId, Origin)` and a dedicated Vault UI).
+- **Status:** Proposed — implemented in M-007 & D6 (scope originally updated 2026-11-24 per D1, then Password Vault reopened per D6).
+- **Context:** User requested Windows security, optional master password, Windows Hello where available, and (via D6) an encrypted Password Vault for Chrome/Edge CSV import and explicit-click autofill.
+- **Options:** Windows account protection only; application master password only; Windows DPAPI protection plus optional master-password, Windows Hello local app unlock, and DPAPI-wrapped AEAD credential vault.
+- **Decision:** Protect local app secrets/unlock state with Windows DPAPI (`CurrentUser`), provide optional master-password and Windows Hello local unlock, and implement `ENT-009 VaultCredential` (reopened per D6) using single-payload AES-256-GCM with unique 96-bit CSPRNG nonces and AAD binding `(CryptoVersion, CredentialId, ProfileId, Origin)` plus explicit-click origin-matched autofill (no unrestricted JS bridge).
 - **Consequences:** DPAPI local protection is device/user-bound and does not make a portable backup; portable backup uses a separate passphrase-derived key. Windows Hello is an unlock UX, not backup encryption.
 - **Revisit when:** Account recovery, Hello API, multi-user Windows scenario, or post-MVP password vault scope is reopened.
 
@@ -112,10 +112,10 @@
 
 ## 11. ADR-010 — Do not import source cookies/session
 
-- **Status:** Accepted (confirmed by Product Owner; updated 2026-11-24 per D1).
-- **Context:** Importing device-bound cookies or plaintext password dumps introduces security and compatibility risks.
-- **Options:** Attempt DPAPI decryption of Chrome/Edge cookies; import non-secret browsing data only (bookmarks, history, open-tab URLs).
-- **Decision:** MVP import includes bookmarks, history, and open tabs as URLs (plus optional read-only extension inventory). Source cookies/session are not imported. CSV password import and custom credential vault are deferred to post-MVP (D1).
+- **Status:** Accepted (confirmed by Product Owner; updated 2026-11-24 per D1 and D6).
+- **Context:** Importing device-bound cookies introduces security and compatibility risks; CSV password import was initially deferred under D1 and subsequently reopened under D6 once M-007 DPAPI & AEAD primitives were verified.
+- **Options:** Attempt DPAPI decryption of Chrome/Edge cookies; import non-secret browsing data (bookmarks, history, open-tab URLs) plus explicit CSV import into the encrypted per-profile vault (`ENT-009`).
+- **Decision:** Import includes bookmarks, history, and open tabs as URLs (plus optional read-only extension inventory), and explicit CSV password import into the encrypted per-profile vault (`ENT-009`, per D6). Source cookies/sessions are never imported.
 - **Consequences:** Imported profiles must sign in to websites again. Eliminates plaintext CSV credential handling and custom password-manager surface in MVP.
 - **Revisit when:** Product owner explicitly reopens CSV password vault or session import scope.
 
@@ -157,5 +157,5 @@
 | OPEN-005 | License/account provider | Not integrated in MVP | Pro activation flow | Product owner after package definition |
 | OPEN-006 | Post-MVP scheduled backup schedule/retention | Deferred post-MVP (daily/7-snapshot proposal) | Disk usage and crypto design (hybrid public-key) | Product owner when reopening `REQ-017` |
 | OPEN-007 | Installer technology/signing | Signed per-user installer proposal | Distribution and cost | Product owner before beta |
-| OPEN-009 | Post-MVP password vault & CSV import | Deferred post-MVP (D1) | Security surface and Vault UI | Reopen only if product owner reprioritizes |
+| OPEN-009 | Password vault & CSV import | **Closed by D6 (2026-11-24):** reopened & implemented (`ENT-009`, `TASK-028`, explicit-click autofill) | Security surface and Vault UI covered by `PasswordVaultIntegrationTests` (`TEST-010`) | Closed |
 | OPEN-010 | Telemetry opt-in & English UI / theme tokens | Telemetry OFF; Indonesian MVP UI; system theme | Privacy notice & UX polish | Product owner before beta |

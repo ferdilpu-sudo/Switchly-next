@@ -1,6 +1,6 @@
 # Testing and Quality Plan — Switchly Next
 
-**Status:** ACTIVE 0.2 — M-001 engine spike (`TEST-003`, `004`, `016`, `017`, `021`) & Win11 manual sign-in gate executed (see `artifacts/engine-spike/`); M-002+ application suites planned/in progress  
+**Status:** ACTIVE 0.3 — M-001..M-004, M-006..M-008, D6, and D7 verified on Windows 11 (see `docs/compatibility-and-qa-matrix.md` and `artifacts/engine-spike/`); Win10 physical validation (`OPEN-002`) and M-009 release checks pending  
 **Evidence policy:** no PASS claim without actual run output/evidence.
 
 ## 1. Test strategy
@@ -17,7 +17,7 @@
 
 | Target | Environment | Purpose | Status |
 |---|---|---|---|
-| Windows 11 x64 | Current supported Windows 11 release | Primary release target | Planned |
+| Windows 11 x64 | Current supported Windows 11 release | Primary release target | Verified (M-001..M-008, D6, D7) |
 | Windows 10 22H2 Home/Pro | Clean consumer test VM/device | Best-effort compatibility; vendor support caveat | Planned / policy open |
 | Windows 10 Enterprise/LTSC | Supported .NET target edition | Compatibility validation | Planned |
 | Low-resource device | Agreed baseline RAM/CPU/disk | Resource behavior | Device specs open |
@@ -39,7 +39,7 @@ Test data must be synthetic. Never use a user's real passwords, private browsing
 | TEST-007 | REQ-006 | AC-007 | Integration/E2E | Add bookmark, visit pages, download a fixture, close and reopen | Data is recorded and visible only under correct profile |
 | TEST-008 | REQ-007 | AC-008 | Optional browser integration | If optional extension support is implemented, load one explicitly approved compatible extension and test permission/error reporting | Unsupported API is reported honestly; this test is not an MVP release gate |
 | TEST-009 | REQ-008, REQ-009 | AC-009 | Import integration | Import synthetic Chrome/Edge bookmark/history/tab fixtures | Preview counts are correct; no cookies/session imported |
-| TEST-010 | REQ-008, REQ-010 | AC-010 | *(Deferred post-MVP — D1)* Security integration | If CSV password vault is later enabled, import synthetic exported password CSV | Credentials stored encrypted per profile (unique-nonce AEAD + AAD); no plaintext in DB/log/temp output |
+| TEST-010 | REQ-008, REQ-010 | AC-010 | *(Reopened & implemented per D6)* Security integration | Import synthetic exported password CSV into per-profile vault (`ENT-009`) | Credentials stored encrypted per profile (unique-nonce AES-256-GCM + AAD wrapped by DPAPI); no plaintext in DB/log/temp output |
 | TEST-011 | REQ-010 | AC-019 | Security/manual | Lock app; attempt unlock using Windows account/master password/Hello if present | Only configured unlock methods are accepted; errors do not leak secrets |
 | TEST-012 | REQ-011 | AC-011 | Integration/E2E | Create manual chunked AEAD backup; restore via restart-to-restore swap on second Windows device with correct passphrase | Profiles and metadata restored cleanly; device-bound Chromium cookies excluded (user signs in again); archive authenticated |
 | TEST-013 | REQ-011 | AC-011 | Security | Use wrong passphrase, corrupt bytes, archive path traversal and truncated archive | Restore rejects archive; existing profile data stays unchanged |

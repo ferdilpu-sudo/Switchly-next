@@ -24,7 +24,7 @@ Key assumptions:
 | M-003 | Profile manager and isolation | M-002 | CRUD, duplicate config, group model, favorites, search/filter (profiles/groups), per-profile request context, multiple windows | REQ-002, REQ-003, REQ-004, REQ-005, REQ-015, REQ-016 | TEST-002, TEST-003, TEST-004, TEST-005, TEST-017, TEST-023, TEST-024 (profiles/groups) pass |
 | M-004 | Browser essentials | M-003 | Tabs, navigation, bookmarks, history, downloads, session restore, tab/bookmark search | REQ-005, REQ-006, REQ-016 | TEST-006, TEST-007, TEST-021, TEST-024 (tabs/bookmarks) pass |
 | M-005 | Optional extension support (deferred) | M-001, M-003 | Only a limited extension capability if later approved | REQ-007 | Informative optional gate (`TEST-008`, `TEST-019`); not required for MVP release |
-| M-006 | Browser import | M-004 | Chrome/Edge discovery, preview, bookmark/history/open-tab URL import adapters *(CSV password vault deferred per D1)* | REQ-008, REQ-009 | TEST-009, TEST-018 pass (`TEST-010` deferred post-MVP per D1) |
+| M-006 | Browser import | M-004 | Chrome/Edge discovery, preview, bookmark/history/open-tab URL import adapters *(CSV password vault reopened & implemented per D6)* | REQ-008, REQ-009 | TEST-009, TEST-018 pass (`TEST-010` PASS per D6) |
 | M-007 | Security and manual backup/restore | M-003, M-004 | DPAPI/Hello local unlock, manual chunked AES-256-GCM backup, restart-to-restore staging swap *(scheduled backup deferred per D2)* | REQ-010, REQ-011 | TEST-011, TEST-012, TEST-013, TEST-020, TEST-022 pass (`TEST-025` deferred post-MVP per D2) |
 | M-008 | Performance, stability, accessibility | M-004, M-006, M-007 | Resource manager/indicator, UX hardening, recovery, high-DPI/keyboard QA, Win10/11 matrix | REQ-005, REQ-006, REQ-014, REQ-018 | TEST-001 (Win11+Win10), TEST-016, TEST-026 and full MVP acceptance suite pass |
 | M-009 | Freemium and release readiness | M-008 + product decisions | License boundary, installer (`ADR-008`), signing, notices, support docs | REQ-012, REQ-013, REQ-014 | TEST-001, TEST-014, TEST-015 pass; product owner approves pricing/Free-Pro/OS policy and beta release gates |
@@ -104,8 +104,8 @@ Key assumptions:
 - TASK-025: history importer with schema-version handling.
 - TASK-026: open-tab URL importer.
 - TASK-027: optional extension inventory report only if supported and approved.
-- TASK-028: *(Deferred post-MVP — D1)* password CSV parser and encrypted vault writer.
-- Exit: preview/partial failure/report behavior validated (`TEST-009`, `TEST-018`).
+- TASK-028: *(Reopened & implemented per D6 — commit `c0bf4df`)* password CSV parser, encrypted vault writer (`ENT-009`), and explicit-click autofill.
+- Exit: preview/partial failure/report behavior validated (`TEST-009`, `TEST-010`, `TEST-018`).
 
 ### M-007 — security and manual backups
 - TASK-029: local DPAPI protection and unlock key handling.
@@ -152,7 +152,12 @@ Key assumptions:
 | M-003 | Complete | `TASK-011`..`015A` done (`ProfileValidation`, `ProfileService`, `ProfileFilter`, `GroupValidation`, `GroupService`, `ProfileSessionManager`, `BrowserWindowCoordinator`, `WorkspaceViewModel`, `MainWindow` UI-001/004, `ProfileEditorDialog` UI-002, `BrowserWindow` UI-003; `Domain.Tests` 39/39, `Application.Tests` 8/8, `Infrastructure.Tests` 11/11 = 58/58 PASS, `dotnet format` PASS, manual multi-profile workspace & browser window check confirmed PASS by product owner on 2026-11-24) |
 | M-004 | Complete | `TASK-016`..`019` done (multi-tab `BrowserWindow`, `ProfileLifeSpanHandler`, `ProfileDownloadHandler`, `Bookmark`/`HistoryEntry`/`DownloadRecord`/`BrowserTabSession` + migrations `AddBookmarksAndHistory`, `AddDownloads`, `AddTabSessions` + session restore; `Domain.Tests` 58/58, `Application.Tests` 8/8, `Infrastructure.Tests` 14/14 = 80/80 PASS, `dotnet format` PASS; manual GUI verification confirmed PASS by product owner on 2026-11-24) |
 | M-005 | Deferred (optional) | Optional extension support (`REQ-007`) deferred beyond MVP per product-owner decision |
-| M-006 to M-009 | Not started | Ready to start M-006 (`TASK-023`..`026`; `TASK-028` CSV password vault deferred per D1) |
+| M-006 | Complete | `TASK-023`..`026` done (commit `ce03122`): Chrome/Edge read-only discovery, preview, bookmark/history/open-tab URL import, `ImportWizardDialog`, `AddImportJobs` migration; `BrowserImportIntegrationTests` (`TEST-009`, `TEST-018`) PASS; no cookies/sessions imported |
+| M-007 | Complete | `TASK-029`..`031`, `TASK-033` done (commit `90c3c6a`): Windows DPAPI protection, optional master password unlock (`UnlockDialog`), manual chunked AES-256-GCM backup, restart-to-restore staged swap (`PendingRestoreApplier`), `AddBackupJobs` migration; `SecurityAndBackupIntegrationTests` (`TEST-011`, `TEST-012`, `TEST-013`, `TEST-020`, `TEST-022`) PASS; scheduled backup (`TASK-032`/`033A`) deferred per D2 |
+| D6 (Password Vault) | Complete | `TASK-028` reopened & implemented per D6 (commit `c0bf4df`): `ENT-009 VaultCredential` (unique-nonce AES-256-GCM + AAD wrapped by DPAPI `CurrentUser`), Chrome/Edge CSV import, explicit-click origin-matched autofill (`CredentialPickerDialog`); `PasswordVaultIntegrationTests` (`TEST-010`) PASS |
+| M-008 | Complete (Win11; Win10 physical test pending `OPEN-002`) | `TASK-034`..`038A` done (commit `e5c22a2`): `WindowsResourceMonitor`, `ResourcePressureEvaluator`, memory-pressure warning banner, renderer crash recovery (`ProfileRequestHandler`), PerMonitorV2 DPI, `Ctrl+Shift+T`, `docs/compatibility-and-qa-matrix.md`; `ResourcePressureEvaluatorTests` (`TEST-026`) PASS |
+| D7 (Hybrid Workspace UX) | Complete | Hybrid Integrated Workspace implemented per D7 (commit `b1d7936`): 1-click sidebar switching in `MainWindow` (`BrowserWorkspaceView`), pop-out `BrowserWindow`, interactive per-profile Bookmark/History/Downloads dialog (`ProfileLibraryDialog`) |
+| M-009 | Not started | `TASK-039`..`043` gated on Product Owner decisions `OPEN-001`, `OPEN-002`, `OPEN-004`, `OPEN-005`, `OPEN-007` (`ADR-008`), and `OPEN-010` |
 
 ## 7. Milestone definition of done
 

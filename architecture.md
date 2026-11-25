@@ -1,6 +1,6 @@
 # Software Architecture — Switchly Next
 
-**Status:** ACTIVE — M-001 validated on Windows 11; M-002 desktop foundation in progress; refined per PO decisions D1–D5 (2026-11-24)  
+**Status:** ACTIVE — M-001..M-004, M-006..M-008, D6, and D7 verified on Windows 11; refined per PO decisions D1–D7 (2026-11-25)  
 **Platform:** Windows desktop x64; Windows 11 primary, Windows 10 compatibility goal  
 **Architecture style:** modular monolith desktop application + embedded browser runtime
 
@@ -26,8 +26,8 @@ Priority provider compatibility targets: Google Flow (https://flow.google), Chat
 | Desktop UI | C# + WPF, MVVM | Mature Windows desktop UI; suited for sidebar, multi-window, accessibility | Windows-only; browser hosting isolated behind `Switchly.BrowserHost` | ADR-001 |
 | Runtime | .NET 10 LTS | Modern LTS and mature tooling; aligned `10.x` packages via `Directory.Packages.props` | Win10 Home/Pro not listed as supported OS on .NET 10 matrix; best-effort pending policy | ADR-002 |
 | Embedded browser | `CefSharp.Wpf.NETCore 156.0.300` / CEF `156.0.30` (Chromium `156.0.8078.96`) | Chromium embedded, WPF integration, per-profile request contexts | Chrome Runtime is the only mode since CEF 128 (Alloy removed); extensions optional/deferred; must be isolated in `Switchly.BrowserHost` | ADR-003, ADR-011 |
-| Local metadata | Plain SQLite + EF Core 10.x | Local relational metadata and versioned migrations | Non-secret metadata only; no website passwords in SQLite in MVP; CEF owns internal browser storage | ADR-004 |
-| Local security | Windows DPAPI (`CurrentUser`) + optional master password / Windows Hello | Local protection tied to Windows user/device | Custom password vault (`ENT-009`) deferred post-MVP (D1); portable backup uses separate passphrase key | ADR-005 |
+| Local metadata | Plain SQLite + EF Core 10.x | Local relational metadata and versioned migrations | Non-secret metadata + AEAD-encrypted `VaultCredential` blobs (D6); no plaintext passwords/cookies/tokens in SQLite; CEF owns internal browser storage | ADR-004 |
+| Local security | Windows DPAPI (`CurrentUser`) + optional master password / Windows Hello + AES-256-GCM Vault | Local protection tied to Windows user/device | Encrypted password vault (`ENT-009`) & CSV import implemented per D6; portable backup uses separate passphrase key | ADR-005 |
 | Backup encryption | Manual chunked streaming AES-256-GCM + passphrase KDF | Authenticated streaming encryption; portable across Windows PCs | Device-bound Chromium cookies excluded on cross-device restore (D3); scheduled backup deferred post-MVP (D2) | ADR-006 |
 | Logging | `Microsoft.Extensions.Logging` + rolling local files | Structured diagnostic events | Redact URLs/credentials/paths; no cloud telemetry without opt-in | ADR-007 |
 | Installer | MSIX or signed setup installer (open) | Predictable Windows install/update | Select after install/update PoC and signing-cost decision | ADR-008 |
