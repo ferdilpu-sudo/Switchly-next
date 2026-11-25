@@ -1,0 +1,233 @@
+name: CEF Single Resumable Hop (win-x64 Proprietary Codecs)
+
+on:
+  workflow_call:
+    inputs:
+      hop_number:
+        required: true
+        type: string
+      cef_branch:
+        required: true
+        type: string
+      cef_checkout:
+        required: true
+        type: string
+      hop_budget_minutes:
+        required: false
+        type: number
+        default: 255
+    outputs:
+      done:
+        description: "true when libcef.dll build and artifact upload completed"
+        value: ${{ jobs.hop.outputs.done }}
+
+jobs:
+  hop:
+    name: "Hop ${{ inputs.hop_number }} (CEF ${{ inputs.cef_branch }} / ${{ inputs.cef_checkout }})"
+    runs-on: windows-latest
+    timeout-minutes: 330
+    outputs:
+      done: ${{ steps.build.outputs.done }}
+
+    env:
+      GYP_MSVS_VERSION: "2022"
+      SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_IDLE_TIMEOUT: "0"
+      SCCACHE_CACHE_COMPRESSION: "zstd"
+      DEPOT_TOOLS_WIN_TOOLCHAIN: "0"
+
+    steps:
+      - name: Free disk space & configure 14 GB swap
+        shell: pwsh
+        run: |
+          Write-Host "=== Disk BEFORE cleanup ==="
+          Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N='FreeGB';E={[math]::Round($_.Free/1GB,1)}} | Format-Table -AutoSize
+
+          # Remove large preinstalled SDKs not needed for Chromium/CEF C++ compilation.
+          # Keep Visual Studio 2022, Windows Kits, Git, and Python intact.
+          $pathsToRemove = @(
+            "C:\Android",
+            "C:\ghcup",
+            "C:\Miniconda",
+            "C:\SeleniumWebDrivers",
+            "C:\Strawberry",
+            "C:\msys64",
+            "C:\vcpkg",
+            "C:\rtools44",
+            "C:\hostedtoolcache\windows\CodeQL",
+            "C:\hostedtoolcache\windows\go",
+            "C:\hostedtoolcache\windows\Ruby",
+            "C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk",
+            "C:\hostedtoolcache\windows\PyPy",
+            "C:\Program Files\dotnet",
+            "C:\Program Files\Java",
+            "C:\Program Files\LLVM",
+            "C:\Program Files\Go",
+            "C:\Program Files\R",
+            "C:\Program Files\PostgreSQL",
+            "C:\Program Files\MySQL",
+            "C:\Program Files\MongoDB",
+            "C:\Program Files\Docker",
+            "C:\Program Files\Amazon",
+            "C:\Program Files (x86)\Android",
+            "C:\Program Files (x86)\Microsoft SDKs\Azure",
+            "C:\ProgramData\chocolatey"
+          )
+
+          foreach ($p in $pathsToRemove) {
+            if (Test-Path $p) {
+              Write-Host "Removing $p ..."
+              cmd /c "rmdir /s /q `"$p`"" 2>$null
+            }
+          }
+
+          # Configure a 14 GB pagefile on D: (if D: has space) to prevent lld-link OOM on 16 GB RAM.
+          try {
+            $dDrive = Get-PSDrive D -ErrorAction SilentlyContinue
+            if ($dDrive -and ($dDrive.Free / 1GB) -ge 15) {
+              wmic computersystem where name="%computername%" set AutomaticManagedPagefile=False 2>$null | Out-Null
+              wmic pagefileset create name="D:\pagefile.sys" 2>$null | Out-Null
+              wmic pagefileset where name="D:\\pagefile.sys" set InitialSize=14336,MaximumSize=14336 2>$null | Out-Null
+              Write-Host "Configured 14 GB swap on D:\pagefile.sys"
+            }
+          } catch {
+            Write-Warning "Swap configuration skipped: $_"
+          }
+
+          Write-Host "=== Disk AFTER cleanup ==="
+          Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N='FreeGB';E={[math]::Round($_.Free/1GB,1)}} | Format-Table -AutoSize
+
+      - name: Setup sccache (GitHub Actions Cache backend)
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Download CEF automate-git.py
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "C:\cef-build\automate" | Out-Null
+          New-Item -ItemType Directory -Force -Path "C:\cef-build\chromium_git" | Out-Null
+          Invoke-WebRequest `
+            -Uri "https://bitbucket.org/chromiumembedded/cef/raw/master/tools/automate/automate-git.py" `
+            -OutFile "C:\cef-build\automate\automate-git.py"
+
+      - name: Checkout CEF & Chromium source (shallow, no-build)
+        shell: cmd
+        env:
+          GN_DEFINES: "is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome chrome_pgo_phase=0 symbol_level=0 blink_symbol_level=0 v8_symbol_level=0 enable_nacl=false"
+        run: |
+          python C:\cef-build\automate\automate-git.py ^
+            --download-dir=C:\cef-build\chromium_git ^
+            --depot-tools-dir=C:\cef-build\depot_tools ^
+            --branch=${{ inputs.cef_branch }} ^
+            --checkout=${{ inputs.cef_checkout }} ^
+            --x64-build ^
+            --no-build ^
+            --no-distrib ^
+            --no-debug-build ^
+            --no-debug-tests ^
+            --no-release-tests ^
+            --shallow
+
+      - name: Configure GN with sccache & proprietary codecs
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\cef-build\depot_tools;$env:PATH"
+          $srcDir = "C:\cef-build\chromium_git\chromium\src"
+          $outDir = "$srcDir\out\Release_GN_x64"
+          $argsFile = "$outDir\args.gn"
+
+          if (-not (Test-Path $argsFile)) {
+            Push-Location "$srcDir\cef"
+            $env:GN_DEFINES = "is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome chrome_pgo_phase=0 symbol_level=0 blink_symbol_level=0 v8_symbol_level=0 enable_nacl=false"
+            cmd /c "cef_create_projects.bat"
+            Pop-Location
+          }
+
+          $sccachePath = (Get-Command sccache).Source.Replace('\', '/')
+          $content = Get-Content $argsFile -Raw
+          if ($content -notmatch "cc_wrapper") {
+            Add-Content -Path $argsFile -Value "`ncc_wrapper = `"$sccachePath`""
+          }
+          if ($content -notmatch "proprietary_codecs") {
+            Add-Content -Path $argsFile -Value "proprietary_codecs = true"
+          }
+          if ($content -notmatch "ffmpeg_branding") {
+            Add-Content -Path $argsFile -Value "ffmpeg_branding = `"Chrome`""
+          }
+          if ($content -notmatch "symbol_level") {
+            Add-Content -Path $argsFile -Value "symbol_level = 0"
+            Add-Content -Path $argsFile -Value "blink_symbol_level = 0"
+            Add-Content -Path $argsFile -Value "v8_symbol_level = 0"
+          }
+
+          Write-Host "=== Effective args.gn ==="
+          Get-Content $argsFile
+
+          Push-Location $srcDir
+          & "C:\cef-build\depot_tools\gn.bat" gen out/Release_GN_x64
+          Pop-Location
+
+      - name: Time-boxed Ninja build (libcef + chrome_elf)
+        id: build
+        shell: pwsh
+        run: |
+          $env:PATH = "C:\cef-build\depot_tools;$env:PATH"
+          $srcDir = "C:\cef-build\chromium_git\chromium\src"
+          $budgetSeconds = [int](${{ inputs.hop_budget_minutes }} * 60)
+          $deadline = (Get-Date).AddSeconds($budgetSeconds)
+
+          Write-Host "Starting time-boxed Ninja build (budget: ${{ inputs.hop_budget_minutes }} min, deadline UTC: $($deadline.ToUniversalTime()))"
+          sccache --zero-stats
+
+          $psi = New-Object System.Diagnostics.ProcessStartInfo
+          $psi.FileName = "C:\cef-build\depot_tools\autoninja.bat"
+          $psi.Arguments = "-C out\Release_GN_x64 -j 4 libcef chrome_elf"
+          $psi.WorkingDirectory = $srcDir
+          $psi.UseShellExecute = $false
+
+          $proc = [System.Diagnostics.Process]::Start($psi)
+
+          while (-not $proc.HasExited) {
+            if ((Get-Date) -ge $deadline) {
+              Write-Host "Hop time budget reached. Stopping ninja gracefully so sccache state continues in next hop..."
+              taskkill /PID $proc.Id /T /F 2>$null | Out-Null
+              Start-Sleep -Seconds 5
+              sccache --show-stats
+              "done=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+              exit 0
+            }
+            Start-Sleep -Seconds 15
+          }
+
+          sccache --show-stats
+
+          if ($proc.ExitCode -ne 0) {
+            Write-Error "Ninja exited with code $($proc.ExitCode)"
+            exit $proc.ExitCode
+          }
+
+          $libcef = "$srcDir\out\Release_GN_x64\libcef.dll"
+          if (-not (Test-Path $libcef)) {
+            Write-Error "Build reported success but libcef.dll was not found at $libcef"
+            exit 1
+          }
+
+          $stage = "$env:GITHUB_WORKSPACE\cef-proprietary-win-x64"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item $libcef $stage -Force
+          if (Test-Path "$srcDir\out\Release_GN_x64\chrome_elf.dll") {
+            Copy-Item "$srcDir\out\Release_GN_x64\chrome_elf.dll" $stage -Force
+          }
+
+          $ver = (Get-Item "$stage\libcef.dll").VersionInfo.FileVersion
+          Write-Host "SUCCESS! Built proprietary libcef.dll FileVersion: $ver"
+          Get-FileHash "$stage\*.dll" -Algorithm SHA256 | Format-Table -AutoSize | Out-File "$stage\SHA256SUMS.txt"
+
+          "done=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Upload proprietary CEF win-x64 overlay artifact
+        if: steps.build.outputs.done == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cef-proprietary-win-x64-156.0.30
+          path: cef-proprietary-win-x64/
+          retention-days: 30

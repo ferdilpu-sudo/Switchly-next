@@ -1,4 +1,4 @@
-name: Build CEF 156.0.30 (Proprietary Codecs win-x64)
+name: Build CEF 156.0.30 Multi-Hop ($0 Free Runner)
 
 on:
   workflow_dispatch:
@@ -11,83 +11,130 @@ on:
         description: "Exact CEF commit matching 156.0.30+g6028375+chromium-156.0.8078.96"
         required: true
         default: "6028375"
-      runner_label:
-        description: "Runner label (use self-hosted or a GitHub Larger Runner with >=150 GB free disk)"
+      hop_budget_minutes:
+        description: "Max compile minutes per hop before handing off via sccache (<=260)"
         required: true
-        default: "windows-latest"
+        default: "250"
 
+# Helium-style multi-hop resumable pipeline:
+# Each hop compiles for ~4.2h using sccache (GitHub Actions Cache backend) and hands off
+# cleanly to the next hop until libcef.dll finishes. Remaining hops are skipped automatically.
+# IMPORTANT: Run this on a PUBLIC repository for unlimited $0 Windows runner minutes.
 jobs:
-  build-cef-win64:
-    # Note: Building Chromium/CEF from source requires >= 16 GB RAM and >= 150 GB free disk space.
-    # Standard free windows-latest runners (~20 GB free) will run out of disk during Chromium checkout.
-    runs-on: ${{ inputs.runner_label }}
-    timeout-minutes: 360
+  hop_01:
+    uses: ./.github/workflows/_cef-hop.yml
+    with:
+      hop_number: "01"
+      cef_branch: ${{ inputs.cef_branch }}
+      cef_checkout: ${{ inputs.cef_checkout }}
+      hop_budget_minutes: ${{ fromJSON(inputs.hop_budget_minutes) }}
 
-    env:
-      GN_DEFINES: "is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome chrome_pgo_phase=0"
-      GYP_MSVS_VERSION: "2022"
-      CEF_ARCHIVE_FORMAT: "tar.bz2"
+  hop_02:
+    needs: [hop_01]
+    if: needs.hop_01.result == 'success' && needs.hop_01.outputs.done != 'true'
+    uses: ./.github/workflows/_cef-hop.yml
+    with:
+      hop_number: "02"
+      cef_branch: ${{ inputs.cef_branch }}
+      cef_checkout: ${{ inputs.cef_checkout }}
+      hop_budget_minutes: ${{ fromJSON(inputs.hop_budget_minutes) }}
 
-    steps:
-      - name: Check available disk space & prepare workspace
-        shell: pwsh
-        run: |
-          Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N='FreeGB';E={[math]::Round($_.Free/1GB,1)}} | Format-Table -AutoSize
-          $freeGb = (Get-PSDrive C).Free / 1GB
-          if ($freeGb -lt 120) {
-            Write-Warning "Free space on C: is $([math]::Round($freeGb,1)) GB. Chromium/CEF source builds typically require >= 150 GB free disk space."
-          }
-          New-Item -ItemType Directory -Force -Path "C:\cef-build\automate" | Out-Null
-          New-Item -ItemType Directory -Force -Path "C:\cef-build\chromium_git" | Out-Null
-          # Do NOT pre-create C:\cef-build\depot_tools — automate-git.py downloads depot_tools only when the folder does not exist.
-          if ((Test-Path "C:\cef-build\depot_tools") -and -not (Test-Path "C:\cef-build\depot_tools\update_depot_tools.bat")) {
-            Remove-Item -Recurse -Force "C:\cef-build\depot_tools"
-          }
+  hop_03:
+    needs: [hop_02]
+    if: needs.hop_02.result == 'success' && needs.hop_02.outputs.done != 'true'
+    uses: ./.github/workflows/_cef-hop.yml
+    with:
+      hop_number: "03"
+      cef_branch: ${{ inputs.cef_branch }}
+      cef_checkout: ${{ inputs.cef_checkout }}
+      hop_budget_minutes: ${{ fromJSON(inputs.hop_budget_minutes) }}
 
-      - name: Download official CEF automate-git.py
-        shell: pwsh
-        run: |
-          Invoke-WebRequest `
-            -Uri "https://bitbucket.org/chromiumembedded/cef/raw/master/tools/automate/automate-git.py" `
-            -OutFile "C:\cef-build\automate\automate-git.py"
+  hop_04:
+    needs: [hop_03]
+    if: needs.hop_03.result == 'success' && needs.hop_03.outputs.done != 'true'
+    uses: ./.github/workflows/_cef-hop.yml
+    with:
+      hop_number: "04"
+      cef_branch: ${{ inputs.cef_branch }}
+      cef_checkout: ${{ inputs.cef_checkout }}
+      hop_budget_minutes: ${{ fromJSON(inputs.hop_budget_minutes) }}
 
-      - name: Run CEF automated build (win-x64, proprietary_codecs=true)
-        shell: cmd
-        run: |
-          python C:\cef-build\automate\automate-git.py ^
-            --download-dir=C:\cef-build\chromium_git ^
-            --depot-tools-dir=C:\cef-build\depot_tools ^
-            --branch=${{ inputs.cef_branch }} ^
-            --checkout=${{ inputs.cef_checkout }} ^
-            --x64-build ^
-            --no-debug-build ^
-            --no-debug-tests ^
-            --no-release-tests ^
-            --minimal-distrib ^
-            --client-distrib ^
-            --force-clean
+  hop_05:
+    needs: [hop_04]
+    if: needs.hop_04.result == 'success' && needs.hop_04.outputs.done != 'true'
+    uses: ./.github/workflows/_cef-hop.yml
+    with:
+      hop_number: "05"
+      cef_branch: ${{ inputs.cef_branch }}
+      cef_checkout: ${{ inputs.cef_checkout }}
+      hop_budget_minutes: ${{ fromJSON(inputs.hop_budget_minutes) }}
 
-      - name: Stage win-x64 proprietary overlay
-        shell: pwsh
-        run: |
-          $distrib = Get-ChildItem "C:\cef-build\chromium_git\cef\binary_distrib" -Directory -Filter "cef_binary_*_windows64_minimal" | Select-Object -First 1
-          if (-not $distrib) { throw "CEF minimal binary distribution not found." }
-          $stage = "$env:GITHUB_WORKSPACE\cef-proprietary-win-x64"
-          New-Item -ItemType Directory -Force -Path $stage | Out-Null
-          Copy-Item "$($distrib.FullName)\Release\libcef.dll" $stage -Force
-          Copy-Item "$($distrib.FullName)\Release\chrome_elf.dll" $stage -Force
-          Copy-Item "$($distrib.FullName)\Release\d3dcompiler_47.dll" $stage -Force
-          Copy-Item "$($distrib.FullName)\Release\libEGL.dll" $stage -Force
-          Copy-Item "$($distrib.FullName)\Release\libGLESv2.dll" $stage -Force
-          Copy-Item "$($distrib.FullName)\Release\vk_swiftshader.dll" $stage -Force
-          Copy-Item "$($distrib.FullName)\Release\vulkan-1.dll" $stage -Force
-          $ver = (Get-Item "$stage\libcef.dll").VersionInfo.FileVersion
-          Write-Host "Built libcef.dll FileVersion: $ver"
-          Get-FileHash "$stage\*.dll" -Algorithm SHA256 | Format-Table -AutoSize | Out-File "$stage\SHA256SUMS.txt"
+  hop_06:
+    needs: [hop_05]
+    if: needs.hop_05.result == 'success' && needs.hop_05.outputs.done != 'true'
+    uses: ./.github/workflows/_cef-hop.yml
+    with:
+      hop_number: "06"
+      cef_branch: ${{ inputs.cef_branch }}
+      cef_checkout: ${{ inputs.cef_checkout }}
+      hop_budget_minutes: ${{ fromJSON(inputs.hop_budget_minutes) }}
 
-      - name: Upload proprietary CEF win-x64 overlay artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cef-proprietary-win-x64-156.0.30
-          path: cef-proprietary-win-x64/
-          retention-days: 30
+  hop_07:
+    needs: [hop_06]
+    if: needs.hop_06.result == 'success' && needs.hop_06.outputs.done != 'true'
+    uses: ./.github/workflows/_cef-hop.yml
+    with:
+      hop_number: "07"
+      cef_branch: ${{ inputs.cef_branch }}
+      cef_checkout: ${{ inputs.cef_checkout }}
+      hop_budget_minutes: ${{ fromJSON(inputs.hop_budget_minutes) }}
+
+  hop_08:
+    needs: [hop_07]
+    if: needs.hop_07.result == 'success' && needs.hop_07.outputs.done != 'true'
+    uses: ./.github/workflows/_cef-hop.yml
+    with:
+      hop_number: "08"
+      cef_branch: ${{ inputs.cef_branch }}
+      cef_checkout: ${{ inputs.cef_checkout }}
+      hop_budget_minutes: ${{ fromJSON(inputs.hop_budget_minutes) }}
+
+  hop_09:
+    needs: [hop_08]
+    if: needs.hop_08.result == 'success' && needs.hop_08.outputs.done != 'true'
+    uses: ./.github/workflows/_cef-hop.yml
+    with:
+      hop_number: "09"
+      cef_branch: ${{ inputs.cef_branch }}
+      cef_checkout: ${{ inputs.cef_checkout }}
+      hop_budget_minutes: ${{ fromJSON(inputs.hop_budget_minutes) }}
+
+  hop_10:
+    needs: [hop_09]
+    if: needs.hop_09.result == 'success' && needs.hop_09.outputs.done != 'true'
+    uses: ./.github/workflows/_cef-hop.yml
+    with:
+      hop_number: "10"
+      cef_branch: ${{ inputs.cef_branch }}
+      cef_checkout: ${{ inputs.cef_checkout }}
+      hop_budget_minutes: ${{ fromJSON(inputs.hop_budget_minutes) }}
+
+  hop_11:
+    needs: [hop_10]
+    if: needs.hop_10.result == 'success' && needs.hop_10.outputs.done != 'true'
+    uses: ./.github/workflows/_cef-hop.yml
+    with:
+      hop_number: "11"
+      cef_branch: ${{ inputs.cef_branch }}
+      cef_checkout: ${{ inputs.cef_checkout }}
+      hop_budget_minutes: ${{ fromJSON(inputs.hop_budget_minutes) }}
+
+  hop_12:
+    needs: [hop_11]
+    if: needs.hop_11.result == 'success' && needs.hop_11.outputs.done != 'true'
+    uses: ./.github/workflows/_cef-hop.yml
+    with:
+      hop_number: "12"
+      cef_branch: ${{ inputs.cef_branch }}
+      cef_checkout: ${{ inputs.cef_checkout }}
+      hop_budget_minutes: ${{ fromJSON(inputs.hop_budget_minutes) }}
