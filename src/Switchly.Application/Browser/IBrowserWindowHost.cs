@@ -1,5 +1,19 @@
 namespace Switchly.Application.Browser;
 
+public enum BrowserShortcutCommand
+{
+    NewTab,
+    CloseTab,
+    ReopenClosedTab,
+    FocusAddressBar,
+    Reload,
+    NextTab,
+    ZoomIn,
+    ZoomOut,
+    ResetZoom,
+    QuickSearch,
+}
+
 /// <summary>Hosts a browser tab/surface bound to an isolated profile context (REQ-005, REQ-006).</summary>
 public interface IBrowserWindowHost : IDisposable
 {
@@ -10,6 +24,14 @@ public interface IBrowserWindowHost : IDisposable
     void GoForward();
 
     void Reload();
+
+    void Stop();
+
+    void ZoomIn();
+
+    void ZoomOut();
+
+    void ResetZoom();
 
     /// <summary>
     /// Explicitly fills a visible login form on the current page when triggered by user click (D6).
@@ -41,4 +63,7 @@ public interface IBrowserWindowHost : IDisposable
 
     /// <summary>Raised when the tab's browser renderer process terminates abnormally (TASK-035).</summary>
     event Action<string>? RendererCrashed;
+
+    /// <summary>Raised when a browser keyboard shortcut is captured inside the CEF surface.</summary>
+    event Action<BrowserShortcutCommand>? ShortcutPressed;
 }

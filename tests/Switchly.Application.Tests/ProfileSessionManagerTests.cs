@@ -98,6 +98,22 @@ public class ProfileSessionManagerTests
         Assert.NotNull(reopenedCtx);
     }
 
+    [Fact]
+    public async Task OpenProfileAsync_ConcurrentDoubleOpen_CoalescesWithoutError()
+    {
+        var profile = CreateProfile("Double Click");
+        var slowStore = new FakeSessionStore(profile) { DelayMs = 30 };
+        var runtime = new FakeBrowserRuntime();
+        using var manager = new ProfileSessionManager(slowStore, new FakeStorage(), new FakeLockManager(), runtime);
+
+        var t1 = manager.OpenProfileAsync(profile.ProfileId);
+        var t2 = manager.OpenProfileAsync(profile.ProfileId);
+        var results = await Task.WhenAll(t1, t2);
+
+        Assert.Same(results[0], results[1]);
+        Assert.Equal(ProfileRuntimeState.Active, manager.GetState(profile.ProfileId));
+    }
+
     private static BrowserProfile CreateProfile(string name, string? startupUrl = null)
     {
         var id = Guid.NewGuid();
@@ -120,8 +136,17 @@ public class ProfileSessionManagerTests
 
         public Dictionary<Guid, DateTimeOffset> LastOpened { get; } = [];
 
-        public Task<BrowserProfile?> GetProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
-            => Task.FromResult(_profiles.TryGetValue(profileId, out var p) ? p : null);
+        public int DelayMs { get; init; }
+
+        public async Task<BrowserProfile?> GetProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+        {
+            if (DelayMs > 0)
+            {
+                await Task.Delay(DelayMs, cancellationToken);
+            }
+
+            return _profiles.TryGetValue(profileId, out var p) ? p : null;
+        }
 
         public Task RecordLastOpenedAsync(Guid profileId, DateTimeOffset openedAtUtc, CancellationToken cancellationToken = default)
         {
@@ -158,7 +183,7 @@ public class ProfileSessionManagerTests
     {
         public bool FailOnCreateContext { get; set; }
 
-        public bool Initialize(string rootCachePath) => true;
+        public bool Initialize(string rootCachePath, string? logDirectory = null) => true;
 
         public void Shutdown()
         {
@@ -215,6 +240,8 @@ public class ProfileSessionManagerTests
 
         public event Action<string>? RendererCrashed;
 
+        public event Action<BrowserShortcutCommand>? ShortcutPressed;
+
         public void Navigate(string url)
         {
             Address = url;
@@ -232,9 +259,25 @@ public class ProfileSessionManagerTests
             LoadingStateChanged?.Invoke(false);
         }
 
+        public void Stop() => IsLoading = false;
+
+        public void ZoomIn()
+        {
+        }
+
+        public void ZoomOut()
+        {
+        }
+
+        public void ResetZoom()
+        {
+        }
+
         public Task<bool> FillLoginFormAsync(string username, string password) => Task.FromResult(true);
 
         public void SimulateRendererCrash(string reason) => RendererCrashed?.Invoke(reason);
+
+        public void SimulateShortcut(BrowserShortcutCommand command) => ShortcutPressed?.Invoke(command);
 
         public void SimulateTitle(string title)
         {

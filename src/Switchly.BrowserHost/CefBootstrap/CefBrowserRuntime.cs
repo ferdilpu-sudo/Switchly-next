@@ -12,7 +12,7 @@ public sealed class CefBrowserRuntime : IBrowserRuntime
     private string? _rootCachePath;
     private bool _initialized;
 
-    public bool Initialize(string rootCachePath)
+    public bool Initialize(string rootCachePath, string? logDirectory = null)
     {
         if (string.IsNullOrWhiteSpace(rootCachePath))
         {
@@ -22,10 +22,13 @@ public sealed class CefBrowserRuntime : IBrowserRuntime
         var fullRoot = Path.GetFullPath(rootCachePath);
         Directory.CreateDirectory(fullRoot);
 
+        var resolvedLogDir = string.IsNullOrWhiteSpace(logDirectory) ? fullRoot : Path.GetFullPath(logDirectory);
+        Directory.CreateDirectory(resolvedLogDir);
+
         var settings = new CefSettings
         {
             RootCachePath = fullRoot,
-            LogFile = Path.Combine(fullRoot, "cef-runtime.log"),
+            LogFile = Path.Combine(resolvedLogDir, "cef-runtime.log"),
             LogSeverity = LogSeverity.Error,
         };
 

@@ -4,25 +4,36 @@ using CefSharp;
 using CefSharp.Wpf;
 using Switchly.Application.Browser;
 using Switchly.BrowserHost.CefCallbacks;
+using Switchly.Domain.Browser;
 
 namespace Switchly.BrowserHost.BrowserAdapters;
 
 /// <summary>WPF ChromiumWebBrowser tab host bound to a single isolated CefProfileContext.</summary>
 internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
 {
+    private const double ZoomStep = 0.5;
+    private const double MinZoomLevel = -3.0;
+    private const double MaxZoomLevel = 4.0;
+
     private readonly ChromiumWebBrowser _browser;
+    private double _zoomLevel;
     private bool _disposed;
 
     public CefWpfWindowHost(CefProfileContext profileContext, string initialUrl)
     {
         ArgumentNullException.ThrowIfNull(profileContext);
 
-        _browser = new ChromiumWebBrowser(initialUrl)
+        var safeInitialUrl = BrowserUrlPolicy.IsAllowedNavigationUrl(initialUrl)
+            ? initialUrl
+            : BrowserUrlPolicy.BlankUrl;
+
+        _browser = new ChromiumWebBrowser(safeInitialUrl)
         {
             RequestContext = profileContext.RequestContext,
             LifeSpanHandler = new ProfileLifeSpanHandler(url => NewTabRequested?.Invoke(url)),
             DownloadHandler = new ProfileDownloadHandler(profileContext.ProfileId, evt => DownloadUpdated?.Invoke(evt)),
             RequestHandler = new ProfileRequestHandler(reason => RendererCrashed?.Invoke(reason)),
+            KeyboardHandler = new ProfileKeyboardHandler(cmd => ShortcutPressed?.Invoke(cmd)),
         };
 
         _browser.AddressChanged += OnBrowserAddressChanged;
@@ -54,9 +65,11 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
 
     public event Action<string>? RendererCrashed;
 
+    public event Action<BrowserShortcutCommand>? ShortcutPressed;
+
     public void Navigate(string url)
     {
-        if (string.IsNullOrWhiteSpace(url))
+        if (_disposed || !BrowserUrlPolicy.IsAllowedNavigationUrl(url))
         {
             return;
         }
@@ -66,7 +79,7 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
 
     public void GoBack()
     {
-        if (_browser.CanGoBack)
+        if (!_disposed && _browser.IsBrowserInitialized && _browser.CanGoBack)
         {
             _browser.Back();
         }
@@ -74,13 +87,60 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
 
     public void GoForward()
     {
-        if (_browser.CanGoForward)
+        if (!_disposed && _browser.IsBrowserInitialized && _browser.CanGoForward)
         {
             _browser.Forward();
         }
     }
 
-    public void Reload() => _browser.Reload();
+    public void Reload()
+    {
+        if (!_disposed && _browser.IsBrowserInitialized)
+        {
+            _browser.Reload();
+        }
+    }
+
+    public void Stop()
+    {
+        if (!_disposed && _browser.IsBrowserInitialized)
+        {
+            _browser.Stop();
+        }
+    }
+
+    public void ZoomIn()
+    {
+        if (_disposed || !_browser.IsBrowserInitialized)
+        {
+            return;
+        }
+
+        _zoomLevel = Math.Min(MaxZoomLevel, _zoomLevel + ZoomStep);
+        _browser.SetZoomLevel(_zoomLevel);
+    }
+
+    public void ZoomOut()
+    {
+        if (_disposed || !_browser.IsBrowserInitialized)
+        {
+            return;
+        }
+
+        _zoomLevel = Math.Max(MinZoomLevel, _zoomLevel - ZoomStep);
+        _browser.SetZoomLevel(_zoomLevel);
+    }
+
+    public void ResetZoom()
+    {
+        if (_disposed || !_browser.IsBrowserInitialized)
+        {
+            return;
+        }
+
+        _zoomLevel = 0.0;
+        _browser.SetZoomLevel(_zoomLevel);
+    }
 
     public async Task<bool> FillLoginFormAsync(string username, string password)
     {

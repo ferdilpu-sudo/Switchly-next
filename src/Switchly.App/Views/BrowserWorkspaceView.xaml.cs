@@ -8,6 +8,7 @@ using Switchly.App.ViewModels;
 using Switchly.Application.Browser;
 using Switchly.Application.Vault;
 using Switchly.BrowserHost.BrowserAdapters;
+using Switchly.Domain.Browser;
 using Switchly.Domain.Profiles;
 
 namespace Switchly.App.Views;
@@ -144,30 +145,58 @@ public partial class BrowserWorkspaceView : UserControl
         var tab = new BrowserTabItemViewModel(host, initialUrl);
 
         host.AddressChanged += address => OnTabAddressChanged(tab, address);
-        host.TitleChanged += title => Dispatcher.Invoke(() =>
+        host.TitleChanged += title => Dispatcher.BeginInvoke(() =>
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             tab.Title = title;
             if (_activeTab == tab)
             {
-                ActiveTitleChanged?.Invoke($"{tab.Title} — {_profile.Name} | Switchly Next");
+                ActiveTitleChanged?.Invoke($"{tab.Title} — {_profile.Name} | Switchly");
             }
         });
-        host.LoadingStateChanged += isLoading => Dispatcher.Invoke(() =>
+        host.LoadingStateChanged += isLoading => Dispatcher.BeginInvoke(() =>
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             tab.IsLoading = isLoading;
             if (_activeTab == tab)
             {
                 UpdateNavigationButtons();
             }
         });
-        host.NewTabRequested += url => Dispatcher.InvokeAsync(() => OpenTabAsync(url));
-        host.DownloadUpdated += evt => _ = RecordDownloadUpdateAsync(evt);
-        host.RendererCrashed += reason => Dispatcher.Invoke(() =>
+        host.NewTabRequested += url => Dispatcher.BeginInvoke(async () =>
         {
+            if (!_disposed)
+            {
+                await OpenTabAsync(url);
+            }
+        });
+        host.DownloadUpdated += evt => _ = RecordDownloadUpdateAsync(evt);
+        host.RendererCrashed += reason => Dispatcher.BeginInvoke(() =>
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
             if (_activeTab == tab)
             {
                 CrashRecoveryMessageText.Text = $"{reason} Profil lain tetap aman. Klik Muat Ulang Tab untuk memulihkan.";
                 CrashRecoveryBanner.Visibility = Visibility.Visible;
+            }
+        });
+        host.ShortcutPressed += cmd => Dispatcher.BeginInvoke(async () =>
+        {
+            if (!_disposed)
+            {
+                await ExecuteShortcutAsync(cmd);
             }
         });
 
@@ -185,7 +214,7 @@ public partial class BrowserWorkspaceView : UserControl
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Gagal membuka tab baru: {ex.Message}", "Switchly Next", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"Gagal membuka tab baru: {ex.Message}", "Switchly", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -226,14 +255,19 @@ public partial class BrowserWorkspaceView : UserControl
         BrowserContainer.Content = selected.Host.Control;
         AddressBox.Text = selected.Address;
         CrashRecoveryBanner.Visibility = Visibility.Collapsed;
-        ActiveTitleChanged?.Invoke($"{selected.Title} — {_profile.Name} | Switchly Next");
+        ActiveTitleChanged?.Invoke($"{selected.Title} — {_profile.Name} | Switchly");
         UpdateNavigationButtons();
     }
 
     private void OnTabAddressChanged(BrowserTabItemViewModel tab, string address)
     {
-        Dispatcher.Invoke(() =>
+        Dispatcher.BeginInvoke(() =>
         {
+            if (_disposed)
+            {
+                return;
+            }
+
             tab.Address = address;
             if (_activeTab == tab)
             {
@@ -243,7 +277,6 @@ public partial class BrowserWorkspaceView : UserControl
         });
 
         _ = RecordVisitAsync(address, tab.Title);
-        _ = _onUrlVisitedCallback(_profile.ProfileId, address);
     }
 
     private async Task RecordVisitAsync(string address, string title)
@@ -270,6 +303,14 @@ public partial class BrowserWorkspaceView : UserControl
     {
         BackButton.IsEnabled = _activeTab?.Host.CanGoBack ?? false;
         ForwardButton.IsEnabled = _activeTab?.Host.CanGoForward ?? false;
+
+        var isLoading = _activeTab?.IsLoading ?? false;
+        LoadingProgressBar.Visibility = isLoading ? Visibility.Visible : Visibility.Collapsed;
+        var iconKey = isLoading ? "IconClose" : "IconRefresh";
+        if (System.Windows.Application.Current?.TryFindResource(iconKey) is Geometry geometry)
+        {
+            ReloadIconPath.Data = geometry;
+        }
     }
 
     private void ApplyBadgeColor(string? colorHex)
@@ -301,7 +342,19 @@ public partial class BrowserWorkspaceView : UserControl
     private void OnReloadClick(object sender, RoutedEventArgs e)
     {
         CrashRecoveryBanner.Visibility = Visibility.Collapsed;
-        _activeTab?.Host.Reload();
+        if (_activeTab is null)
+        {
+            return;
+        }
+
+        if (_activeTab.IsLoading)
+        {
+            _activeTab.Host.Stop();
+        }
+        else
+        {
+            _activeTab.Host.Reload();
+        }
     }
 
     private async void OnNewTabClick(object sender, RoutedEventArgs e) => await OpenTabAsync();
@@ -355,11 +408,11 @@ public partial class BrowserWorkspaceView : UserControl
                 using var scope = App.Services.CreateScope();
                 var bookmarks = scope.ServiceProvider.GetRequiredService<IBookmarkService>();
                 await bookmarks.AddBookmarkAsync(_profile.ProfileId, _activeTab.Title, address);
-                MessageBox.Show($"Bookmark disimpan untuk profil '{_profile.Name}'.", "Switchly Next", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"Bookmark disimpan untuk profil '{_profile.Name}'.", "Switchly", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Gagal menyimpan bookmark: {ex.Message}", "Switchly Next", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show($"Gagal menyimpan bookmark: {ex.Message}", "Switchly", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
         else if (choice == MessageBoxResult.No)
@@ -463,15 +516,64 @@ public partial class BrowserWorkspaceView : UserControl
         _activeTab?.Host.Reload();
     }
 
+    private async Task ExecuteShortcutAsync(BrowserShortcutCommand command)
+    {
+        switch (command)
+        {
+            case BrowserShortcutCommand.NewTab:
+                await OpenTabAsync();
+                break;
+            case BrowserShortcutCommand.CloseTab when _activeTab is not null:
+                CloseTab(_activeTab);
+                break;
+            case BrowserShortcutCommand.ReopenClosedTab when _recentlyClosedUrls.Count > 0:
+                await OpenTabAsync(_recentlyClosedUrls.Pop());
+                break;
+            case BrowserShortcutCommand.FocusAddressBar:
+                AddressBox.Focus();
+                AddressBox.SelectAll();
+                break;
+            case BrowserShortcutCommand.Reload:
+                CrashRecoveryBanner.Visibility = Visibility.Collapsed;
+                _activeTab?.Host.Reload();
+                break;
+            case BrowserShortcutCommand.NextTab when _tabs.Count > 1 && _activeTab is not null:
+                var next = (_tabs.IndexOf(_activeTab) + 1) % _tabs.Count;
+                TabStrip.SelectedItem = _tabs[next];
+                break;
+            case BrowserShortcutCommand.ZoomIn:
+                _activeTab?.Host.ZoomIn();
+                break;
+            case BrowserShortcutCommand.ZoomOut:
+                _activeTab?.Host.ZoomOut();
+                break;
+            case BrowserShortcutCommand.ResetZoom:
+                _activeTab?.Host.ResetZoom();
+                break;
+            case BrowserShortcutCommand.QuickSearch:
+                if (Window.GetWindow(this) is MainWindow mainWindow)
+                {
+                    mainWindow.FocusQuickSearch();
+                }
+                break;
+        }
+    }
+
     private async void OnWorkspacePreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.F5)
+        {
+            e.Handled = true;
+            await ExecuteShortcutAsync(BrowserShortcutCommand.Reload);
+            return;
+        }
+
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.T)
         {
             if (_recentlyClosedUrls.Count > 0)
             {
                 e.Handled = true;
-                var restoredUrl = _recentlyClosedUrls.Pop();
-                await OpenTabAsync(restoredUrl);
+                await ExecuteShortcutAsync(BrowserShortcutCommand.ReopenClosedTab);
             }
 
             return;
@@ -482,26 +584,23 @@ public partial class BrowserWorkspaceView : UserControl
             return;
         }
 
-        switch (e.Key)
+        BrowserShortcutCommand? cmd = e.Key switch
         {
-            case Key.T:
-                e.Handled = true;
-                await OpenTabAsync();
-                break;
-            case Key.W when _activeTab is not null:
-                e.Handled = true;
-                CloseTab(_activeTab);
-                break;
-            case Key.L:
-                e.Handled = true;
-                AddressBox.Focus();
-                AddressBox.SelectAll();
-                break;
-            case Key.Tab when _tabs.Count > 1 && _activeTab is not null:
-                e.Handled = true;
-                var next = (_tabs.IndexOf(_activeTab) + 1) % _tabs.Count;
-                TabStrip.SelectedItem = _tabs[next];
-                break;
+            Key.T => BrowserShortcutCommand.NewTab,
+            Key.W when _activeTab is not null => BrowserShortcutCommand.CloseTab,
+            Key.L => BrowserShortcutCommand.FocusAddressBar,
+            Key.R => BrowserShortcutCommand.Reload,
+            Key.Tab when _tabs.Count > 1 && _activeTab is not null => BrowserShortcutCommand.NextTab,
+            Key.OemPlus or Key.Add => BrowserShortcutCommand.ZoomIn,
+            Key.OemMinus or Key.Subtract => BrowserShortcutCommand.ZoomOut,
+            Key.D0 or Key.NumPad0 => BrowserShortcutCommand.ResetZoom,
+            _ => null,
+        };
+
+        if (cmd is not null)
+        {
+            e.Handled = true;
+            await ExecuteShortcutAsync(cmd.Value);
         }
     }
 
@@ -512,17 +611,18 @@ public partial class BrowserWorkspaceView : UserControl
             return;
         }
 
-        var url = AddressBox.Text.Trim();
-        if (url.Length == 0)
+        var resolvedUrl = BrowserUrlPolicy.ResolveAddressBarInput(AddressBox.Text);
+        if (resolvedUrl is null)
         {
+            MessageBox.Show(
+                "Skema URL ini diblokir demi keamanan. Hanya http://, https://, dan about:blank yang diizinkan.",
+                "Switchly",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            AddressBox.Text = _activeTab.Address;
             return;
         }
 
-        if (!url.Contains("://", StringComparison.Ordinal))
-        {
-            url = "https://" + url;
-        }
-
-        _activeTab.Host.Navigate(url);
+        _activeTab.Host.Navigate(resolvedUrl);
     }
 }

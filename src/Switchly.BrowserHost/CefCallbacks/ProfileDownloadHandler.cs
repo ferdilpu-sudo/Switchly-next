@@ -25,7 +25,7 @@ internal sealed class ProfileDownloadHandler : IDownloadHandler
         _onDownloadUpdated = onDownloadUpdated ?? throw new ArgumentNullException(nameof(onDownloadUpdated));
 
         var userDownloads = string.IsNullOrWhiteSpace(baseDownloadDirectory)
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "SwitchlyNext")
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "Switchly")
             : baseDownloadDirectory;
         _downloadDirectory = Path.Combine(userDownloads, profileId.ToString("N")[..8]);
     }
@@ -52,15 +52,8 @@ internal sealed class ProfileDownloadHandler : IDownloadHandler
             callback.Continue(targetPath, showDialog: true);
         }
 
-        _onDownloadUpdated(new DownloadUpdateEvent(
-            _profileId,
-            safeName,
-            targetPath,
-            downloadItem.MimeType,
-            downloadItem.ReceivedBytes,
-            downloadItem.TotalBytes >= 0 ? downloadItem.TotalBytes : null,
-            DownloadState.InProgress));
-
+        // Wait for OnDownloadUpdated to record the transfer so cancelling the Save As dialog
+        // never leaves a stuck InProgress entry in download history.
         return true;
     }
 

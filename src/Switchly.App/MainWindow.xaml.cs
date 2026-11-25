@@ -75,12 +75,17 @@ public partial class MainWindow : Window
         ArchivedNavButton.Style = section == WorkspaceSection.Archived ? activeStyle : normalStyle;
     }
 
+    public void FocusQuickSearch()
+    {
+        SidebarSearchBox.Focus();
+        SidebarSearchBox.SelectAll();
+    }
+
     private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.K && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
         {
-            SidebarSearchBox.Focus();
-            SidebarSearchBox.SelectAll();
+            FocusQuickSearch();
             e.Handled = true;
         }
     }

@@ -134,8 +134,8 @@ public partial class App : System.Windows.Application
         if (!_instanceGuard.TryAcquire())
         {
             MessageBox.Show(
-                "Switchly Next sudah berjalan. Tutup instance yang sedang aktif terlebih dahulu.",
-                "Switchly Next",
+                "Switchly sudah berjalan. Tutup instance yang sedang aktif terlebih dahulu.",
+                "Switchly",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
             Shutdown(0);
@@ -151,7 +151,7 @@ public partial class App : System.Windows.Application
         {
             MessageBox.Show(
                 $"Pemulihan backup gagal diterapkan dan telah dikembalikan ke data sebelumnya.\n\nDetail: {ex.Message}",
-                "Switchly Next — Pemulihan Backup",
+                "Switchly — Pemulihan Backup",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }
@@ -166,7 +166,7 @@ public partial class App : System.Windows.Application
         {
             MessageBox.Show(
                 securityStatus.ErrorMessage ?? "Perlindungan keamanan lokal gagal dibuka (DPAPI fail-closed).",
-                "Switchly Next — Keamanan Lokal",
+                "Switchly — Keamanan Lokal",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             Shutdown(2);
@@ -186,11 +186,11 @@ public partial class App : System.Windows.Application
 
         _browserRuntime = Services.GetRequiredService<IBrowserRuntime>();
         _sessionManager = Services.GetRequiredService<IProfileSessionManager>();
-        if (!_browserRuntime.Initialize(ProfilesRootPath))
+        if (!_browserRuntime.Initialize(ProfilesRootPath, logDirectory))
         {
             MessageBox.Show(
-                "Embedded browser gagal dimulai. Pastikan Switchly Next belum berjalan di instance lain dan tidak dijalankan sebagai Administrator.",
-                "Switchly Next",
+                "Embedded browser gagal dimulai. Pastikan Switchly belum berjalan di instance lain dan tidak dijalankan sebagai Administrator.",
+                "Switchly",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             Shutdown(1);
@@ -198,7 +198,7 @@ public partial class App : System.Windows.Application
         }
 
         var logger = Services.GetRequiredService<ILogger<App>>();
-        logger.LogInformation("Switchly Next started.");
+        logger.LogInformation("Switchly started.");
 
         using (var scope = Services.CreateScope())
         {

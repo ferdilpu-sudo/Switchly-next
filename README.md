@@ -1,6 +1,6 @@
 # Switchly Next
 
-> **Project phase:** M-009 Release Readiness (`TASK-039`..`042` + Quiet Precision Dark/Light UI & Web-Space Mode D9–D12 complete; **108/108 tests PASS** on Win11) — ready for Beta package rebuild & `TASK-043` approval.  
+> **Project phase:** M-009 Release Readiness (`TASK-039`..`042` + Quiet Precision Dark/Light UI, Web-Space Mode D9–D12 & BrowserHardening complete; **127/127 tests PASS** on Win11) — ready for Beta package rebuild & `TASK-043` approval.  
 > **Product name:** Switchly (official name per D8; `0.9.0-beta.1`).  
 > **Purpose:** Windows desktop workspace for managing many isolated web browser profiles, tabs and windows.
 

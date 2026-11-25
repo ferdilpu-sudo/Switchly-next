@@ -75,8 +75,8 @@
                         <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconArrowRight}"/>
                     </Button>
                     <Button x:Name="ReloadButton" Style="{StaticResource IconButtonStyle}" Click="OnReloadClick"
-                            ToolTip="Muat ulang" AutomationProperties.Name="Muat ulang">
-                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconRefresh}"/>
+                            ToolTip="Muat ulang / Hentikan (F5 / Ctrl+R)" AutomationProperties.Name="Muat ulang atau hentikan">
+                        <Path x:Name="ReloadIconPath" Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconRefresh}"/>
                     </Button>
                 </StackPanel>
 
@@ -124,6 +124,10 @@
                          ToolTip="Address bar (Ctrl+L)"/>
             </DockPanel>
         </Border>
+
+        <!-- Subtle 2px Indeterminate Loading Bar -->
+        <ProgressBar x:Name="LoadingProgressBar" DockPanel.Dock="Top" Height="2"
+                     IsIndeterminate="True" Visibility="Collapsed"/>
 
         <!-- Non-Modal Renderer Crash Recovery Banner -->
         <Border x:Name="CrashRecoveryBanner" DockPanel.Dock="Top"

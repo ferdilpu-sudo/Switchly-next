@@ -4,7 +4,7 @@ namespace Switchly.Application.Browser;
 public interface IBrowserRuntime
 {
     /// <summary>Initialize the runtime once per process with the given root cache directory (ADR-011).</summary>
-    bool Initialize(string rootCachePath);
+    bool Initialize(string rootCachePath, string? logDirectory = null);
 
     /// <summary>Shut the runtime down. Must be called on the same thread as Initialize.</summary>
     void Shutdown();

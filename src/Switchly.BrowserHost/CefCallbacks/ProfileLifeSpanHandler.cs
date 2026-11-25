@@ -1,4 +1,5 @@
 using CefSharp;
+using Switchly.Domain.Browser;
 
 namespace Switchly.BrowserHost.CefCallbacks;
 
@@ -36,7 +37,7 @@ internal sealed class ProfileLifeSpanHandler : ILifeSpanHandler
             or WindowOpenDisposition.NewBackgroundTab
             or WindowOpenDisposition.NewWindow)
         {
-            if (!string.IsNullOrWhiteSpace(targetUrl))
+            if (BrowserUrlPolicy.IsAllowedNavigationUrl(targetUrl))
             {
                 _onNewTabRequested(targetUrl);
             }

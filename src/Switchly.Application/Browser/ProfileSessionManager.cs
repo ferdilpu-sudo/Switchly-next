@@ -19,6 +19,7 @@ public sealed class ProfileSessionManager : IProfileSessionManager
     private readonly TimeProvider _timeProvider;
     private readonly object _gate = new();
     private readonly Dictionary<Guid, ActiveProfileSession> _sessions = [];
+    private readonly Dictionary<Guid, Task<IBrowserProfileContext>> _inFlightOpens = [];
     private readonly Dictionary<Guid, ProfileRuntimeState> _states = [];
     private bool _disposed;
 
@@ -38,7 +39,7 @@ public sealed class ProfileSessionManager : IProfileSessionManager
 
     public event Action<ProfileSessionSnapshot>? StateChanged;
 
-    public async Task<IBrowserProfileContext> OpenProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+    public Task<IBrowserProfileContext> OpenProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -46,47 +47,73 @@ public sealed class ProfileSessionManager : IProfileSessionManager
         {
             if (_sessions.TryGetValue(profileId, out var existing))
             {
-                return existing.Context;
+                return Task.FromResult(existing.Context);
             }
+
+            if (_inFlightOpens.TryGetValue(profileId, out var inFlight))
+            {
+                return inFlight;
+            }
+
+            var openTask = OpenProfileCoreAsync(profileId, cancellationToken);
+            if (!openTask.IsCompleted)
+            {
+                _inFlightOpens[profileId] = openTask;
+            }
+
+            return openTask;
         }
+    }
 
-        var profile = await _store.GetProfileAsync(profileId, cancellationToken)
-            ?? throw new ProfileNotFoundException(profileId);
-
-        if (profile.IsArchived)
-        {
-            throw new ProfileArchivedException(profileId);
-        }
-
-        if (!_lockManager.TryAcquire(profileId))
-        {
-            throw new ProfileInUseException(profileId);
-        }
-
-        IBrowserProfileContext? context = null;
+    private async Task<IBrowserProfileContext> OpenProfileCoreAsync(Guid profileId, CancellationToken cancellationToken)
+    {
         try
         {
-            SetState(profileId, ProfileRuntimeState.Starting, openWindowCount: 0);
+            var profile = await _store.GetProfileAsync(profileId, cancellationToken)
+                ?? throw new ProfileNotFoundException(profileId);
 
-            var fullStoragePath = _storage.EnsureCreated(profile.StorageRelativePath);
-            context = _runtime.CreateProfileContext(profile.ProfileId, fullStoragePath, profile.PersistSessionCookies);
-
-            await _store.RecordLastOpenedAsync(profileId, _timeProvider.GetUtcNow(), cancellationToken);
-
-            lock (_gate)
+            if (profile.IsArchived)
             {
-                _sessions[profileId] = new ActiveProfileSession(profile, context);
+                throw new ProfileArchivedException(profileId);
             }
 
-            SetState(profileId, ProfileRuntimeState.Active, openWindowCount: 0);
-            return context;
+            if (!_lockManager.TryAcquire(profileId))
+            {
+                throw new ProfileInUseException(profileId);
+            }
+
+            IBrowserProfileContext? context = null;
+            try
+            {
+                SetState(profileId, ProfileRuntimeState.Starting, openWindowCount: 0);
+
+                var fullStoragePath = _storage.EnsureCreated(profile.StorageRelativePath);
+                context = _runtime.CreateProfileContext(profile.ProfileId, fullStoragePath, profile.PersistSessionCookies);
+
+                await _store.RecordLastOpenedAsync(profileId, _timeProvider.GetUtcNow(), cancellationToken);
+
+                lock (_gate)
+                {
+                    _sessions[profileId] = new ActiveProfileSession(profile, context);
+                }
+
+                SetState(profileId, ProfileRuntimeState.Active, openWindowCount: 0);
+                return context;
+            }
+            catch (Exception ex)
+            {
+                context?.Dispose();
+                _lockManager.Release(profileId);
+                SetState(profileId, ProfileRuntimeState.Error, openWindowCount: 0, lastError: ex.GetType().Name);
+                throw;
+            }
         }
-        catch (Exception ex)
+        finally
         {
-            context?.Dispose();
-            _lockManager.Release(profileId);
-            SetState(profileId, ProfileRuntimeState.Error, openWindowCount: 0, lastError: ex.GetType().Name);
-            throw;
+            lock (_gate)
+            {
+                _inFlightOpens.Remove(profileId);
+            }
         }
     }
 
