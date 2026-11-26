@@ -171,7 +171,7 @@ public sealed class WorkspaceViewModel : ViewModelBase
     private Dictionary<Guid, string> _profileManualGroupMap = [];
     private WorkspaceSection _activeSection = WorkspaceSection.AllProfiles;
     private ProfileStatusFilter _statusFilter = ProfileStatusFilter.All;
-    private ProfileSortOrder _sortOrder = ProfileSortOrder.StatusActiveFirst;
+    private ProfileSortOrder _sortOrder = ProfileSortOrder.NameAsc;
     private ProfileGroup? _selectedGroup;
     private Guid? _activeDockedProfileId;
     private string _searchText = string.Empty;
@@ -442,8 +442,30 @@ public sealed class WorkspaceViewModel : ViewModelBase
 
     public bool HasActiveSessions => _activeProfileCount > 0;
 
-    public bool HasBackgroundSessions =>
-        _activeDockedProfileId.HasValue ? _activeProfileCount > 1 : _activeProfileCount > 0;
+    public bool HasSingleActiveSession => _activeProfileCount == 1;
+
+    public bool HasBackgroundSessions => _activeProfileCount > 1;
+
+    public bool IsGroupSectionSelected => _activeSection == WorkspaceSection.Group && _selectedGroup is not null;
+
+    public string EmptyStateTitle => _activeSection switch
+    {
+        WorkspaceSection.Group when _selectedGroup is not null => $"Belum ada profil di grup '{_selectedGroup.Name}'.",
+        WorkspaceSection.Favorites => "Belum ada profil favorit.",
+        WorkspaceSection.Archived => "Belum ada profil di arsip.",
+        _ => "Belum ada profil di tampilan ini.",
+    };
+
+    public string EmptyStateDescription => _activeSection switch
+    {
+        WorkspaceSection.Group when _selectedGroup is not null =>
+            "Tambahkan profil baru langsung ke grup ini, atau hubungkan profil yang sudah ada melalui menu Ubah Profil.",
+        _ => "Buat profil baru atau ubah filter pencarian untuk melihat profil lainnya.",
+    };
+
+    public string EmptyStatePrimaryButtonLabel => _activeSection == WorkspaceSection.Group && _selectedGroup is not null
+        ? "Tambahkan Profil ke Grup Ini"
+        : "Buat Profil Baru";
 
     public int ActiveProfileCount => _activeProfileCount;
 
@@ -612,6 +634,7 @@ public sealed class WorkspaceViewModel : ViewModelBase
         MemoryWarningMessage = assessment.NonModalWarningMessage;
         OnPropertyChanged(nameof(HasMemoryWarning));
         OnPropertyChanged(nameof(HasActiveSessions));
+        OnPropertyChanged(nameof(HasSingleActiveSession));
         OnPropertyChanged(nameof(HasBackgroundSessions));
 
         if (AutoSleepEnabled && !_autoSleepSweepRunning)
@@ -737,9 +760,7 @@ public sealed class WorkspaceViewModel : ViewModelBase
         {
             WorkspaceSection.Favorites => "Favorit",
             WorkspaceSection.Archived => "Arsip",
-            WorkspaceSection.Group when group is not null => !string.IsNullOrWhiteSpace(group.DefaultUrl)
-                ? $"Workspace: {group.Name}"
-                : $"Grup: {group.Name}",
+            WorkspaceSection.Group when group is not null => $"Grup: {group.Name}",
             _ => "Semua Profil",
         };
 
@@ -748,9 +769,9 @@ public sealed class WorkspaceViewModel : ViewModelBase
             WorkspaceSection.Favorites => "Profil favorit Anda untuk akses cepat.",
             WorkspaceSection.Archived => "Profil yang diarsipkan. Klik kanan untuk memulihkan.",
             WorkspaceSection.Group when group is not null && !string.IsNullOrWhiteSpace(group.DefaultUrl) =>
-                $"Klik baris profil mana saja untuk langsung membuka {group.DefaultUrl}",
+                $"Menampilkan profil di grup '{group.Name}' — klik baris profil untuk membuka {group.DefaultUrl}.",
             WorkspaceSection.Group when group is not null =>
-                $"Menampilkan profil di dalam folder '{group.Name}'.",
+                $"Menampilkan profil yang tergabung dalam grup '{group.Name}'.",
             _ => "Klik baris profil untuk membuka sesi browser terisolasi, atau tekan Ctrl+Shift+K untuk pindah cepat.",
         };
 
@@ -760,6 +781,10 @@ public sealed class WorkspaceViewModel : ViewModelBase
         }
 
         OnPropertyChanged(nameof(SelectedGroup));
+        OnPropertyChanged(nameof(IsGroupSectionSelected));
+        OnPropertyChanged(nameof(EmptyStateTitle));
+        OnPropertyChanged(nameof(EmptyStateDescription));
+        OnPropertyChanged(nameof(EmptyStatePrimaryButtonLabel));
         await ApplyFilterAsync();
     }
 
@@ -1060,12 +1085,9 @@ public sealed class WorkspaceViewModel : ViewModelBase
             var groupService = scope.ServiceProvider.GetRequiredService<IGroupService>();
             var ids = await groupService.GetProfileIdsInGroupAsync(_selectedGroup.GroupId);
 
-            // D10 (Opsi A): When a Web Workspace Group has a DefaultUrl and no explicitly assigned members,
-            // show all non-archived profiles so any profile can launch straight into that group's web workspace.
-            if (ids.Count > 0 || string.IsNullOrWhiteSpace(_selectedGroup.DefaultUrl))
-            {
-                allowedIds = ids.ToHashSet();
-            }
+            // D15: Strict Group Filter — always filter strictly to profiles assigned to this group
+            // so the displayed rows match the sidebar member count badge 1:1.
+            allowedIds = ids.ToHashSet();
         }
 
         var criteria = new ProfileFilterCriteria(

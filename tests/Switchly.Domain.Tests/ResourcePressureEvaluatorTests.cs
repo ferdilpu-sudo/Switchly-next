@@ -24,13 +24,15 @@ public sealed class ResourcePressureEvaluatorTests
         Assert.Contains("RAM Sistem: 52%", result.StatusSummary, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Evaluate_ElevatedMemoryWithMultipleProfiles_EmitsNonModalAdvisory()
+    [Theory]
+    [InlineData(80, 1)]
+    [InlineData(82, 2)]
+    public void Evaluate_ElevatedMemoryWithActiveProfiles_EmitsEarlyNonModalAdvisory(int systemMemPct, int activeProfiles)
     {
         var snapshot = new ResourceSnapshot(
             AppWorkingSetBytes: 900L * 1024 * 1024,
-            SystemMemoryLoadPercent: 82,
-            ActiveProfileCount: 2,
+            SystemMemoryLoadPercent: systemMemPct,
+            ActiveProfileCount: activeProfiles,
             SavedProfileCount: 4);
 
         var result = ResourcePressureEvaluator.Evaluate(snapshot);

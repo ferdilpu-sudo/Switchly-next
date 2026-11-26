@@ -64,9 +64,11 @@ public partial class BrowserWorkspaceView : UserControl
             ? profile.Name
             : $"{workspaceGroupName}  •  {profile.Name}";
         ApplyBadgeColor(profile.ColorHex);
-        // D14: TopProfileStripBar in MainWindow already provides Profil & Aktivitas navigation when browsing,
-        // so keep the tab-strip BackToDashboardButton collapsed to avoid stacked duplicate Profil buttons.
+        // D14/D15: TopProfileStripBar in MainWindow already shows Profil, Aktivitas, and the active
+        // "Group • Profile" chip when docked, so hide duplicate tab-strip BackToDashboardButton and ProfileBadge
+        // in docked mode (keep ProfileBadge visible in standalone Pop-out BrowserWindow).
         BackToDashboardButton.Visibility = Visibility.Collapsed;
+        ProfileBadge.Visibility = onBackToDashboardCallback is null ? Visibility.Visible : Visibility.Collapsed;
         TabStrip.ItemsSource = _tabs;
         DownloadFlyoutList.ItemsSource = _recentDownloads;
 
@@ -418,6 +420,11 @@ public partial class BrowserWorkspaceView : UserControl
 
         var isLoading = _activeTab?.IsLoading ?? false;
         LoadingProgressBar.Visibility = isLoading ? Visibility.Visible : Visibility.Collapsed;
+        var isInitialBlankLoad = isLoading &&
+            (string.IsNullOrWhiteSpace(_activeTab?.Title) ||
+             string.Equals(_activeTab?.Title, "Tab Baru", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(_activeTab?.Title, "about:blank", StringComparison.OrdinalIgnoreCase));
+        InitialLoadingOverlay.Visibility = isInitialBlankLoad ? Visibility.Visible : Visibility.Collapsed;
         var iconKey = isLoading ? "IconClose" : "IconRefresh";
         if (System.Windows.Application.Current?.TryFindResource(iconKey) is Geometry geometry)
         {

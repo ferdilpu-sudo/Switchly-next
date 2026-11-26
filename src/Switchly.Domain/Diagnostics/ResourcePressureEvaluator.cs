@@ -43,15 +43,15 @@ public static class ResourcePressureEvaluator
             return new ResourceAssessment(
                 ResourcePressureLevel.High,
                 summary,
-                $"Penggunaan memori sistem tinggi ({memPct}%, {snapshot.ActiveProfileCount} profil aktif). Pertimbangkan menutup sesi profil atau tab yang tidak dipakai agar tetap responsif.");
+                $"Penggunaan memori sistem tinggi ({memPct}%, {snapshot.ActiveProfileCount} profil aktif). Tutup sesi profil atau tab yang tidak dipakai agar tetap responsif.");
         }
 
-        if (memPct >= 80 && snapshot.ActiveProfileCount >= 2)
+        if (memPct >= 80 && snapshot.ActiveProfileCount >= 1)
         {
             return new ResourceAssessment(
                 ResourcePressureLevel.Elevated,
                 summary,
-                $"Memori sistem mulai padat ({memPct}%). Tutup profil yang sedang tidak digunakan jika aplikasi terasa lambat.");
+                $"Memori sistem mulai padat ({memPct}%, {snapshot.ActiveProfileCount} profil aktif). Pertimbangkan menutup sesi yang tidak digunakan.");
         }
 
         return new ResourceAssessment(ResourcePressureLevel.Normal, summary, null);

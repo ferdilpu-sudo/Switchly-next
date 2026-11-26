@@ -41,7 +41,7 @@ public sealed class ProfileListItemViewModel : ViewModelBase
         ? "?"
         : Profile.Name.Trim()[0].ToString().ToUpperInvariant();
 
-    public string StartupUrlDisplay => string.IsNullOrWhiteSpace(Profile.StartupUrl) ? "Halaman kosong (about:blank)" : Profile.StartupUrl;
+    public string StartupUrlDisplay => string.IsNullOrWhiteSpace(Profile.StartupUrl) ? "Belum ada halaman awal" : Profile.StartupUrl;
 
     public string DomainLabel
     {

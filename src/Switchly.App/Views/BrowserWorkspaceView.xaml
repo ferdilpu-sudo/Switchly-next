@@ -259,9 +259,23 @@
             </DockPanel>
         </Border>
 
-        <!-- Browser Surface + Non-Blocking Overlays (Hover URL Bubble + Toast Pill) -->
+        <!-- Browser Surface + Non-Blocking Overlays (Initial Loading + Hover URL Bubble + Toast Pill) -->
         <Grid>
             <ContentControl x:Name="BrowserContainer"/>
+
+            <!-- Non-Blocking Initial Page Loading Indicator (prevents blank white screen feel while heavy sites like SeaArt load) -->
+            <Border x:Name="InitialLoadingOverlay"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Background="{DynamicResource BgSurfaceElevatedBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}"
+                    BorderThickness="1" CornerRadius="10" Padding="18,12"
+                    IsHitTestVisible="False" Visibility="Collapsed">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <ProgressBar IsIndeterminate="True" Width="18" Height="18" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Memuat halaman..." FontSize="13" FontWeight="Medium"
+                               Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
 
             <!-- Bottom-Left Chrome-Style Link Hover Status Bubble -->
             <Border x:Name="HoverStatusBubble"
