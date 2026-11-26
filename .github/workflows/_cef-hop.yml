@@ -182,6 +182,24 @@ jobs:
           $outDir = "$srcDir\out\Release_GN_x64"
           $argsFile = "$outDir\args.gn"
 
+          # Align Chromium's expected SDK_VERSION with the highest Windows SDK actually installed on the runner.
+          $sdkIncludeRoot = "${env:ProgramFiles(x86)}\Windows Kits\10\Include"
+          if (Test-Path $sdkIncludeRoot) {
+            $installedSdk = Get-ChildItem $sdkIncludeRoot -Directory |
+              Where-Object { $_.Name -match '^10\.0\.\d+\.\d+$' -and (Test-Path (Join-Path $_.FullName "um")) } |
+              Sort-Object { [version]$_.Name } -Descending |
+              Select-Object -First 1
+            if ($installedSdk) {
+              Write-Host "Using installed Windows SDK: $($installedSdk.Name)"
+              $vsToolchainPy = "$srcDir\build\vs_toolchain.py"
+              if (Test-Path $vsToolchainPy) {
+                $pyContent = Get-Content $vsToolchainPy -Raw
+                $updatedPy = [regex]::Replace($pyContent, "SDK_VERSION\s*=\s*'10\.0\.\d+\.\d+'", "SDK_VERSION = '$($installedSdk.Name)'")
+                Set-Content -Path $vsToolchainPy -Value $updatedPy -Encoding Ascii
+              }
+            }
+          }
+
           if (-not (Test-Path $argsFile)) {
             Push-Location "$srcDir\cef"
             $env:GN_DEFINES = "is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome chrome_pgo_phase=0 symbol_level=0 blink_symbol_level=0 v8_symbol_level=0 enable_nacl=false"
