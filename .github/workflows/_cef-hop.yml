@@ -24,7 +24,7 @@ on:
 jobs:
   hop:
     name: "Hop ${{ inputs.hop_number }} (CEF ${{ inputs.cef_branch }} / ${{ inputs.cef_checkout }})"
-    runs-on: windows-latest
+    runs-on: windows-2022
     timeout-minutes: 330
     outputs:
       done: ${{ steps.build.outputs.done }}
@@ -166,6 +166,16 @@ jobs:
         shell: pwsh
         run: |
           $env:PATH = "C:\cef-build\depot_tools;$env:PATH"
+          $vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (Test-Path $vsWhere) {
+            $vsPath = & $vsWhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+            if (-not [string]::IsNullOrWhiteSpace($vsPath)) {
+              Write-Host "Detected Visual Studio at: $vsPath"
+              $env:vs2022_install = $vsPath
+              $env:GYP_MSVS_OVERRIDE_PATH = $vsPath
+            }
+          }
+
           $srcDir = "C:\cef-build\chromium_git\chromium\src"
           $outDir = "$srcDir\out\Release_GN_x64"
           $argsFile = "$outDir\args.gn"
@@ -206,6 +216,16 @@ jobs:
         shell: pwsh
         run: |
           $env:PATH = "C:\cef-build\depot_tools;$env:PATH"
+          $vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (Test-Path $vsWhere) {
+            $vsPath = & $vsWhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+            if (-not [string]::IsNullOrWhiteSpace($vsPath)) {
+              Write-Host "Detected Visual Studio at: $vsPath"
+              $env:vs2022_install = $vsPath
+              $env:GYP_MSVS_OVERRIDE_PATH = $vsPath
+            }
+          }
+
           $srcDir = "C:\cef-build\chromium_git\chromium\src"
           $budgetSeconds = [int](${{ inputs.hop_budget_minutes }} * 60)
           $deadline = (Get-Date).AddSeconds($budgetSeconds)
