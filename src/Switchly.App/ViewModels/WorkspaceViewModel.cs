@@ -201,7 +201,6 @@ public sealed class WorkspaceViewModel : ViewModelBase
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         _sessionManager.StateChanged += OnSessionStateChanged;
-        _windowCoordinator.GroupsChanged += () => _ = RefreshGroupsAsync();
         _windowCoordinator.DockedWorkspacesChanged += RefreshActiveWorkspaces;
 
         var dataDir = Path.Combine(
@@ -911,10 +910,18 @@ public sealed class WorkspaceViewModel : ViewModelBase
     public async Task CreateManualGroupAsync(string name, string? defaultUrl = null)
     {
         ErrorMessage = null;
-        using var scope = _scopeFactory.CreateScope();
-        var groupService = scope.ServiceProvider.GetRequiredService<IGroupService>();
-        await groupService.CreateManualGroupAsync(name, defaultUrl);
-        await RefreshGroupsAsync();
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var groupService = scope.ServiceProvider.GetRequiredService<IGroupService>();
+            await groupService.CreateManualGroupAsync(name, defaultUrl);
+            await RefreshGroupsAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to create manual group.");
+            ErrorMessage = $"Gagal membuat grup: {ex.Message}";
+        }
     }
 
     public async Task RenameManualGroupAsync(ProfileGroup group, string newName)
@@ -925,15 +932,23 @@ public sealed class WorkspaceViewModel : ViewModelBase
     public async Task UpdateManualGroupAsync(ProfileGroup group, string newName, string? defaultUrl)
     {
         ErrorMessage = null;
-        using var scope = _scopeFactory.CreateScope();
-        var groupService = scope.ServiceProvider.GetRequiredService<IGroupService>();
-        var updated = await groupService.UpdateManualGroupAsync(group.GroupId, newName, defaultUrl);
-        if (_selectedGroup?.GroupId == group.GroupId)
+        try
         {
-            await SelectSectionAsync(WorkspaceSection.Group, updated);
-        }
+            using var scope = _scopeFactory.CreateScope();
+            var groupService = scope.ServiceProvider.GetRequiredService<IGroupService>();
+            var updated = await groupService.UpdateManualGroupAsync(group.GroupId, newName, defaultUrl);
+            if (_selectedGroup?.GroupId == group.GroupId)
+            {
+                await SelectSectionAsync(WorkspaceSection.Group, updated);
+            }
 
-        await LoadAsync();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to update manual group {GroupId}.", group.GroupId);
+            ErrorMessage = $"Gagal memperbarui grup: {ex.Message}";
+        }
     }
 
     public async Task CloseGroupWorkspacesAsync(ProfileGroup group)

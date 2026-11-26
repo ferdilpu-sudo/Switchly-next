@@ -39,6 +39,37 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
+        DispatcherUnhandledException += (_, args) =>
+        {
+            try
+            {
+                Services?.GetService<ILogger<App>>()?.LogError(args.Exception, "Unhandled UI exception intercepted.");
+            }
+            catch
+            {
+            }
+
+            MessageBox.Show(
+                $"Terjadi kesalahan tak terduga:\n{args.Exception.Message}",
+                "Switchly",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            args.Handled = true;
+        };
+
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            try
+            {
+                Services?.GetService<ILogger<App>>()?.LogError(args.Exception, "Unobserved background task exception.");
+            }
+            catch
+            {
+            }
+
+            args.SetObserved();
+        };
+
 #if !DEBUG
         if (IsRunningAsAdministrator())
         {
@@ -126,7 +157,6 @@ public partial class App : System.Windows.Application
         services.AddSingleton<IProfileSessionManager, ProfileSessionManager>();
         services.AddSingleton<BrowserWindowCoordinator>();
         services.AddSingleton<WorkspaceViewModel>();
-        services.AddSingleton<MainViewModel>();
         Services = services.BuildServiceProvider();
 
         // Enforce single-instance guard and process deferred profile deletions BEFORE Cef.Initialize() (ADR-011, TEST-017).

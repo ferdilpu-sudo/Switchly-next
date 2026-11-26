@@ -43,8 +43,6 @@ public sealed class BrowserWindowCoordinator
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public event Action? GroupsChanged;
-
     public event Action<BrowserWorkspaceView?>? ActiveDockedWorkspaceChanged;
 
     public event Action? DockedWorkspacesChanged;
@@ -309,6 +307,8 @@ public sealed class BrowserWindowCoordinator
         {
             DockedWorkspacesChanged?.Invoke();
         }
+
+        _ = CloseProfileIfNoRemainingSurfaceAsync(workspace.ProfileId);
     }
 
     private void OnWindowClosed(Guid profileId, BrowserWindow window)
@@ -322,6 +322,28 @@ public sealed class BrowserWindowCoordinator
             {
                 _openWindows.Remove(profileId);
             }
+        }
+
+        _ = CloseProfileIfNoRemainingSurfaceAsync(profileId);
+    }
+
+    private async Task CloseProfileIfNoRemainingSurfaceAsync(Guid profileId)
+    {
+        try
+        {
+            var hasRemainingSurface =
+                _dockedWorkspaces.Keys.Any(k => k.ProfileId == profileId) ||
+                HasOpenPopoutWindow(profileId);
+
+            if (!hasRemainingSurface)
+            {
+                await _sessionManager.CloseProfileAsync(profileId);
+                DockedWorkspacesChanged?.Invoke();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to release CEF session after closing last surface for profile {ProfileId}.", profileId);
         }
     }
 
@@ -346,7 +368,8 @@ public sealed class BrowserWindowCoordinator
             using var scope = _scopeFactory.CreateScope();
             var groupService = scope.ServiceProvider.GetRequiredService<IGroupService>();
             await groupService.SyncWebsiteDomainGroupAsync(profileId, url);
-            GroupsChanged?.Invoke();
+            // D9/D14: WebsiteDomain groups are not displayed in the sidebar UI, so do not fire GroupsChanged
+            // on every webpage navigation (prevents unnecessary Sidebar ManualGroupItems rebuilds/flicker).
         }
         catch (Exception ex)
         {

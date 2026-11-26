@@ -28,27 +28,44 @@
                                  TextChanged="OnBookmarkSearchChanged"
                                  ToolTip="Cari bookmark berdasarkan judul atau URL"/>
                     </DockPanel>
-                    <ListBox x:Name="BookmarksList" Background="{DynamicResource BgAppBrush}"
-                             MouseDoubleClick="OnBookmarkDoubleClick">
-                        <ListBox.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="Buka Bookmark" Click="OnOpenBookmarkClick"/>
-                                <MenuItem Header="Salin URL" Click="OnCopyBookmarkUrlClick"/>
-                                <Separator/>
-                                <MenuItem Header="Hapus Bookmark" Click="OnDeleteBookmarkClick"/>
-                            </ContextMenu>
-                        </ListBox.ContextMenu>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="4,3">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" LineHeight="18"/>
-                                    <TextBlock Text="{Binding Url}" FontSize="11.5" LineHeight="17" Padding="0,0,0,1"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                    <Grid>
+                        <ListBox x:Name="BookmarksList" Background="{DynamicResource BgAppBrush}"
+                                 MouseDoubleClick="OnBookmarkDoubleClick">
+                            <ListBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Buka Bookmark" Click="OnOpenBookmarkClick"/>
+                                    <MenuItem Header="Salin URL" Click="OnCopyBookmarkUrlClick"/>
+                                    <Separator/>
+                                    <MenuItem Header="Hapus Bookmark" Click="OnDeleteBookmarkClick"/>
+                                </ContextMenu>
+                            </ListBox.ContextMenu>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="4,3">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" LineHeight="18"/>
+                                        <TextBlock Text="{Binding Url}" FontSize="11.5" LineHeight="17" Padding="0,0,0,1"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <TextBlock Text="Belum ada bookmark di profil ini. Klik ikon Bintang pada toolbar browser untuk menyimpan halaman."
+                                   Foreground="{DynamicResource TextMutedBrush}" FontSize="12.5" TextWrapping="Wrap"
+                                   TextAlignment="Center" Margin="32,0" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Items.Count, ElementName=BookmarksList}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
                 </DockPanel>
             </TabItem>
 
@@ -66,25 +83,41 @@
                                  TextChanged="OnHistorySearchChanged"
                                  ToolTip="Cari riwayat kunjungan profil ini"/>
                     </DockPanel>
-                    <ListBox x:Name="HistoryList" Background="{DynamicResource BgAppBrush}"
-                             MouseDoubleClick="OnHistoryDoubleClick">
-                        <ListBox.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="Buka Halaman" Click="OnOpenHistoryClick"/>
-                                <MenuItem Header="Salin URL" Click="OnCopyHistoryUrlClick"/>
-                            </ContextMenu>
-                        </ListBox.ContextMenu>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="4,3">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" LineHeight="18"/>
-                                    <TextBlock Text="{Binding Url}" FontSize="11.5" LineHeight="17" Padding="0,0,0,1"
-                                               Foreground="{DynamicResource TextSecondaryBrush}"
-                                               TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                    <Grid>
+                        <ListBox x:Name="HistoryList" Background="{DynamicResource BgAppBrush}"
+                                 MouseDoubleClick="OnHistoryDoubleClick">
+                            <ListBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Buka Halaman" Click="OnOpenHistoryClick"/>
+                                    <MenuItem Header="Salin URL" Click="OnCopyHistoryUrlClick"/>
+                                </ContextMenu>
+                            </ListBox.ContextMenu>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="4,3">
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" LineHeight="18"/>
+                                        <TextBlock Text="{Binding Url}" FontSize="11.5" LineHeight="17" Padding="0,0,0,1"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <TextBlock Text="Belum ada riwayat kunjungan di profil ini."
+                                   Foreground="{DynamicResource TextMutedBrush}" FontSize="12.5"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Items.Count, ElementName=HistoryList}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
                 </DockPanel>
             </TabItem>
 
@@ -98,32 +131,48 @@
                         <TextBlock Text="Daftar unduhan milik profil ini:" VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                     </DockPanel>
-                    <ListBox x:Name="DownloadsList" Background="{DynamicResource BgAppBrush}"
-                             MouseDoubleClick="OnDownloadDoubleClick">
-                        <ListBox.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="Buka File" Click="OnOpenDownloadFileClick"/>
-                                <MenuItem Header="Tampilkan di Folder" Click="OnOpenDownloadFolderClick"/>
-                                <Separator/>
-                                <MenuItem Header="Salin Path File" Click="OnCopyDownloadPathClick"/>
-                            </ContextMenu>
-                        </ListBox.ContextMenu>
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <DockPanel Margin="4,4">
-                                    <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Fill="{Binding StatusColor}"
-                                             VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="13" LineHeight="18"/>
-                                        <TextBlock Text="{Binding StatusSummary}" FontSize="11.5" LineHeight="17"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
-                                        <TextBlock Text="{Binding TargetPath}" FontSize="11" LineHeight="16" Padding="0,0,0,1"
-                                                   Foreground="{DynamicResource TextMutedBrush}" TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
-                                </DockPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                    <Grid>
+                        <ListBox x:Name="DownloadsList" Background="{DynamicResource BgAppBrush}"
+                                 MouseDoubleClick="OnDownloadDoubleClick">
+                            <ListBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Buka File" Click="OnOpenDownloadFileClick"/>
+                                    <MenuItem Header="Tampilkan di Folder" Click="OnOpenDownloadFolderClick"/>
+                                    <Separator/>
+                                    <MenuItem Header="Salin Path File" Click="OnCopyDownloadPathClick"/>
+                                </ContextMenu>
+                            </ListBox.ContextMenu>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <DockPanel Margin="4,4">
+                                        <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Fill="{Binding StatusColor}"
+                                                 VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="13" LineHeight="18"/>
+                                            <TextBlock Text="{Binding StatusSummary}" FontSize="11.5" LineHeight="17"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
+                                            <TextBlock Text="{Binding TargetPath}" FontSize="11" LineHeight="16" Padding="0,0,0,1"
+                                                       Foreground="{DynamicResource TextMutedBrush}" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <TextBlock Text="Belum ada riwayat unduhan di profil ini."
+                                   Foreground="{DynamicResource TextMutedBrush}" FontSize="12.5"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Items.Count, ElementName=DownloadsList}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
                 </DockPanel>
             </TabItem>
         </TabControl>
