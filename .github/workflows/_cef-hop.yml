@@ -100,31 +100,67 @@ jobs:
       - name: Setup sccache (GitHub Actions Cache backend)
         uses: mozilla-actions/sccache-action@v0.0.9
 
-      - name: Download CEF automate-git.py
+      - name: Setup depot_tools & shallow checkout CEF 156.0.30 + Chromium 156.0.8078.96 (~3 GB instead of 65 GB)
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path "C:\cef-build\automate" | Out-Null
-          New-Item -ItemType Directory -Force -Path "C:\cef-build\chromium_git" | Out-Null
-          Invoke-WebRequest `
-            -Uri "https://bitbucket.org/chromiumembedded/cef/raw/master/tools/automate/automate-git.py" `
-            -OutFile "C:\cef-build\automate\automate-git.py"
+          $ErrorActionPreference = "Stop"
+          New-Item -ItemType Directory -Force -Path "C:\cef-build\chromium_git\chromium" | Out-Null
 
-      - name: Checkout CEF & Chromium source (shallow, no-build)
-        shell: cmd
-        env:
-          GN_DEFINES: "is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome chrome_pgo_phase=0 symbol_level=0 blink_symbol_level=0 v8_symbol_level=0 enable_nacl=false"
-        run: |
-          python C:\cef-build\automate\automate-git.py ^
-            --download-dir=C:\cef-build\chromium_git ^
-            --depot-tools-dir=C:\cef-build\depot_tools ^
-            --branch=${{ inputs.cef_branch }} ^
-            --checkout=${{ inputs.cef_checkout }} ^
-            --x64-build ^
-            --no-build ^
-            --no-distrib ^
-            --no-debug-build ^
-            --no-debug-tests ^
-            --no-release-tests
+          # 1. Shallow clone depot_tools
+          if (-not (Test-Path "C:\cef-build\depot_tools")) {
+            git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git C:\cef-build\depot_tools
+          }
+          $env:PATH = "C:\cef-build\depot_tools;$env:PATH"
+          $env:DEPOT_TOOLS_WIN_TOOLCHAIN = "0"
+          cmd /c "C:\cef-build\depot_tools\update_depot_tools.bat"
+
+          # Configure minimal git identity for CEF patch application
+          git config --global user.email "ci@switchly.local"
+          git config --global user.name "Switchly CI"
+          git config --global core.longpaths true
+
+          # 2. Shallow clone Chromium at exact pinned tag 156.0.8078.96 (1 commit only!)
+          $srcDir = "C:\cef-build\chromium_git\chromium\src"
+          if (-not (Test-Path $srcDir)) {
+            git clone --depth 1 --branch 156.0.8078.96 https://chromium.googlesource.com/chromium/src.git $srcDir
+          }
+
+          # 3. Shallow clone CEF branch 8078 and checkout exact ABI commit 6028375
+          $cefDir = "$srcDir\cef"
+          if (-not (Test-Path $cefDir)) {
+            git clone --depth 50 --branch ${{ inputs.cef_branch }} https://bitbucket.org/chromiumembedded/cef.git $cefDir
+            Push-Location $cefDir
+            git checkout ${{ inputs.cef_checkout }}
+            Pop-Location
+          }
+
+          # 4. Write minimal .gclient and sync dependencies WITHOUT git history
+          $gclientContent = @"
+          solutions = [
+            {
+              "name": "src",
+              "url": "https://chromium.googlesource.com/chromium/src.git@refs/tags/156.0.8078.96",
+              "managed": False,
+              "custom_deps": {},
+              "custom_vars": {
+                "checkout_pgo_profiles": False,
+                "checkout_nacl": False,
+                "checkout_android": False,
+              },
+            },
+          ]
+          "@
+          Set-Content -Path "C:\cef-build\chromium_git\chromium\.gclient" -Value $gclientContent -Encoding Ascii
+
+          Push-Location "C:\cef-build\chromium_git\chromium"
+          & "C:\cef-build\depot_tools\gclient.bat" sync --no-history --shallow --nohooks --jobs=8
+          if ($LASTEXITCODE -ne 0) { throw "gclient sync failed with exit code $LASTEXITCODE" }
+          & "C:\cef-build\depot_tools\gclient.bat" runhooks
+          if ($LASTEXITCODE -ne 0) { throw "gclient runhooks failed with exit code $LASTEXITCODE" }
+          Pop-Location
+
+          Write-Host "=== Disk AFTER shallow checkout ==="
+          Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N='FreeGB';E={[math]::Round($_.Free/1GB,1)}} | Format-Table -AutoSize
 
       - name: Configure GN with sccache & proprietary codecs
         shell: pwsh
