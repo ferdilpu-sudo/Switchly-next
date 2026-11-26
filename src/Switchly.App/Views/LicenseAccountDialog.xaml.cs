@@ -33,7 +33,7 @@ public partial class LicenseAccountDialog : Window
         else if (!_accountService.IsBackendConfigured)
         {
             InfoBanner.Visibility = Visibility.Visible;
-            InfoBannerText.Text = "Mode Beta Gratis aktif (tanpa batas profil dan tanpa server lisensi). Saat rilis GA, paket Free mendukung 5 profil tanpa login + Trial Pro 7 hari.";
+            InfoBannerText.Text = "Mode Beta Gratis aktif (tanpa batas profil dan tanpa perlu akun). Setelah masa Beta selesai, paket Free mendukung 5 profil tanpa login + Trial Pro 7 hari gratis.";
         }
         else
         {
@@ -50,7 +50,7 @@ public partial class LicenseAccountDialog : Window
         if (isSignedIn && stored is not null)
         {
             SignedInEmailText.Text = stored.AccountEmail ?? "Akun Switchly";
-            AccountSubtitleText.Text = "Lisensi terverifikasi secara lokal (Ed25519 + DPAPI) dan tetap berjalan saat offline.";
+            AccountSubtitleText.Text = "Lisensi terverifikasi secara lokal dan tetap aktif saat perangkat offline.";
 
             LicenseExpiryText.Text = snapshot.ActiveTier switch
             {

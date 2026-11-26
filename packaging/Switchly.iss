@@ -20,9 +20,13 @@ AppName=Switchly
 AppVersion={#AppVersion}
 AppVerName=Switchly {#AppVersion}
 AppPublisher=Switchly
+AppPublisherURL=https://www.switchly.site/
+AppSupportURL=https://www.switchly.site/
+AppUpdatesURL=https://www.switchly.site/
 DefaultDirName={localappdata}\Programs\Switchly
 DefaultGroupName=Switchly
 DisableProgramGroupPage=yes
+InfoBeforeFile=..\docs\PRIVACY.md
 ; Per-user install avoids UAC elevation and preserves CEF non-elevated runtime policy (exit code 38).
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible

@@ -1,21 +1,20 @@
 # Catatan Rilis — Switchly 0.9.0-beta.1
 
-**Tanggal:** 2026-11-25  
-**Kanal:** Beta (Free-only, offline-ready, tanpa pendaftaran)  
-**Target OS Resmi:** Windows 11 x64
+**Tanggal:** 2026-11-26  
+**Kanal:** Beta (Gratis, 100% lokal tanpa registrasi)  
+**OS Resmi:** Windows 11 x64
 
-## Fitur Utama di Beta
+## Fitur Utama
 
-- **Manajemen Profil Terisolasi (`M-003` & `D9`):** Buat, ubah, duplikasi konfigurasi, arsipkan, favoritkan, cari cepat (`Ctrl+K`), dan masukkan 1 profil ke banyak grup sekaligus (multi-select). Setiap profil memiliki direktori storage CEF Chrome Runtime terpisah (`ADR-011`).
-- **Modern Dark & Light UI + Web-Space Mode (`D7`, `D10`, `D11`):** Tema Dark & Light dengan toggle 1-klik (sinkron title bar Windows 11) dan 100% ikon vektor. Grup Web (*preset* ChatGPT, Google Flow, Dola, SeaArt, atau custom) membuka ruang kerja & tab terisolasi per `(Grup, Profil)` tanpa mencampur tab situs lain, dilengkapi daftar **`SEDANG AKTIF (TASK)`** terkelompok di Sidebar untuk pindah task dalam 1 klik, pop-out jendela terpisah, multi-tab, `Ctrl+Shift+T`, pemulihan sesi, serta dialog Bookmark/Riwayat/Unduhan.
-- **Kontrol Sesi & Pemantauan Resource (`M-008` & `D12`):** Monitor RAM berkala, tombol `×` 1-klik di Sidebar, **`Tutup Sesi Lain`** / **`Tutup Semua`** di Footer & Banner Peringatan Memori, **Auto-Sleep 30 menit** untuk profil latar belakang yang *idle* (dapat di-toggle ON/OFF), pemulihan *renderer crash*, serta dukungan PerMonitorV2 High-DPI.
-- **Impor Chrome/Edge Read-Only (`M-006`):** Deteksi profil lokal, pratinjau, dan impor bookmark, riwayat, serta URL tab terbuka tanpa menyentuh cookie/sesi sumber.
-- **Keamanan Lokal & Backup Terenkripsi (`M-007`):** Proteksi lokal berbasis Windows DPAPI, kunci aplikasi opsional dengan Master Password, backup portabel streaming chunked AES-256-GCM, serta *restart-to-restore* dengan rollback aman.
-- **Encrypted Password Vault & Autofill (`D6`):** Impor CSV Chrome/Edge ke vault terenkripsi per profil (AES-256-GCM + AAD + DPAPI) dan autofill eksplisit berbasis kecocokan origin.
+- **Isolasi Profil Penuh:** Buat, ubah, duplikasi konfigurasi, arsipkan, favoritkan, dan kelompokkan profil ke satu atau banyak grup sekaligus. Setiap profil memiliki penyimpanan cookie, sesi login, cache, bookmark, riwayat, dan unduhan yang benar-benar terpisah.
+- **Antarmuka Browser-First (Tema Terang & Gelap):** Sidebar yang bisa dilipat (`Ctrl+B`), **Top Profile Strip** untuk pindah sesi aktif dalam 1 klik, **Pindah Profil Cepat (`Ctrl+Shift+K`)**, grup ruang kerja web (preset ChatGPT, Google Flow, Dola, SeaArt, atau URL kustom), pop-out jendela terpisah, multi-tab, fullscreen video HTML5, serta `Ctrl+Shift+T`.
+- **Pemantauan Aktivitas & Efisiensi RAM:** Halaman **Aktivitas** khusus untuk memantau sesi berjalan, bilah peringatan memori non-intrusif di ≥ 80% RAM, kontrol **Tutup Sesi Lain / Tutup Semua**, **Auto-Sleep 30 menit** untuk sesi latar belakang yang *idle*, pemulihan crash per tab, dan dukungan layar High-DPI.
+- **Impor Chrome/Edge Aman:** Deteksi profil lokal, pratinjau data, dan impor bookmark, riwayat, serta URL tab terbuka secara *read-only* tanpa menyentuh cookie/sesi browser asal.
+- **Keamanan Lokal, Password Vault & Cadangan Terenkripsi:** Perlindungan berbasis enkripsi bawaan Windows, kunci aplikasi opsional dengan kata sandi utama, Password Vault terenkripsi per profil (AES-256-GCM) dengan impor CSV & autofill klik eksplisit, serta cadangan manual `.swbak` terenkripsi dengan pemulihan bertahap yang aman.
 
 ## Batasan yang Diketahui pada Rilis Beta
 
-- **Windows 10 tidak didukung secara resmi (`OPEN-002`):** Rilis Beta hanya divalidasi dan didukung resmi pada Windows 11 x64.
-- **Belum bertanda tangan digital (*unsigned*):** Paket Beta (Inno Setup EXE & Portable ZIP) belum memiliki sertifikat Authenticode; verifikasi integritas melalui `SHA256SUMS.txt`. Code-signing akan diaktifkan sebelum rilis GA.
-- **Fitur ditunda ke pasca-Beta:** Dukungan ekstensi (`REQ-007`, M-005), backup terjadwal otomatis (`REQ-017`, D2), serta tier Pro / aktivasi lisensi jarak jauh (Beta sepenuhnya Free tanpa kuota buatan).
-- **Kepatuhan situs pihak ketiga:** Switchly tidak melakukan spoofing atau bypass terhadap kebijakan login/keamanan situs web.
+- **Windows 10 belum didukung secara resmi:** Rilis Beta diuji dan didukung resmi untuk Windows 11 x64.
+- **Paket Beta belum bertanda tangan digital (*unsigned*):** Verifikasi integritas paket melalui `SHA256SUMS.txt`. Sertifikat tanda tangan digital (*code-signing*) akan disertakan sebelum rilis publik penuh.
+- **Fitur yang belum masuk rilis Beta:** Dukungan ekstensi browser dan jadwal backup otomatis.
+- **Kepatuhan kebijakan situs web:** Switchly tidak melakukan manipulasi atau melewati kebijakan autentikasi maupun keamanan situs pihak ketiga.

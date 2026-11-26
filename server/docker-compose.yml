@@ -30,10 +30,10 @@ services:
       Midtrans__IsProduction: ${MIDTRANS_IS_PRODUCTION:-false}
       Midtrans__ServerKey: ${MIDTRANS_SERVER_KEY:?MIDTRANS_SERVER_KEY is required}
       Midtrans__ClientKey: ${MIDTRANS_CLIENT_KEY:-}
-      Midtrans__FinishRedirectUrl: ${MIDTRANS_FINISH_REDIRECT_URL:-https://switchly.id/pembayaran-selesai}
+      Midtrans__FinishRedirectUrl: ${MIDTRANS_FINISH_REDIRECT_URL:-https://www.switchly.site/pembayaran-selesai}
       Email__Provider: ${EMAIL_PROVIDER:-Resend}
       Email__ResendApiKey: ${RESEND_API_KEY:-}
-      Email__FromAddress: ${EMAIL_FROM_ADDRESS:-Switchly <noreply@switchly.id>}
+      Email__FromAddress: ${EMAIL_FROM_ADDRESS:-Switchly <noreply@switchly.site>}
     expose:
       - "8080"
 

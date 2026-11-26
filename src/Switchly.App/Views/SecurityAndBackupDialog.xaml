@@ -20,7 +20,7 @@
             <TabItem Header="Keamanan Lokal">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                     <StackPanel>
-                        <TextBlock Text="Perlindungan Lokal (Windows DPAPI)" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                        <TextBlock Text="Perlindungan Lokal Windows" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8"/>
                         <Border Background="{DynamicResource BgAppBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
                                 BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,16">
                             <StackPanel>
@@ -34,7 +34,7 @@
                         <Border Background="{DynamicResource WarningSoftBgBrush}" BorderBrush="{DynamicResource WarningSoftBorderBrush}"
                                 BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,14">
                             <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource WarningSoftTextBrush}" FontSize="12"
-                                       Text="Kata sandi utama mengunci pembukaan aplikasi di komputer ini (dilindungi Windows DPAPI CurrentUser). Jika lupa, kata sandi tidak dapat dipulihkan."/>
+                                       Text="Kata sandi utama mengunci pembukaan aplikasi di komputer ini menggunakan enkripsi bawaan akun Windows Anda. Jika lupa, kata sandi tidak dapat dipulihkan."/>
                         </Border>
 
                         <!-- Enable Master Password -->

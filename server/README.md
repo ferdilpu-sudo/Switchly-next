@@ -10,7 +10,7 @@ Backend ringan berbasis **ASP.NET Core 10 Minimal API + PostgreSQL 16 + Caddy (a
 
 1. **Buka port di OCI Security List & `ufw`:**
    - Ingress TCP `80` dan `443` (untuk Caddy Let's Encrypt HTTPS).
-   - Arahkan DNS `A` record `api.switchly.id` ke Public IP VM OCI.
+   - Arahkan DNS `A` record `api.switchly.site` ke Public IP VM OCI.
 
 2. **Install Docker Engine & Compose:**
    ```bash
@@ -31,12 +31,12 @@ Backend ringan berbasis **ASP.NET Core 10 Minimal API + PostgreSQL 16 + Caddy (a
    ```bash
    chmod 600 .env
    docker compose up -d
-   curl https://api.switchly.id/healthz
+   curl https://api.switchly.site/healthz
    ```
 
 5. **Atur Webhook di Midtrans Dashboard (Settings → Configuration → Payment Notification URL):**
    ```text
-   https://api.switchly.id/v1/webhooks/payment/midtrans
+   https://api.switchly.site/v1/webhooks/payment/midtrans
    ```
 
 ## Backup Harian PostgreSQL (Disarankan)

@@ -36,11 +36,11 @@ public partial class SecurityAndBackupDialog : Window
     {
         var status = _securityService.GetStatus();
         DpapiStatusText.Text = status.IsProtectionHealthy
-            ? "Status DPAPI (CurrentUser): Aktif & Sehat"
-            : $"Status DPAPI: Bermasalah ({status.ErrorMessage})";
+            ? "Enkripsi Lokal Windows: Aktif & Sehat"
+            : $"Enkripsi Lokal Windows: Bermasalah ({status.ErrorMessage})";
         HelloStatusText.Text = status.IsWindowsHelloAvailable
             ? "Windows Hello: Tersedia"
-            : "Windows Hello: Tidak tersedia pada build Win32 unpackaged saat ini (gunakan akun Windows + kata sandi utama opsional).";
+            : "Windows Hello: Belum tersedia pada instalasi standar (gunakan akun Windows + kata sandi utama opsional).";
 
         EnableMasterPasswordPanel.Visibility = status.IsMasterPasswordEnabled ? Visibility.Collapsed : Visibility.Visible;
         DisableMasterPasswordPanel.Visibility = status.IsMasterPasswordEnabled ? Visibility.Visible : Visibility.Collapsed;

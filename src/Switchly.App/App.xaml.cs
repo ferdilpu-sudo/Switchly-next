@@ -75,7 +75,7 @@ public partial class App : System.Windows.Application
         if (IsRunningAsAdministrator())
         {
             MessageBox.Show(
-                "Switchly (Release) tidak dapat dijalankan sebagai Administrator karena kebijakan keamanan CEF (exit code 38). Jalankan sebagai user standar (non-elevated), atau gunakan build Debug untuk pengujian lokal.",
+                "Switchly tidak dapat dijalankan sebagai Administrator demi keamanan sandbox browser. Silakan tutup dan jalankan kembali secara normal (tanpa Run as Administrator).",
                 "Switchly",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);

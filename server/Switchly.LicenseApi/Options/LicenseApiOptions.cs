@@ -41,5 +41,5 @@ public sealed class EmailOptions
     /// <summary>"Console" (dev) or "Resend" (production HTTPS API).</summary>
     public string Provider { get; set; } = "Console";
     public string ResendApiKey { get; set; } = string.Empty;
-    public string FromAddress { get; set; } = "Switchly <noreply@switchly.id>";
+    public string FromAddress { get; set; } = "Switchly <noreply@switchly.site>";
 }

@@ -37,7 +37,7 @@ flowchart LR
 ### Stack OCI Always Free Ampere A1 (Final — Biaya Rp 0/bulan)
 1. **VM:** Ubuntu 24.04 LTS ARM64 (`VM.Standard.A1.Flex`, 2–4 OCPU / 12–24 GB RAM).
 2. **Orkestrasi:** **Docker Compose** (`linux/arm64` native images: `caddy:2-alpine`, `postgres:16-alpine`, `switchly-license-api` berbasis `mcr.microsoft.com/dotnet/aspnet:10.0-alpine`).
-3. **Reverse Proxy:** **Caddy** (otomatis Let's Encrypt HTTPS untuk `api.switchly.id`, tanpa konfigurasi SSL manual).
+3. **Reverse Proxy:** **Caddy** (otomatis Let's Encrypt HTTPS untuk `api.switchly.site`, tanpa konfigurasi SSL manual).
 4. **Backend API:** `server/Switchly.LicenseApi` (ASP.NET Core 10 Minimal API + EF Core Npgsql).
 5. **Database:** **PostgreSQL 16** (volume persisten + `pg_dump` harian terenkripsi ke OCI Object Storage 20 GB Always Free).
 6. **Email OTP:** **Resend** (3.000 email/bulan gratis) atau **Brevo** (300 email/hari gratis) via **HTTPS API** *(OCI memblokir outbound SMTP port 25 secara default)*.
@@ -103,7 +103,7 @@ flowchart LR
 
 ---
 
-## 4. Kontrak REST API (`https://api.switchly.id/v1`)
+## 4. Kontrak REST API (`https://api.switchly.site/v1`)
 
 1. **`POST /v1/auth/otp/request`**
    - Body: `{ "email": "user@example.com" }`
