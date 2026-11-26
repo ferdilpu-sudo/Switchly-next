@@ -1216,10 +1216,9 @@
                             <Path DockPanel.Dock="Left" Style="{StaticResource VectorIconStyle}"
                                   Data="{StaticResource IconSearch}" Width="16" Height="16"
                                   Stroke="{DynamicResource TextMutedBrush}" Margin="2,0,10,0"/>
-                            <TextBox x:Name="SwitcherSearchBox" BorderThickness="0" Background="Transparent"
-                                     FontSize="14" VerticalContentAlignment="Center"
-                                     Foreground="{DynamicResource TextPrimaryBrush}"
-                                     CaretBrush="{DynamicResource TextPrimaryBrush}"
+                            <TextBox x:Name="SwitcherSearchBox"
+                                     Style="{StaticResource BorderlessTextBoxStyle}"
+                                     FontSize="14"
                                      themes:TextBoxAssist.PlaceholderText="Pindah profil cepat — ketik nama profil, grup, atau URL..."
                                      TextChanged="OnSwitcherSearchTextChanged"
                                      PreviewKeyDown="OnSwitcherSearchPreviewKeyDown"

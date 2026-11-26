@@ -1,6 +1,7 @@
 <Window x:Class="Switchly.App.Views.SecurityAndBackupDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:themes="clr-namespace:Switchly.App.Themes"
         Style="{StaticResource ThemedWindowStyle}"
         Title="Keamanan Lokal, Vault &amp; Cadangan — Switchly"
         Height="650" Width="690"
@@ -90,7 +91,9 @@
                         <DockPanel Margin="0,0,0,10">
                             <Button DockPanel.Dock="Right" Content="Pilih File..." Click="OnBrowseRestoreArchiveClick"
                                     Padding="12,6" Margin="8,0,0,0"/>
-                            <TextBox x:Name="RestoreArchivePathBox" IsReadOnly="True" ToolTip="Path file .snbak"/>
+                            <TextBox x:Name="RestoreArchivePathBox" IsReadOnly="True"
+                                     themes:TextBoxAssist.PlaceholderText="Pilih file arsip cadangan (.swbak)..."
+                                     ToolTip="Path file cadangan terenkripsi"/>
                         </DockPanel>
 
                         <Border x:Name="RestorePreviewCard" Background="{DynamicResource BgAppBrush}"
@@ -151,12 +154,12 @@
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="URL / Origin (contoh: https://chatgpt.com)" FontSize="11.5"
                                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                                <TextBox x:Name="VaultOriginBox"/>
+                                <TextBox x:Name="VaultOriginBox" themes:TextBoxAssist.PlaceholderText="https://chatgpt.com"/>
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <TextBlock Text="Username / Email" FontSize="11.5"
                                            Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                                <TextBox x:Name="VaultUsernameBox"/>
+                                <TextBox x:Name="VaultUsernameBox" themes:TextBoxAssist.PlaceholderText="email@contoh.com"/>
                             </StackPanel>
                         </Grid>
                         <TextBlock Text="Kata Sandi:" FontSize="11.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>

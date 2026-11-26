@@ -240,7 +240,7 @@
         </Style.Triggers>
     </Style>
 
-    <!-- TextBox with PlaceholderText support -->
+    <!-- TextBox with PlaceholderText support (WPF TextBoxView natively applies Padding & VerticalContentAlignment) -->
     <Style TargetType="{x:Type TextBox}">
         <Setter Property="Background" Value="{DynamicResource BgInputBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
@@ -248,10 +248,12 @@
         <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Padding" Value="10,7"/>
+        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="MinHeight" Value="34"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TextBox}">
@@ -259,16 +261,22 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="7">
+                            CornerRadius="7"
+                            SnapsToDevicePixels="True">
                         <Grid>
                             <TextBlock x:Name="Placeholder"
                                        Text="{Binding Path=(themes:TextBoxAssist.PlaceholderText), RelativeSource={RelativeSource TemplatedParent}}"
                                        Foreground="{DynamicResource TextMutedBrush}"
                                        Margin="{TemplateBinding Padding}"
-                                       VerticalAlignment="Center"
+                                       Padding="2,0,0,0"
+                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                       TextTrimming="CharacterEllipsis"
                                        IsHitTestVisible="False"
                                        Visibility="Collapsed"/>
-                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"/>
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -280,7 +288,6 @@
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                            <Setter TargetName="Chrome" Property="BorderThickness" Value="1.5"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Chrome" Property="Opacity" Value="0.5"/>
@@ -291,9 +298,56 @@
         </Setter>
     </Style>
 
+    <!-- Borderless TextBox for composite containers (Address Bar, Command Palette) — outer Border owns focus ring -->
+    <Style x:Key="BorderlessTextBoxStyle" TargetType="{x:Type TextBox}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TextBox}">
+                    <Border Background="{TemplateBinding Background}"
+                            SnapsToDevicePixels="True">
+                        <Grid>
+                            <TextBlock x:Name="Placeholder"
+                                       Text="{Binding Path=(themes:TextBoxAssist.PlaceholderText), RelativeSource={RelativeSource TemplatedParent}}"
+                                       Foreground="{DynamicResource TextMutedBrush}"
+                                       Margin="{TemplateBinding Padding}"
+                                       Padding="2,0,0,0"
+                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                       TextTrimming="CharacterEllipsis"
+                                       IsHitTestVisible="False"
+                                       Visibility="Collapsed"/>
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Text" Value="">
+                            <Setter TargetName="Placeholder" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Pill Address / Search Box with PlaceholderText -->
     <Style x:Key="PillTextBoxStyle" TargetType="{x:Type TextBox}" BasedOn="{StaticResource {x:Type TextBox}}">
-        <Setter Property="Padding" Value="14,6"/>
+        <Setter Property="Padding" Value="14,0"/>
         <Setter Property="Height" Value="34"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -302,16 +356,22 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="17">
+                            CornerRadius="17"
+                            SnapsToDevicePixels="True">
                         <Grid>
                             <TextBlock x:Name="Placeholder"
                                        Text="{Binding Path=(themes:TextBoxAssist.PlaceholderText), RelativeSource={RelativeSource TemplatedParent}}"
                                        Foreground="{DynamicResource TextMutedBrush}"
                                        Margin="{TemplateBinding Padding}"
-                                       VerticalAlignment="Center"
+                                       Padding="2,0,0,0"
+                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                       TextTrimming="CharacterEllipsis"
                                        IsHitTestVisible="False"
                                        Visibility="Collapsed"/>
-                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Hidden"/>
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -323,7 +383,6 @@
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                            <Setter TargetName="Chrome" Property="BorderThickness" Value="1.5"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -331,7 +390,7 @@
         </Setter>
     </Style>
 
-    <!-- PasswordBox -->
+    <!-- PasswordBox (WPF PasswordBoxView natively applies Padding & VerticalContentAlignment) -->
     <Style TargetType="{x:Type PasswordBox}">
         <Setter Property="Background" Value="{DynamicResource BgInputBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
@@ -339,9 +398,11 @@
         <Setter Property="SelectionBrush" Value="{DynamicResource AccentBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="Padding" Value="10,7"/>
+        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="MinHeight" Value="34"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type PasswordBox}">
@@ -349,8 +410,12 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="7">
-                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                            CornerRadius="7"
+                            SnapsToDevicePixels="True">
+                        <ScrollViewer x:Name="PART_ContentHost"
+                                      Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Hidden"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -358,7 +423,6 @@
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                            <Setter TargetName="Chrome" Property="BorderThickness" Value="1.5"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

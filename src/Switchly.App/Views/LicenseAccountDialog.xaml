@@ -1,6 +1,7 @@
 <Window x:Class="Switchly.App.Views.LicenseAccountDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:themes="clr-namespace:Switchly.App.Themes"
         Title="Akun &amp; Lisensi — Switchly"
         Width="540"
         SizeToContent="Height"
@@ -50,18 +51,16 @@
                     <DockPanel Margin="0,0,0,8">
                         <Button x:Name="SendOtpButton" DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}"
                                 Content="Kirim OTP" Click="OnSendOtpClick" Padding="12,6" Margin="8,0,0,0"/>
-                        <TextBox x:Name="EmailTextBox" Padding="10,7" FontSize="13"
-                                 Background="{DynamicResource BgAppBrush}" Foreground="{DynamicResource TextPrimaryBrush}"
-                                 BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1"
+                        <TextBox x:Name="EmailTextBox"
+                                 themes:TextBoxAssist.PlaceholderText="nama@email.com"
                                  ToolTip="Masukkan alamat email permanen kamu"/>
                     </DockPanel>
 
                     <DockPanel x:Name="OtpVerifyRow" Visibility="Collapsed">
                         <Button x:Name="VerifyOtpButton" DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}"
                                 Content="Verifikasi OTP" Click="OnVerifyOtpClick" Padding="12,6" Margin="8,0,0,0"/>
-                        <TextBox x:Name="OtpCodeTextBox" Padding="10,7" FontSize="13" MaxLength="6"
-                                 Background="{DynamicResource BgAppBrush}" Foreground="{DynamicResource TextPrimaryBrush}"
-                                 BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1"
+                        <TextBox x:Name="OtpCodeTextBox" MaxLength="6"
+                                 themes:TextBoxAssist.PlaceholderText="Masukkan 6 digit kode OTP"
                                  ToolTip="Masukkan kode OTP 6 digit dari email"/>
                     </DockPanel>
                 </StackPanel>

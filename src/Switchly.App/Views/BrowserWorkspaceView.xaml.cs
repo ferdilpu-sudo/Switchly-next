@@ -354,7 +354,11 @@ public partial class BrowserWorkspaceView : UserControl
             tab.Address = address;
             if (_activeTab == tab)
             {
-                AddressBox.Text = address;
+                if (!AddressBox.IsKeyboardFocusWithin)
+                {
+                    AddressBox.Text = address;
+                }
+
                 UpdateSecurityIcon(address);
                 UpdateNavigationButtons();
             }
@@ -569,11 +573,33 @@ public partial class BrowserWorkspaceView : UserControl
 
     private void OnNavigateClick(object sender, RoutedEventArgs e) => NavigateToAddressBox();
 
+    private void OnAddressBoxGotKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        AddressBox.SelectAll();
+    }
+
+    private void OnAddressBoxPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!AddressBox.IsKeyboardFocusWithin)
+        {
+            e.Handled = true;
+            AddressBox.Focus();
+            AddressBox.SelectAll();
+        }
+    }
+
     private void OnAddressBoxKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
         {
             NavigateToAddressBox();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            AddressBox.Text = _activeTab?.Address ?? string.Empty;
+            Keyboard.ClearFocus();
+            e.Handled = true;
         }
     }
 

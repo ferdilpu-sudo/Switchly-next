@@ -151,7 +151,7 @@
 
                 <!-- Unified Modern Pill Omnibox (Security Lock + URL Input + Zoom Pill + Go) -->
                 <Border Background="{DynamicResource BgInputBrush}"
-                        CornerRadius="17" Height="34" Padding="10,0,4,0">
+                        CornerRadius="18" Height="36" Padding="10,0,4,0">
                     <Border.Style>
                         <Style TargetType="Border">
                             <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
@@ -191,9 +191,11 @@
                                 AutomationProperties.Name="Reset zoom ke 100 persen"/>
 
                         <TextBox x:Name="AddressBox"
-                                 Background="Transparent" BorderThickness="0" Padding="0,4"
+                                 Style="{StaticResource BorderlessTextBoxStyle}"
                                  themes:TextBoxAssist.PlaceholderText="Masukkan URL atau cari di Google (Ctrl+L)..."
                                  KeyDown="OnAddressBoxKeyDown"
+                                 GotKeyboardFocus="OnAddressBoxGotKeyboardFocus"
+                                 PreviewMouseLeftButtonDown="OnAddressBoxPreviewMouseLeftButtonDown"
                                  AutomationProperties.Name="Address bar"
                                  ToolTip="Address bar (Ctrl+L)">
                             <TextBox.ContextMenu>
@@ -237,7 +239,7 @@
                         ToolTip="Hasil sebelumnya (Shift+Enter)" AutomationProperties.Name="Hasil sebelumnya">
                     <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconChevronUp}" Width="13" Height="13"/>
                 </Button>
-                <TextBox x:Name="FindBox" Width="260" Height="30" Padding="10,4"
+                <TextBox x:Name="FindBox" Width="260" Height="32" MinHeight="32" Padding="10,4"
                          themes:TextBoxAssist.PlaceholderText="Cari di halaman..."
                          TextChanged="OnFindBoxTextChanged"
                          KeyDown="OnFindBoxKeyDown"
