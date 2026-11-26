@@ -225,6 +225,9 @@ jobs:
           if ($content -notmatch "cc_wrapper") {
             Add-Content -Path $argsFile -Value "`ncc_wrapper = `"$sccachePath`""
           }
+          if ($content -notmatch "use_clang_modules") {
+            Add-Content -Path $argsFile -Value "use_clang_modules = false"
+          }
           if ($content -notmatch "proprietary_codecs") {
             Add-Content -Path $argsFile -Value "proprietary_codecs = true"
           }
