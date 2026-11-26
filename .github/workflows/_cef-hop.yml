@@ -102,6 +102,33 @@ jobs:
       - name: Setup sccache (GitHub Actions Cache backend)
         uses: mozilla-actions/sccache-action@v0.0.9
 
+      - name: Install Windows 11 SDK 10.0.28000.0 (required by Chromium 156)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $sdkUmPath = "${env:ProgramFiles(x86)}\Windows Kits\10\Include\10.0.28000.0\um"
+          if (Test-Path $sdkUmPath) {
+            Write-Host "Windows SDK 10.0.28000.0 already installed."
+            exit 0
+          }
+
+          $installerUrl = "https://download.microsoft.com/download/38ab8f6d-3676-4860-ae84-3361308b9d7f/KIT_BUNDLE_WINDOWSSDK_MEDIACREATION/winsdksetup.exe"
+          $installerPath = "$env:TEMP\winsdksetup.exe"
+          Write-Host "Downloading Windows SDK 10.0.28000.0 installer..."
+          Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
+
+          Write-Host "Installing Windows SDK 10.0.28000.0 (Desktop C++ x64/x86, Debuggers, SigningTools)..."
+          $proc = Start-Process -FilePath $installerPath -ArgumentList "/features", "OptionId.DesktopCPPx64", "OptionId.DesktopCPPx86", "OptionId.WindowsDesktopDebuggers", "OptionId.SigningTools", "/q", "/norestart" -NoNewWindow -Wait -PassThru
+          Write-Host "winsdksetup.exe exited with code $($proc.ExitCode)"
+          Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
+
+          if (-not (Test-Path $sdkUmPath)) {
+            Write-Host "Installed SDKs under Windows Kits\10\Include:"
+            Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\Include" -ErrorAction SilentlyContinue | Select-Object Name
+            throw "Windows SDK 10.0.28000.0 installation failed: $sdkUmPath not found."
+          }
+          Write-Host "Verified Windows SDK 10.0.28000.0 installed at $sdkUmPath"
+
       - name: Setup depot_tools & shallow checkout CEF 156.0.30 + Chromium 156.0.8078.96 (~3 GB instead of 65 GB)
         shell: pwsh
         run: |
@@ -182,29 +209,15 @@ jobs:
           $outDir = "$srcDir\out\Release_GN_x64"
           $argsFile = "$outDir\args.gn"
 
-          # Align Chromium's expected SDK_VERSION with the highest Windows SDK actually installed on the runner.
-          $sdkIncludeRoot = "${env:ProgramFiles(x86)}\Windows Kits\10\Include"
-          if (Test-Path $sdkIncludeRoot) {
-            $installedSdk = Get-ChildItem $sdkIncludeRoot -Directory |
-              Where-Object { $_.Name -match '^10\.0\.\d+\.\d+$' -and (Test-Path (Join-Path $_.FullName "um")) } |
-              Sort-Object { [version]$_.Name } -Descending |
-              Select-Object -First 1
-            if ($installedSdk) {
-              Write-Host "Using installed Windows SDK: $($installedSdk.Name)"
-              $vsToolchainPy = "$srcDir\build\vs_toolchain.py"
-              if (Test-Path $vsToolchainPy) {
-                $pyContent = Get-Content $vsToolchainPy -Raw
-                $updatedPy = [regex]::Replace($pyContent, "SDK_VERSION\s*=\s*'10\.0\.\d+\.\d+'", "SDK_VERSION = '$($installedSdk.Name)'")
-                Set-Content -Path $vsToolchainPy -Value $updatedPy -Encoding Ascii
-              }
-            }
-          }
-
           if (-not (Test-Path $argsFile)) {
             Push-Location "$srcDir\cef"
             $env:GN_DEFINES = "is_official_build=true proprietary_codecs=true ffmpeg_branding=Chrome chrome_pgo_phase=0 symbol_level=0 blink_symbol_level=0 v8_symbol_level=0 enable_nacl=false"
             cmd /c "cef_create_projects.bat"
+            $createExit = $LASTEXITCODE
             Pop-Location
+            if ($createExit -ne 0) {
+              throw "cef_create_projects.bat failed with exit code $createExit"
+            }
           }
 
           $sccachePath = (Get-Command sccache).Source.Replace('\', '/')
