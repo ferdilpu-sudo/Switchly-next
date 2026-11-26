@@ -45,8 +45,8 @@ internal sealed class ProfileLifeSpanHandler : ILifeSpanHandler
             return true;
         }
 
-        // Allow small OAuth/sign-in modal popups to open natively on the SAME RequestContext.
-        return false;
+        // Allow small OAuth/sign-in modal popups only when targetUrl uses a safe scheme (http/https/about:blank/empty).
+        return !BrowserUrlPolicy.IsAllowedPopupUrl(targetUrl);
     }
 
     public void OnAfterCreated(IWebBrowser chromiumWebBrowser, IBrowser browser)

@@ -17,6 +17,7 @@ public sealed class PortableBackupRestoreService : IBackupRestoreService
 {
     private readonly string _appDataRoot;
     private readonly string _dataDirectory;
+    private readonly string _tempDirectory;
     private readonly string _profilesRootPath;
     private readonly string _databasePath;
     private readonly IProfileRepository _profileRepository;
@@ -38,6 +39,7 @@ public sealed class PortableBackupRestoreService : IBackupRestoreService
 
         _appDataRoot = Path.GetFullPath(appDataRoot);
         _dataDirectory = Path.Combine(_appDataRoot, "Data");
+        _tempDirectory = Path.Combine(_dataDirectory, "Temp");
         _profilesRootPath = Path.Combine(_appDataRoot, "Profiles");
         _databasePath = Path.Combine(_dataDirectory, "switchly-next.db");
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
@@ -85,8 +87,9 @@ public sealed class PortableBackupRestoreService : IBackupRestoreService
         };
         await _backupJobRepository.AddAsync(job, cancellationToken);
 
-        var tempZipPath = Path.Combine(Path.GetTempPath(), $"switchly-bak-plain-{Guid.NewGuid():N}.zip");
-        var tempDbCopyPath = Path.Combine(Path.GetTempPath(), $"switchly-bak-db-{Guid.NewGuid():N}.db");
+        Directory.CreateDirectory(_tempDirectory);
+        var tempZipPath = Path.Combine(_tempDirectory, $"switchly-bak-plain-{Guid.NewGuid():N}.zip");
+        var tempDbCopyPath = Path.Combine(_tempDirectory, $"switchly-bak-db-{Guid.NewGuid():N}.db");
         var tempArchivePath = fullDestPath + ".tmp";
 
         try
@@ -206,6 +209,28 @@ public sealed class PortableBackupRestoreService : IBackupRestoreService
         return ChunkedAesGcmArchiveCrypto.InspectHeader(stream);
     }
 
+    /// <summary>
+    /// Removes any leftover plaintext backup/restore temporary files from a previous crash or power loss.
+    /// </summary>
+    public static void SweepStaleTempFiles(string dataDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(dataDirectory))
+        {
+            return;
+        }
+
+        var tempDir = Path.Combine(Path.GetFullPath(dataDirectory), "Temp");
+        if (!Directory.Exists(tempDir))
+        {
+            return;
+        }
+
+        foreach (var file in Directory.EnumerateFiles(tempDir))
+        {
+            TryDeleteFile(file);
+        }
+    }
+
     public async Task<RestoreStageResult> StageRestoreAsync(
         string archivePath,
         string passphrase,
@@ -222,7 +247,8 @@ public sealed class PortableBackupRestoreService : IBackupRestoreService
         var stagingDir = Path.Combine(stagingRoot, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(stagingDir);
 
-        var tempDecryptedZip = Path.Combine(Path.GetTempPath(), $"switchly-restore-plain-{Guid.NewGuid():N}.zip");
+        Directory.CreateDirectory(_tempDirectory);
+        var tempDecryptedZip = Path.Combine(_tempDirectory, $"switchly-restore-plain-{Guid.NewGuid():N}.zip");
         var succeeded = false;
 
         try

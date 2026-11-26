@@ -31,6 +31,41 @@ public static class BrowserUrlPolicy
     }
 
     /// <summary>
+    /// Allows OAuth popups that start blank (empty or about:blank) as well as http/https URLs,
+    /// while blocking dangerous schemes such as file:, chrome:, and javascript:.
+    /// </summary>
+    public static bool IsAllowedPopupUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return true;
+        }
+
+        return IsAllowedNavigationUrl(url);
+    }
+
+    /// <summary>
+    /// Allows web download schemes (http, https, blob, data) while blocking local filesystem schemes (file:).
+    /// </summary>
+    public static bool IsAllowedDownloadUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return false;
+        }
+
+        if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri))
+        {
+            return false;
+        }
+
+        return string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(uri.Scheme, "blob", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(uri.Scheme, "data", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Resolves user input from the Address Bar:
     /// - Blocks dangerous/internal schemes (file:, chrome:, javascript:, data:, etc.) by returning null.
     /// - Accepts explicit http/https URLs and about:blank.

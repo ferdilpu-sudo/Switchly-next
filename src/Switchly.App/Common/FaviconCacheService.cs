@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.IO;
+using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -45,6 +47,11 @@ public static partial class FaviconCacheService
         }
 
         var host = uri.Host.ToLowerInvariant();
+        if (IsBlockedInternalHost(host))
+        {
+            return null;
+        }
+
         if (MemoryCache.TryGetValue(host, out var cached) && cached is not null)
         {
             return cached;
@@ -76,6 +83,7 @@ public static partial class FaviconCacheService
         {
             var redirectedHost = await TryResolveRedirectedHostAsync(effectiveUrl);
             if (!string.IsNullOrWhiteSpace(redirectedHost) &&
+                !IsBlockedInternalHost(redirectedHost) &&
                 !string.Equals(redirectedHost, effectiveHost, StringComparison.OrdinalIgnoreCase))
             {
                 downloaded = await TryFetchFaviconCandidatesAsync($"https://{redirectedHost}", redirectedHost);
@@ -270,6 +278,53 @@ public static partial class FaviconCacheService
         {
             return null;
         }
+    }
+
+    private static bool IsBlockedInternalHost(string host)
+    {
+        if (string.IsNullOrWhiteSpace(host) ||
+            string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) ||
+            host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) ||
+            host.EndsWith(".local", StringComparison.OrdinalIgnoreCase) ||
+            host.EndsWith(".internal", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (!IPAddress.TryParse(host, out var ip))
+        {
+            return false;
+        }
+
+        if (IPAddress.IsLoopback(ip) || ip.Equals(IPAddress.Any) || ip.Equals(IPAddress.IPv6Any))
+        {
+            return true;
+        }
+
+        if (ip.IsIPv4MappedToIPv6)
+        {
+            ip = ip.MapToIPv4();
+        }
+
+        var bytes = ip.GetAddressBytes();
+        if (ip.AddressFamily == AddressFamily.InterNetwork && bytes.Length == 4)
+        {
+            // Block 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16 (link-local/IMDS), 172.16.0.0/12, 192.168.0.0/16
+            return bytes[0] == 0
+                || bytes[0] == 10
+                || bytes[0] == 127
+                || (bytes[0] == 169 && bytes[1] == 254)
+                || (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
+                || (bytes[0] == 192 && bytes[1] == 168);
+        }
+
+        if (ip.AddressFamily == AddressFamily.InterNetworkV6 && bytes.Length == 16)
+        {
+            // Block IPv6 link-local (fe80::/10) and unique local addresses (fc00::/7)
+            return ip.IsIPv6LinkLocal || (bytes[0] & 0xFE) == 0xFC;
+        }
+
+        return false;
     }
 
     [GeneratedRegex("[^a-z0-9.-]")]

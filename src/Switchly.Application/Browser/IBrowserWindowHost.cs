@@ -40,9 +40,10 @@ public interface IBrowserWindowHost : IDisposable
 
     /// <summary>
     /// Explicitly fills a visible login form on the current page when triggered by user click (D6).
+    /// Re-verifies <paramref name="expectedOrigin"/> inside the page (TOCTOU defense-in-depth).
     /// Never exposes any persistent vault bridge to website JavaScript.
     /// </summary>
-    Task<bool> FillLoginFormAsync(string username, string password);
+    Task<bool> FillLoginFormAsync(string username, string password, string? expectedOrigin = null);
 
     bool CanGoBack { get; }
 

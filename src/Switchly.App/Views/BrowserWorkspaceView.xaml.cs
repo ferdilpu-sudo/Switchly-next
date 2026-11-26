@@ -785,7 +785,7 @@ public partial class BrowserWorkspaceView : UserControl
                 return;
             }
 
-            var filled = await _activeTab.Host.FillLoginFormAsync(selected.Username, selected.Password);
+            var filled = await _activeTab.Host.FillLoginFormAsync(selected.Username, selected.Password, selected.Origin);
             if (!filled)
             {
                 MessageBox.Show(

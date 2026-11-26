@@ -1,6 +1,7 @@
 using System.IO;
 using CefSharp;
 using Switchly.Application.Browser;
+using Switchly.Domain.Browser;
 using Switchly.Domain.Downloads;
 
 namespace Switchly.BrowserHost.CefCallbacks;
@@ -30,7 +31,8 @@ internal sealed class ProfileDownloadHandler : IDownloadHandler
         _downloadDirectory = Path.Combine(userDownloads, profileId.ToString("N")[..8]);
     }
 
-    public bool CanDownload(IWebBrowser chromiumWebBrowser, IBrowser browser, string url, string requestMethod) => true;
+    public bool CanDownload(IWebBrowser chromiumWebBrowser, IBrowser browser, string url, string requestMethod)
+        => BrowserUrlPolicy.IsAllowedDownloadUrl(url);
 
     public bool OnBeforeDownload(
         IWebBrowser chromiumWebBrowser,

@@ -45,4 +45,27 @@ public sealed class BrowserUrlPolicyTests
         var resolved = BrowserUrlPolicy.ResolveAddressBarInput("cara pakai switchly");
         Assert.Equal("https://www.google.com/search?q=cara%20pakai%20switchly", resolved);
     }
+
+    [Theory]
+    [InlineData("", true)]
+    [InlineData("about:blank", true)]
+    [InlineData("https://accounts.google.com/o/oauth2/auth", true)]
+    [InlineData("file:///C:/Windows/win.ini", false)]
+    [InlineData("chrome://settings", false)]
+    [InlineData("javascript:alert(1)", false)]
+    public void IsAllowedPopupUrl_EnforcesSafePopupSchemes(string url, bool expected)
+    {
+        Assert.Equal(expected, BrowserUrlPolicy.IsAllowedPopupUrl(url));
+    }
+
+    [Theory]
+    [InlineData("https://example.com/file.pdf", true)]
+    [InlineData("blob:https://flow.google.com/1234", true)]
+    [InlineData("data:text/plain;base64,SGk=", true)]
+    [InlineData("file:///C:/secret.txt", false)]
+    [InlineData("chrome://settings", false)]
+    public void IsAllowedDownloadUrl_BlocksLocalFileDownloads(string url, bool expected)
+    {
+        Assert.Equal(expected, BrowserUrlPolicy.IsAllowedDownloadUrl(url));
+    }
 }

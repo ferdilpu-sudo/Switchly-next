@@ -283,7 +283,7 @@ public class ProfileSessionManagerTests
 
         public void StopFinding(bool clearSelection) => StatusMessageChanged?.Invoke(string.Empty);
 
-        public Task<bool> FillLoginFormAsync(string username, string password) => Task.FromResult(true);
+        public Task<bool> FillLoginFormAsync(string username, string password, string? expectedOrigin = null) => Task.FromResult(true);
 
         public void SimulateRendererCrash(string reason) => RendererCrashed?.Invoke(reason);
 

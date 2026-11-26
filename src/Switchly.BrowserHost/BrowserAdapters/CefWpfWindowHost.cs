@@ -189,7 +189,7 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
     private static int CalculateZoomPercent(double zoomLevel)
         => (int)Math.Round(Math.Pow(1.2, zoomLevel) * 100.0);
 
-    public async Task<bool> FillLoginFormAsync(string username, string password)
+    public async Task<bool> FillLoginFormAsync(string username, string password, string? expectedOrigin = null)
     {
         if (_disposed || !_browser.IsBrowserInitialized)
         {
@@ -198,11 +198,18 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
 
         var userJson = JsonSerializer.Serialize(username ?? string.Empty);
         var passJson = JsonSerializer.Serialize(password ?? string.Empty);
+        var originJson = JsonSerializer.Serialize(expectedOrigin ?? string.Empty);
 
-        // One-shot IIFE using native HTMLInputElement value setter so React/Vue/Next.js/Angular
-        // controlled inputs (ChatGPT, Google Flow, Dola, SeaArt) receive the updated value cleanly.
+        // One-shot IIFE with in-page TOCTOU origin check and native HTMLInputElement value setter
+        // so React/Vue/Next.js/Angular controlled inputs receive the updated value cleanly.
         var script = $$"""
-            (function(u, p) {
+            (function(u, p, expectedOrigin) {
+                if (expectedOrigin) {
+                    var currentOrigin = (window.location && window.location.origin) ? window.location.origin.toLowerCase() : '';
+                    if (currentOrigin !== expectedOrigin.toLowerCase()) {
+                        return false;
+                    }
+                }
                 function isVisible(el) {
                     if (!el || el.disabled || el.readOnly) return false;
                     var style = window.getComputedStyle(el);
@@ -250,7 +257,7 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
                     filled = true;
                 }
                 return filled;
-            })({{userJson}}, {{passJson}});
+            })({{userJson}}, {{passJson}}, {{originJson}});
             """;
 
         try

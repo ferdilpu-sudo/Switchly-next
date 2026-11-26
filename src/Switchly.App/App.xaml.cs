@@ -186,7 +186,8 @@ public partial class App : System.Windows.Application
                 MessageBoxImage.Warning);
         }
 
-        // 2. Process deferred profile deletions BEFORE Cef.Initialize() (ADR-011).
+        // 2. Process deferred profile deletions & sweep any stale plaintext backup/restore temp files BEFORE Cef.Initialize() (ADR-011).
+        PortableBackupRestoreService.SweepStaleTempFiles(dataDirectory);
         Services.GetRequiredService<IProfileStorageDirectory>().ProcessPendingDeletes();
 
         // 3. Enforce local DPAPI health and optional master-password unlock BEFORE opening workspace (REQ-010, TEST-011).
