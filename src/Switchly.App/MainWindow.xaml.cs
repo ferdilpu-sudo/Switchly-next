@@ -109,7 +109,35 @@ public partial class MainWindow : Window
         _windowCoordinator.ShowDashboard();
         SetSidebarCollapsed(false);
         UpdateThemeToggleIcon();
+        RefreshSettingsLicenseBadge();
         ShowMainRightPanel(SettingsView);
+    }
+
+    private void RefreshSettingsLicenseBadge()
+    {
+        if (SettingsLicenseBadgeText is null)
+        {
+            return;
+        }
+
+        var entitlement = App.Services.GetRequiredService<Switchly.Application.Entitlements.IFeatureEntitlementService>();
+        SettingsLicenseBadgeText.Text = entitlement.GetCurrentEntitlement().DisplayBadge;
+    }
+
+    private void OnManageLicenseClick(object sender, RoutedEventArgs e)
+    {
+        OpenLicenseAccountDialog(initialReason: null);
+    }
+
+    private void OpenLicenseAccountDialog(string? initialReason)
+    {
+        var accountService = App.Services.GetRequiredService<Switchly.Application.Entitlements.LicenseAccountService>();
+        var dialog = new LicenseAccountDialog(accountService, initialReason)
+        {
+            Owner = this,
+        };
+        dialog.ShowDialog();
+        RefreshSettingsLicenseBadge();
     }
 
     private void OnSelectLightThemeClick(object sender, RoutedEventArgs e)
@@ -611,6 +639,14 @@ public partial class MainWindow : Window
 
     private async void OnNewProfileClick(object sender, RoutedEventArgs e)
     {
+        var entitlement = App.Services.GetRequiredService<Switchly.Application.Entitlements.IFeatureEntitlementService>();
+        var createDecision = entitlement.CanCreateProfile(_viewModel.TotalSavedProfileCount);
+        if (!createDecision.IsAllowed)
+        {
+            OpenLicenseAccountDialog(createDecision.Reason);
+            return;
+        }
+
         IReadOnlyCollection<Guid>? preselectedGroupIds = _viewModel.SelectedGroup is { } activeGroup
             ? [activeGroup.GroupId]
             : null;

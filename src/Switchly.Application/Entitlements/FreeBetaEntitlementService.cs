@@ -57,4 +57,9 @@ public sealed class FreeBetaEntitlementService : IFeatureEntitlementService
         // No artificial profile cap in Free Beta (D8 / REQ-012 / TEST-015).
         return new FeatureEntitlementDecision(true, SubscriptionTier.FreeBeta);
     }
+
+    public FeatureEntitlementDecision CanOpenProfile(Guid profileId, IReadOnlyList<Guid> orderedActiveProfileIds)
+    {
+        return new FeatureEntitlementDecision(true, SubscriptionTier.FreeBeta);
+    }
 }

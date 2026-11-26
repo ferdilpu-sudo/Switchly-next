@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: switchly_license
+      POSTGRES_USER: switchly
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U switchly -d switchly_license"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=switchly_license;Username=switchly;Password=${POSTGRES_PASSWORD}"
+      LicenseApi__Ed25519PrivateKeyBase64: ${LICENSE_ED25519_PRIVATE_KEY:?LICENSE_ED25519_PRIVATE_KEY is required}
+      LicenseApi__TokenHashPepper: ${LICENSE_TOKEN_HASH_PEPPER:?LICENSE_TOKEN_HASH_PEPPER is required}
+      Midtrans__IsProduction: ${MIDTRANS_IS_PRODUCTION:-false}
+      Midtrans__ServerKey: ${MIDTRANS_SERVER_KEY:?MIDTRANS_SERVER_KEY is required}
+      Midtrans__ClientKey: ${MIDTRANS_CLIENT_KEY:-}
+      Midtrans__FinishRedirectUrl: ${MIDTRANS_FINISH_REDIRECT_URL:-https://switchly.id/pembayaran-selesai}
+      Email__Provider: ${EMAIL_PROVIDER:-Resend}
+      Email__ResendApiKey: ${RESEND_API_KEY:-}
+      Email__FromAddress: ${EMAIL_FROM_ADDRESS:-Switchly <noreply@switchly.id>}
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?API_DOMAIN is required}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pg_data:
+  caddy_data:
+  caddy_config:

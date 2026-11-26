@@ -19,6 +19,7 @@ using Switchly.Application.Security;
 using Switchly.Application.Vault;
 using Switchly.BrowserHost.CefBootstrap;
 using Switchly.Infrastructure.Diagnostics;
+using Switchly.Infrastructure.Entitlements;
 using Switchly.Infrastructure.Import;
 using Switchly.Infrastructure.Persistence;
 using Switchly.Infrastructure.Security;
@@ -114,7 +115,25 @@ public partial class App : System.Windows.Application
         services.AddDbContextFactory<SwitchlyDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
         services.AddDbContext<SwitchlyDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
         services.AddScoped<DatabaseHealthCheck>();
-        services.AddSingleton<IFeatureEntitlementService, FreeBetaEntitlementService>();
+        var licenseConfig = HttpLicenseApiClient.LoadConfigFromDiskOrEnvironment(dataDirectory);
+        services.AddSingleton(licenseConfig);
+        services.AddSingleton<ILocalDataProtector, WindowsDpapiProtector>();
+        services.AddSingleton<ILicenseStore>(sp =>
+            new DpapiLicenseStore(Path.Combine(dataDirectory, "license.dpapi"), sp.GetRequiredService<ILocalDataProtector>()));
+        services.AddSingleton<IDeviceFingerprintProvider>(_ => new WindowsDeviceFingerprintProvider(dataDirectory));
+        services.AddSingleton<ILicenseApiClient>(_ => new HttpLicenseApiClient(licenseConfig));
+        if (licenseConfig.IsConfigured && licenseConfig.EnforceCommercialLimits)
+        {
+            services.AddSingleton<ILicenseTokenVerifier>(_ =>
+                new Ed25519LicenseTokenVerifier(licenseConfig.Ed25519PublicKeyBase64));
+            services.AddSingleton<IFeatureEntitlementService, SignedTokenEntitlementService>();
+        }
+        else
+        {
+            services.AddSingleton<IFeatureEntitlementService, FreeBetaEntitlementService>();
+        }
+
+        services.AddSingleton<LicenseAccountService>();
         services.AddSingleton<IAppInstanceGuard>(_ => new SingleInstanceMutexGuard(ProfilesRootPath));
         services.AddSingleton<IProfileLockManager, InProcessProfileLockManager>();
         services.AddSingleton<IProfileSessionStore, EfProfileSessionStore>();
@@ -127,7 +146,6 @@ public partial class App : System.Windows.Application
         services.AddScoped<IImportJobRepository, EfImportJobRepository>();
         services.AddScoped<IBackupJobRepository, EfBackupJobRepository>();
         services.AddScoped<IVaultCredentialRepository, EfVaultCredentialRepository>();
-        services.AddSingleton<ILocalDataProtector, WindowsDpapiProtector>();
         services.AddSingleton<ILocalSecurityService>(sp =>
             new LocalSecurityService(sp.GetRequiredService<ILocalDataProtector>(), dataDirectory));
         services.AddScoped<IPasswordVaultService>(sp =>

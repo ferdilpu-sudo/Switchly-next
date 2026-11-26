@@ -469,6 +469,8 @@ public sealed class WorkspaceViewModel : ViewModelBase
 
     public int ActiveProfileCount => _activeProfileCount;
 
+    public int TotalSavedProfileCount => _totalSavedCount;
+
     public bool AutoSleepEnabled
     {
         get => _autoSleepEnabled;
