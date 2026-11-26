@@ -96,6 +96,8 @@ jobs:
 
           Write-Host "=== Disk AFTER cleanup ==="
           Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N='FreeGB';E={[math]::Round($_.Free/1GB,1)}} | Format-Table -AutoSize
+          $global:LASTEXITCODE = 0
+          exit 0
 
       - name: Setup sccache (GitHub Actions Cache backend)
         uses: mozilla-actions/sccache-action@v0.0.9
