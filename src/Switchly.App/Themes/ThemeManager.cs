@@ -118,10 +118,91 @@ public static class ThemeManager
         if (window.IsLoaded)
         {
             UpdateTitleBar();
+            ClampDialogToWorkArea(window);
         }
         else
         {
             window.SourceInitialized += (_, _) => UpdateTitleBar();
+            window.Loaded += (_, _) => ClampDialogToWorkArea(window);
+        }
+
+        window.SizeChanged -= OnWindowSizeChanged;
+        window.SizeChanged += OnWindowSizeChanged;
+    }
+
+    private static void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (sender is Window window && window.IsLoaded && e.HeightChanged)
+        {
+            KeepWindowInsideWorkArea(window);
+        }
+    }
+
+    private static void ClampDialogToWorkArea(Window window)
+    {
+        var app = System.Windows.Application.Current;
+        if (app is null || ReferenceEquals(window, app.MainWindow))
+        {
+            return;
+        }
+
+        var workArea = SystemParameters.WorkArea;
+        var safeMaxHeight = Math.Max(340, workArea.Height - 40);
+        var safeMaxWidth = Math.Max(380, workArea.Width - 40);
+
+        if (double.IsPositiveInfinity(window.MaxHeight) || window.MaxHeight > safeMaxHeight)
+        {
+            window.MaxHeight = safeMaxHeight;
+        }
+
+        if (double.IsPositiveInfinity(window.MaxWidth) || window.MaxWidth > safeMaxWidth)
+        {
+            window.MaxWidth = safeMaxWidth;
+        }
+
+        if (!double.IsNaN(window.Height) && window.Height > safeMaxHeight)
+        {
+            window.Height = safeMaxHeight;
+        }
+
+        KeepWindowInsideWorkArea(window);
+    }
+
+    private static void KeepWindowInsideWorkArea(Window window)
+    {
+        var app = System.Windows.Application.Current;
+        if (app is null || ReferenceEquals(window, app.MainWindow) || window.WindowState != WindowState.Normal)
+        {
+            return;
+        }
+
+        var workArea = SystemParameters.WorkArea;
+        var actualH = window.ActualHeight;
+        var actualW = window.ActualWidth;
+        if (actualH <= 0 || actualW <= 0)
+        {
+            return;
+        }
+
+        const double margin = 16;
+        if (window.Top + actualH > workArea.Bottom - margin)
+        {
+            window.Top = Math.Max(workArea.Top + margin, workArea.Bottom - actualH - margin);
+        }
+
+        if (window.Top < workArea.Top + margin)
+        {
+            window.Top = workArea.Top + margin;
+        }
+
+        if (window.Left + actualW > workArea.Right - margin)
+        {
+            window.Left = Math.Max(workArea.Left + margin, workArea.Right - actualW - margin);
+        }
+
+        if (window.Left < workArea.Left + margin)
+        {
+            window.Left = workArea.Left + margin;
         }
     }
 

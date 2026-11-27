@@ -6,11 +6,19 @@
         Title="Akun &amp; Lisensi — Switchly"
         Width="540"
         SizeToContent="Height"
-        MaxHeight="720"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="22,18,22,20">
+    <DockPanel Margin="22,18,22,18">
+        <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                BorderThickness="0,1,0,0" Padding="0,12,0,0" Margin="0,10,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Style="{StaticResource GhostButtonStyle}" Content="Tutup" IsCancel="True"
+                        Click="OnCloseClick" Padding="16,7"/>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer MaxHeight="480" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
+            <StackPanel>
             <!-- Header + Current Plan Badge -->
             <DockPanel Margin="0,0,0,14">
                 <Border DockPanel.Dock="Right" Background="{DynamicResource AccentSoftBrush}"
@@ -119,12 +127,8 @@
 
             <!-- Status feedback -->
             <TextBlock x:Name="StatusText" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
-                       TextWrapping="Wrap" Margin="2,0,2,12"/>
-
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Style="{StaticResource GhostButtonStyle}" Content="Tutup" IsCancel="True"
-                        Click="OnCloseClick" Padding="16,7"/>
-            </StackPanel>
+                       TextWrapping="Wrap" Margin="2,0,2,4"/>
         </StackPanel>
-    </ScrollViewer>
+        </ScrollViewer>
+    </DockPanel>
 </Window>

@@ -3,19 +3,22 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:themes="clr-namespace:Switchly.App.Themes"
         Style="{StaticResource ThemedWindowStyle}"
-        Title="Buat Grup / Workspace Web — Switchly"
-        Width="480" MinWidth="440" MaxHeight="620"
+        Title="Buat Grup — Switchly"
+        Width="480" MinWidth="440"
         SizeToContent="Height"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner">
-    <DockPanel Margin="22">
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
-            <Button Content="Batal" IsCancel="True" Padding="16,7" Margin="0,0,8,0"/>
-            <Button Style="{StaticResource PrimaryButtonStyle}" Content="Simpan Grup" IsDefault="True"
-                    Click="OnSaveClick" Padding="18,7"/>
-        </StackPanel>
+    <DockPanel Margin="22,18,22,18">
+        <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                BorderThickness="0,1,0,0" Padding="0,12,0,0" Margin="0,12,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Batal" IsCancel="True" Padding="16,7" Margin="0,0,8,0"/>
+                <Button Style="{StaticResource PrimaryButtonStyle}" Content="Simpan Grup" IsDefault="True"
+                        Click="OnSaveClick" Padding="18,7"/>
+            </StackPanel>
+        </Border>
 
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ScrollViewer MaxHeight="420" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
             <StackPanel>
                 <StackPanel Margin="0,0,0,14">
                     <TextBlock x:Name="DialogHeaderTitle" Text="Buat Grup atau Workspace Web" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>

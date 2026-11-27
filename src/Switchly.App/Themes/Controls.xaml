@@ -4,6 +4,7 @@
 
     <!-- Base Window Style -->
     <Style TargetType="{x:Type Window}" x:Key="ThemedWindowStyle">
+        <Setter Property="Icon" Value="pack://application:,,,/Assets/switchly.ico"/>
         <Setter Property="Background" Value="{DynamicResource BgAppBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>

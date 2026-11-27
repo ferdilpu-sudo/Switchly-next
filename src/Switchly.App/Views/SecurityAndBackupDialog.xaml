@@ -4,8 +4,8 @@
         xmlns:themes="clr-namespace:Switchly.App.Themes"
         Style="{StaticResource ThemedWindowStyle}"
         Title="Keamanan Lokal, Vault &amp; Cadangan — Switchly"
-        Height="650" Width="690"
-        MinHeight="550" MinWidth="590"
+        Height="590" Width="680"
+        MinHeight="460" MinWidth="560"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize">
     <DockPanel Margin="18">

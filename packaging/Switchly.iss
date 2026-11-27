@@ -38,6 +38,7 @@ OutputBaseFilename=Switchly-{#AppVersion}-win-x64-setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\src\Switchly.App\Assets\switchly.ico
 CloseApplications=force
 CloseApplicationsFilter=*.exe,*.dll
 UninstallDisplayIcon={app}\Switchly.App.exe

@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Style="{StaticResource ThemedWindowStyle}"
         Title="Impor Data Browser (Chrome / Edge) — Switchly"
-        Height="620" Width="660"
-        MinHeight="530" MinWidth="570"
+        Height="570" Width="650"
+        MinHeight="460" MinWidth="550"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize">
     <DockPanel Margin="20">

@@ -21,10 +21,8 @@
                 <!-- Top Brand Header (Calm & Focused — Theme Moved to Settings Hub) -->
                 <DockPanel DockPanel.Dock="Top" Margin="2,0,0,12">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="28" Height="28" CornerRadius="8" Background="{DynamicResource AccentBrush}" Margin="0,0,9,0">
-                            <TextBlock Text="S" Foreground="White" FontWeight="Bold" FontSize="15"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
+                        <Image Source="pack://application:,,,/Assets/logo.png" Width="28" Height="28"
+                               RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,9,0" VerticalAlignment="Center"/>
                         <TextBlock Text="Switchly" FontSize="17" FontWeight="Bold" VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextPrimaryBrush}"/>
                         <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="5" Padding="6,2"
@@ -1280,7 +1278,11 @@
                                     <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
                                             BorderThickness="1" CornerRadius="12" Padding="18,16">
                                         <StackPanel>
-                                            <TextBlock Text="Privasi &amp; Tentang Switchly" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,10">
+                                                <Image Source="pack://application:,,,/Assets/logo.png" Width="30" Height="30"
+                                                       RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Privasi &amp; Tentang Switchly" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            </StackPanel>
                                             <TextBlock Text="{Binding AboutVersionLine}" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                                             <TextBlock Text="• Mesin Browser: Chromium 156 (isolasi cookie &amp; penyimpanan penuh per profil)" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                                             <TextBlock Text="• Telemetri: NONAKTIF (Local-first, log diagnostik lokal dengan redaksi rahasia)" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}"/>
