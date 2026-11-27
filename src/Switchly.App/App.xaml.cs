@@ -39,6 +39,7 @@ public partial class App : System.Windows.Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        Environment.CurrentDirectory = AppContext.BaseDirectory;
 
         DispatcherUnhandledException += (_, args) =>
         {
@@ -113,7 +114,6 @@ public partial class App : System.Windows.Application
             builder.AddSwitchlyFile(logDirectory);
         });
         services.AddDbContextFactory<SwitchlyDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
-        services.AddDbContext<SwitchlyDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
         services.AddScoped<DatabaseHealthCheck>();
         var licenseConfig = HttpLicenseApiClient.LoadConfigFromDiskOrEnvironment(dataDirectory);
         services.AddSingleton(licenseConfig);
@@ -122,10 +122,14 @@ public partial class App : System.Windows.Application
             new DpapiLicenseStore(Path.Combine(dataDirectory, "license.dpapi"), sp.GetRequiredService<ILocalDataProtector>()));
         services.AddSingleton<IDeviceFingerprintProvider>(_ => new WindowsDeviceFingerprintProvider(dataDirectory));
         services.AddSingleton<ILicenseApiClient>(_ => new HttpLicenseApiClient(licenseConfig));
-        if (licenseConfig.IsConfigured && licenseConfig.EnforceCommercialLimits)
+        if (licenseConfig.IsConfigured)
         {
             services.AddSingleton<ILicenseTokenVerifier>(_ =>
                 new Ed25519LicenseTokenVerifier(licenseConfig.Ed25519PublicKeyBase64));
+        }
+
+        if (licenseConfig.IsConfigured && licenseConfig.EnforceCommercialLimits)
+        {
             services.AddSingleton<IFeatureEntitlementService, SignedTokenEntitlementService>();
         }
         else
@@ -134,7 +138,11 @@ public partial class App : System.Windows.Application
         }
 
         services.AddSingleton<LicenseAccountService>();
-        services.AddSingleton<IAppInstanceGuard>(_ => new SingleInstanceMutexGuard(ProfilesRootPath));
+        var isRestartHandoff = e.Args.Contains("--applying-restore", StringComparer.OrdinalIgnoreCase)
+            || File.Exists(PendingRestoreApplier.GetMarkerPath(appData));
+        services.AddSingleton<IAppInstanceGuard>(_ => new SingleInstanceMutexGuard(
+            ProfilesRootPath,
+            isRestartHandoff ? TimeSpan.FromSeconds(12) : TimeSpan.Zero));
         services.AddSingleton<IProfileLockManager, InProcessProfileLockManager>();
         services.AddSingleton<IProfileSessionStore, EfProfileSessionStore>();
         services.AddScoped<IProfileRepository, EfProfileRepository>();
@@ -157,7 +165,8 @@ public partial class App : System.Windows.Application
             new PortableBackupRestoreService(
                 appData,
                 sp.GetRequiredService<IProfileRepository>(),
-                sp.GetRequiredService<IBackupJobRepository>()));
+                sp.GetRequiredService<IBackupJobRepository>(),
+                dataProtector: sp.GetRequiredService<ILocalDataProtector>()));
         services.AddSingleton<IProfileStorageDirectory>(_ => new LocalProfileStorageDirectory(ProfilesRootPath, dataDirectory));
         services.AddSingleton<IBrowserProfileDiscovery, ChromiumProfileDiscovery>();
         services.AddSingleton<IBookmarkImporter, ChromiumBookmarkImporter>();
@@ -249,13 +258,29 @@ public partial class App : System.Windows.Application
         var logger = Services.GetRequiredService<ILogger<App>>();
         logger.LogInformation("Switchly started.");
 
-        using (var scope = Services.CreateScope())
+        var dbHealthy = Task.Run(async () =>
         {
-            scope.ServiceProvider.GetRequiredService<DatabaseHealthCheck>().Check();
-            scope.ServiceProvider.GetRequiredService<IDownloadService>()
+            using var scope = Services.CreateScope();
+            if (!scope.ServiceProvider.GetRequiredService<DatabaseHealthCheck>().Check())
+            {
+                return false;
+            }
+
+            await scope.ServiceProvider.GetRequiredService<IDownloadService>()
                 .MarkInterruptedOnStartupAsync()
-                .GetAwaiter()
-                .GetResult();
+                .ConfigureAwait(false);
+            return true;
+        }).GetAwaiter().GetResult();
+
+        if (!dbHealthy)
+        {
+            MessageBox.Show(
+                "Database lokal Switchly gagal diinisialisasi atau sedang terkunci oleh proses lain.",
+                "Switchly",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(3);
+            return;
         }
 
         var mainWindow = new MainWindow();

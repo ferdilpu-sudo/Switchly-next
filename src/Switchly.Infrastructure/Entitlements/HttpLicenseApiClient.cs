@@ -19,9 +19,10 @@ public sealed class HttpLicenseApiClient : ILicenseApiClient, IDisposable
         IsConfigured = config.IsConfigured && Uri.TryCreate(_baseUrl, UriKind.Absolute, out var uri)
             && (uri.Scheme == Uri.UriSchemeHttps || uri.IsLoopback);
 
-        _httpClient = new HttpClient
+        _httpClient = new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false })
         {
             Timeout = TimeSpan.FromSeconds(15),
+            MaxResponseContentBufferSize = 256 * 1024,
         };
     }
 
@@ -46,7 +47,7 @@ public sealed class HttpLicenseApiClient : ILicenseApiClient, IDisposable
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            return new LicenseApiOutcome(false, "Tidak dapat terhubung ke server lisensi. Periksa koneksi internet kamu.");
+            return new LicenseApiOutcome(false, "Tidak dapat terhubung ke server lisensi. Periksa koneksi internet Anda.");
         }
     }
 
@@ -266,6 +267,22 @@ public sealed class HttpLicenseApiClient : ILicenseApiClient, IDisposable
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
             return new LicenseApiOutcome(false, "Tidak dapat terhubung ke server lisensi.");
+        }
+    }
+
+    public async Task LogoutAsync(string sessionToken, CancellationToken ct = default)
+    {
+        if (!IsConfigured || string.IsNullOrWhiteSpace(sessionToken))
+        {
+            return;
+        }
+
+        try
+        {
+            using var resp = await PostJsonAsync("/v1/auth/logout", new { }, sessionToken, ct);
+        }
+        catch
+        {
         }
     }
 

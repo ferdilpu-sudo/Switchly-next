@@ -59,10 +59,23 @@ public sealed class SignedTokenEntitlementService : IFeatureEntitlementService
             return CreateFreeSnapshot();
         }
 
-        // Guard against manual system clock rollback to extend Trial/Subscription offline.
-        if (now + ClockRollbackTolerance < stored.LastObservedUtc)
+        // Guard against manual system clock rollback to extend Trial/Subscription offline (SEC-06).
+        if (now + ClockRollbackTolerance < stored.LastObservedUtc
+            || now + ClockRollbackTolerance < payload.IssuedAtUtc)
         {
             return CreateFreeSnapshot();
+        }
+
+        // Ratchet LastObservedUtc forward periodically so offline clock rollbacks are detected.
+        if (now - stored.LastObservedUtc >= TimeSpan.FromMinutes(15))
+        {
+            try
+            {
+                _licenseStore.Save(stored with { LastObservedUtc = now });
+            }
+            catch
+            {
+            }
         }
 
         var needsRefresh = now >= payload.RefreshAfterUtc;
@@ -74,7 +87,7 @@ public sealed class SignedTokenEntitlementService : IFeatureEntitlementService
                 return new EntitlementSnapshot(
                     ActiveTier: SubscriptionTier.ProPerpetual,
                     RequiresAccount: true,
-                    MaxProfiles: null,
+                    MaxProfiles: payload.MaxProfiles,
                     IsOfflineReady: true,
                     DisplayBadge: "Pro (Perpetual)",
                     ExpiresAtUtc: null,
@@ -89,7 +102,7 @@ public sealed class SignedTokenEntitlementService : IFeatureEntitlementService
                     return new EntitlementSnapshot(
                         ActiveTier: SubscriptionTier.ProSubscription,
                         RequiresAccount: true,
-                        MaxProfiles: null,
+                        MaxProfiles: payload.MaxProfiles,
                         IsOfflineReady: true,
                         DisplayBadge: "Pro",
                         ExpiresAtUtc: payload.ExpiresAtUtc,
@@ -106,7 +119,7 @@ public sealed class SignedTokenEntitlementService : IFeatureEntitlementService
                     return new EntitlementSnapshot(
                         ActiveTier: SubscriptionTier.TrialPro,
                         RequiresAccount: true,
-                        MaxProfiles: null,
+                        MaxProfiles: payload.MaxProfiles,
                         IsOfflineReady: true,
                         DisplayBadge: $"Trial Pro (Sisa {remainingDays} Hari)",
                         ExpiresAtUtc: payload.ExpiresAtUtc,

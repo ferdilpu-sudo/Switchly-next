@@ -41,10 +41,10 @@
           AfterTargets="Build"
           Condition="Exists('$(ProprietaryCefDir)\libcef.dll')">
     <ItemGroup>
-      <_ProprietaryCefFiles Include="$(ProprietaryCefDir)\**\*.*" />
+      <_ProprietaryCefFiles Include="$(ProprietaryCefDir)\*.dll" />
     </ItemGroup>
     <Copy SourceFiles="@(_ProprietaryCefFiles)"
-          DestinationFiles="@(_ProprietaryCefFiles->'$(OutDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          DestinationFolder="$(OutDir)"
           OverwriteReadOnlyFiles="true"
           SkipUnchangedFiles="true" />
     <Message Importance="High" Text="[Switchly] Applied proprietary-codec CEF overlay to $(OutDir)" />
@@ -54,10 +54,10 @@
           AfterTargets="Publish"
           Condition="Exists('$(ProprietaryCefDir)\libcef.dll')">
     <ItemGroup>
-      <_ProprietaryCefPublishFiles Include="$(ProprietaryCefDir)\**\*.*" />
+      <_ProprietaryCefPublishFiles Include="$(ProprietaryCefDir)\*.dll" />
     </ItemGroup>
     <Copy SourceFiles="@(_ProprietaryCefPublishFiles)"
-          DestinationFiles="@(_ProprietaryCefPublishFiles->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')"
+          DestinationFolder="$([MSBuild]::EnsureTrailingSlash('$(PublishDir)'))"
           OverwriteReadOnlyFiles="true"
           SkipUnchangedFiles="true" />
     <Message Importance="High" Text="[Switchly] Applied proprietary-codec CEF overlay to $(PublishDir)" />

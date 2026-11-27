@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Switchly.Application.Vault;
 
 namespace Switchly.Infrastructure.Security;
 
@@ -29,7 +30,7 @@ public static class PendingRestoreApplier
         {
             marker = JsonSerializer.Deserialize<PendingRestoreMarker>(File.ReadAllText(markerPath));
         }
-        catch (Exception ex) when (ex is IOException or JsonException)
+        catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
         {
             TryDeleteFile(markerPath);
             return false;
@@ -45,8 +46,14 @@ public static class PendingRestoreApplier
         }
 
         var stagingRoot = Path.GetFullPath(Path.Combine(appDataRoot, "RestoreStaging"));
+        if (!stagingRoot.EndsWith(Path.DirectorySeparatorChar))
+        {
+            stagingRoot += Path.DirectorySeparatorChar;
+        }
+
         var stagingDir = Path.GetFullPath(Path.Combine(stagingRoot, marker.StagingDirectoryName));
         var stagedDb = Path.Combine(stagingDir, "data", "switchly-next.db");
+        var stagedVaultKey = Path.Combine(stagingDir, "data", PasswordVaultService.VaultKeyFileName);
         if (!stagingDir.StartsWith(stagingRoot, StringComparison.OrdinalIgnoreCase) || !File.Exists(stagedDb))
         {
             TryDeleteFile(markerPath);
@@ -55,6 +62,7 @@ public static class PendingRestoreApplier
 
         var dataDir = Path.Combine(appDataRoot, "Data");
         var liveDb = Path.Combine(dataDir, "switchly-next.db");
+        var liveVaultKey = Path.Combine(dataDir, PasswordVaultService.VaultKeyFileName);
         var liveProfilesDir = Path.Combine(appDataRoot, "Profiles");
         var rollbackDir = Path.Combine(appDataRoot, $"RestoreRollback-{Guid.NewGuid():N}");
 
@@ -63,10 +71,15 @@ public static class PendingRestoreApplier
 
         try
         {
-            // 1. Move current live DB and Profiles aside for rollback safety.
+            // 1. Move current live DB, Vault Key, and Profiles aside for rollback safety.
             if (File.Exists(liveDb))
             {
                 File.Move(liveDb, Path.Combine(rollbackDir, "switchly-next.db"));
+            }
+
+            if (File.Exists(liveVaultKey))
+            {
+                File.Move(liveVaultKey, Path.Combine(rollbackDir, PasswordVaultService.VaultKeyFileName));
             }
 
             TryDeleteFile(liveDb + "-wal");
@@ -77,8 +90,13 @@ public static class PendingRestoreApplier
                 Directory.Move(liveProfilesDir, Path.Combine(rollbackDir, "Profiles"));
             }
 
-            // 2. Promote staged DB and staged Profiles.
+            // 2. Promote staged DB, staged Vault Key (if present), and validated staged Profile directories.
             File.Move(stagedDb, liveDb);
+            if (File.Exists(stagedVaultKey))
+            {
+                File.Move(stagedVaultKey, liveVaultKey);
+            }
+
             Directory.CreateDirectory(liveProfilesDir);
 
             var stagedProfilesDir = Path.Combine(stagingDir, "profiles");
@@ -87,15 +105,14 @@ public static class PendingRestoreApplier
                 foreach (var dir in Directory.EnumerateDirectories(stagedProfilesDir))
                 {
                     var name = Path.GetFileName(dir);
+                    if (!PortableBackupRestoreService.IsValidProfileDirectorySegment(name))
+                    {
+                        continue;
+                    }
+
                     Directory.Move(dir, Path.Combine(liveProfilesDir, name));
                 }
             }
-
-            // 3. Cleanup marker, staging, and rollback directory.
-            TryDeleteFile(markerPath);
-            TryDeleteDirectory(stagingDir);
-            TryDeleteDirectory(rollbackDir);
-            return true;
         }
         catch
         {
@@ -103,12 +120,19 @@ public static class PendingRestoreApplier
             try
             {
                 TryDeleteFile(liveDb);
+                TryDeleteFile(liveVaultKey);
                 TryDeleteDirectory(liveProfilesDir);
 
                 var rollbackDb = Path.Combine(rollbackDir, "switchly-next.db");
                 if (File.Exists(rollbackDb))
                 {
                     File.Move(rollbackDb, liveDb);
+                }
+
+                var rollbackVaultKey = Path.Combine(rollbackDir, PasswordVaultService.VaultKeyFileName);
+                if (File.Exists(rollbackVaultKey))
+                {
+                    File.Move(rollbackVaultKey, liveVaultKey);
                 }
 
                 var rollbackProfiles = Path.Combine(rollbackDir, "Profiles");
@@ -125,6 +149,12 @@ public static class PendingRestoreApplier
             TryDeleteFile(markerPath);
             throw;
         }
+
+        // 3. Post-commit cleanup MUST run outside the rollback try/catch so cleanup failures never destroy committed live data (SEC-03).
+        TryDeleteFile(markerPath);
+        TryDeleteDirectory(stagingDir);
+        TryDeleteDirectory(rollbackDir);
+        return true;
     }
 
     private static void TryDeleteFile(string path)
@@ -133,10 +163,11 @@ public static class PendingRestoreApplier
         {
             if (File.Exists(path))
             {
+                File.SetAttributes(path, FileAttributes.Normal);
                 File.Delete(path);
             }
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
         }
     }
@@ -145,12 +176,25 @@ public static class PendingRestoreApplier
     {
         try
         {
-            if (Directory.Exists(path))
+            if (!Directory.Exists(path))
             {
-                Directory.Delete(path, recursive: true);
+                return;
             }
+
+            foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+            {
+                try
+                {
+                    File.SetAttributes(file, FileAttributes.Normal);
+                }
+                catch
+                {
+                }
+            }
+
+            Directory.Delete(path, recursive: true);
         }
-        catch (IOException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
         }
     }

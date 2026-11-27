@@ -112,16 +112,23 @@ public sealed class ManualGroupItemViewModel : ViewModelBase
 
     private async Task LoadFaviconAsync(string url)
     {
-        var icon = await FaviconCacheService.GetFaviconForUrlAsync(url);
-        if (icon is null)
+        try
         {
-            return;
-        }
+            var icon = await FaviconCacheService.GetFaviconForUrlAsync(url);
+            if (icon is null)
+            {
+                return;
+            }
 
-        var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        if (dispatcher is not null)
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            if (dispatcher is not null)
+            {
+                _ = dispatcher.BeginInvoke(() => Favicon = icon);
+            }
+        }
+        catch
         {
-            _ = dispatcher.BeginInvoke(() => Favicon = icon);
+            // Non-critical favicon fetch failure; fallback vector icon remains visible.
         }
     }
 
@@ -174,6 +181,8 @@ public sealed class WorkspaceViewModel : ViewModelBase
     private ProfileSortOrder _sortOrder = ProfileSortOrder.NameAsc;
     private ProfileGroup? _selectedGroup;
     private Guid? _activeDockedProfileId;
+    private Guid? _lastFocusedProfileId;
+    private int _filterVersion;
     private string _searchText = string.Empty;
     private string? _errorMessage;
     private string? _memoryWarningMessage;
@@ -186,18 +195,23 @@ public sealed class WorkspaceViewModel : ViewModelBase
     private int _totalSavedCount;
     private int _activeProfileCount;
     private bool _isEmpty;
+    private readonly Switchly.Application.Entitlements.IFeatureEntitlementService _entitlementService;
+
+    public event Action<string?>? UpgradePromptRequested;
 
     public WorkspaceViewModel(
         IServiceScopeFactory scopeFactory,
         IProfileSessionManager sessionManager,
         BrowserWindowCoordinator windowCoordinator,
         IResourceMonitor resourceMonitor,
+        Switchly.Application.Entitlements.IFeatureEntitlementService entitlementService,
         ILogger<WorkspaceViewModel> logger)
     {
         _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         _sessionManager = sessionManager ?? throw new ArgumentNullException(nameof(sessionManager));
         _windowCoordinator = windowCoordinator ?? throw new ArgumentNullException(nameof(windowCoordinator));
         _resourceMonitor = resourceMonitor ?? throw new ArgumentNullException(nameof(resourceMonitor));
+        _entitlementService = entitlementService ?? throw new ArgumentNullException(nameof(entitlementService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         _sessionManager.StateChanged += OnSessionStateChanged;
@@ -298,12 +312,29 @@ public sealed class WorkspaceViewModel : ViewModelBase
 
         using var scope = _scopeFactory.CreateScope();
         var profileService = scope.ServiceProvider.GetRequiredService<IProfileService>();
+        var runningActiveCount = _totalSavedCount;
 
         foreach (var item in selected)
         {
-            if (!item.IsArchived && _sessionManager.GetState(item.ProfileId) == ProfileRuntimeState.Active)
+            if (item.IsArchived)
+            {
+                var decision = _entitlementService.CanCreateProfile(runningActiveCount);
+                if (!decision.IsAllowed)
+                {
+                    UpgradePromptRequested?.Invoke(decision.Reason);
+                    break;
+                }
+
+                runningActiveCount++;
+            }
+            else if (_sessionManager.GetState(item.ProfileId) == ProfileRuntimeState.Active)
             {
                 await _windowCoordinator.CloseProfileWindowsAsync(item.ProfileId);
+                runningActiveCount = Math.Max(0, runningActiveCount - 1);
+            }
+            else
+            {
+                runningActiveCount = Math.Max(0, runningActiveCount - 1);
             }
 
             await profileService.SetArchivedAsync(item.ProfileId, !item.IsArchived);
@@ -444,7 +475,8 @@ public sealed class WorkspaceViewModel : ViewModelBase
 
     public bool HasSingleActiveSession => _activeProfileCount == 1;
 
-    public bool HasBackgroundSessions => _activeProfileCount > 1;
+    public bool HasBackgroundSessions =>
+        _activeProfileCount > 1 && (_activeDockedProfileId.HasValue || _lastFocusedProfileId.HasValue);
 
     public bool IsGroupSectionSelected => _activeSection == WorkspaceSection.Group && _selectedGroup is not null;
 
@@ -515,6 +547,7 @@ public sealed class WorkspaceViewModel : ViewModelBase
         _activeDockedProfileId = profileId;
         if (profileId.HasValue)
         {
+            _lastFocusedProfileId = profileId.Value;
             _profileLastActiveUtc[profileId.Value] = now;
         }
 
@@ -648,9 +681,15 @@ public sealed class WorkspaceViewModel : ViewModelBase
     public async Task CloseBackgroundSessionsAsync()
     {
         ErrorMessage = null;
+        var keepProfileId = _activeDockedProfileId ?? _lastFocusedProfileId;
+        if (!keepProfileId.HasValue)
+        {
+            return;
+        }
+
         var activeIds = _sessionManager.GetActiveSessions()
             .Select(s => s.ProfileId)
-            .Where(id => !_activeDockedProfileId.HasValue || id != _activeDockedProfileId.Value)
+            .Where(id => id != keepProfileId.Value)
             .ToList();
 
         foreach (var id in activeIds)
@@ -848,33 +887,85 @@ public sealed class WorkspaceViewModel : ViewModelBase
     public async Task DuplicateProfileAsync(Guid profileId)
     {
         ErrorMessage = null;
-        using var scope = _scopeFactory.CreateScope();
-        var profileService = scope.ServiceProvider.GetRequiredService<IProfileService>();
-        await profileService.DuplicateConfigurationAsync(new DuplicateProfileCommand(profileId));
-        await LoadAsync();
+        var decision = _entitlementService.CanCreateProfile(_totalSavedCount);
+        if (!decision.IsAllowed)
+        {
+            UpgradePromptRequested?.Invoke(decision.Reason);
+            return;
+        }
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var profileService = scope.ServiceProvider.GetRequiredService<IProfileService>();
+            await profileService.DuplicateConfigurationAsync(new DuplicateProfileCommand(profileId));
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to duplicate profile {ProfileId}.", profileId);
+            ErrorMessage = $"Gagal menduplikat profil: {ex.Message}";
+        }
     }
 
     public async Task ToggleFavoriteAsync(BrowserProfile profile)
     {
         ErrorMessage = null;
-        using var scope = _scopeFactory.CreateScope();
-        var profileService = scope.ServiceProvider.GetRequiredService<IProfileService>();
-        await profileService.SetFavoriteAsync(profile.ProfileId, !profile.IsFavorite);
-        await LoadAsync();
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var profileService = scope.ServiceProvider.GetRequiredService<IProfileService>();
+            await profileService.SetFavoriteAsync(profile.ProfileId, !profile.IsFavorite);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to toggle favorite on profile {ProfileId}.", profile.ProfileId);
+            ErrorMessage = $"Gagal mengubah status favorit: {ex.Message}";
+        }
     }
 
     public async Task ToggleArchiveAsync(BrowserProfile profile)
     {
         ErrorMessage = null;
-        if (!profile.IsArchived && _sessionManager.GetState(profile.ProfileId) == ProfileRuntimeState.Active)
+        if (profile.IsArchived)
         {
-            await _windowCoordinator.CloseProfileWindowsAsync(profile.ProfileId);
+            var decision = _entitlementService.CanCreateProfile(_totalSavedCount);
+            if (!decision.IsAllowed)
+            {
+                UpgradePromptRequested?.Invoke(decision.Reason);
+                return;
+            }
         }
 
-        using var scope = _scopeFactory.CreateScope();
-        var profileService = scope.ServiceProvider.GetRequiredService<IProfileService>();
-        await profileService.SetArchivedAsync(profile.ProfileId, !profile.IsArchived);
-        await LoadAsync();
+        try
+        {
+            if (!profile.IsArchived && _sessionManager.GetState(profile.ProfileId) == ProfileRuntimeState.Active)
+            {
+                await _windowCoordinator.CloseProfileWindowsAsync(profile.ProfileId);
+            }
+
+            using var scope = _scopeFactory.CreateScope();
+            var profileService = scope.ServiceProvider.GetRequiredService<IProfileService>();
+            await profileService.SetArchivedAsync(profile.ProfileId, !profile.IsArchived);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to toggle archive on profile {ProfileId}.", profile.ProfileId);
+            ErrorMessage = $"Gagal mengarsipkan/memulihkan profil: {ex.Message}";
+        }
+    }
+
+    public Switchly.Domain.Entitlements.FeatureEntitlementDecision EvaluateCanOpenProfile(Guid profileId)
+    {
+        var orderedActiveIds = _allProfiles
+            .Where(p => !p.IsArchived)
+            .OrderBy(p => p.CreatedAtUtc)
+            .ThenBy(p => p.ProfileId)
+            .Select(p => p.ProfileId)
+            .ToList();
+        return _entitlementService.CanOpenProfile(profileId, orderedActiveIds);
     }
 
     public async Task DeleteProfileAsync(BrowserProfile profile)
@@ -897,6 +988,13 @@ public sealed class WorkspaceViewModel : ViewModelBase
     public async Task OpenOrFocusProfileAsync(BrowserProfile profile)
     {
         ErrorMessage = null;
+        var openDecision = EvaluateCanOpenProfile(profile.ProfileId);
+        if (!openDecision.IsAllowed)
+        {
+            UpgradePromptRequested?.Invoke(openDecision.Reason);
+            return;
+        }
+
         try
         {
             var activeGroup = _activeSection == WorkspaceSection.Group ? _selectedGroup : null;
@@ -916,10 +1014,19 @@ public sealed class WorkspaceViewModel : ViewModelBase
     public async Task OpenNewWindowAsync(BrowserProfile profile)
     {
         ErrorMessage = null;
+        var openDecision = EvaluateCanOpenProfile(profile.ProfileId);
+        if (!openDecision.IsAllowed)
+        {
+            UpgradePromptRequested?.Invoke(openDecision.Reason);
+            return;
+        }
+
         try
         {
             var targetUrl = _activeSection == WorkspaceSection.Group ? _selectedGroup?.DefaultUrl : null;
             await _windowCoordinator.OpenNewWindowForProfileAsync(profile, targetUrl);
+            _lastFocusedProfileId ??= profile.ProfileId;
+            RefreshResourceUsage();
         }
         catch (Exception ex)
         {
@@ -1027,8 +1134,9 @@ public sealed class WorkspaceViewModel : ViewModelBase
         {
             using var scope = _scopeFactory.CreateScope();
             var groupService = scope.ServiceProvider.GetRequiredService<IGroupService>();
-            await System.Windows.Application.Current.Dispatcher.InvokeAsync(
-                async () => await ReloadGroupCollectionsAsync(groupService));
+            var op = System.Windows.Application.Current.Dispatcher.InvokeAsync(
+                () => ReloadGroupCollectionsAsync(groupService));
+            await await op;
         }
         catch (Exception ex)
         {
@@ -1080,72 +1188,86 @@ public sealed class WorkspaceViewModel : ViewModelBase
 
     private async Task ApplyFilterAsync()
     {
-        IReadOnlySet<Guid>? allowedIds = null;
-        if (_activeSection == WorkspaceSection.Group && _selectedGroup is not null)
+        var version = ++_filterVersion;
+        try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var groupService = scope.ServiceProvider.GetRequiredService<IGroupService>();
-            var ids = await groupService.GetProfileIdsInGroupAsync(_selectedGroup.GroupId);
+            IReadOnlySet<Guid>? allowedIds = null;
+            if (_activeSection == WorkspaceSection.Group && _selectedGroup is not null)
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var groupService = scope.ServiceProvider.GetRequiredService<IGroupService>();
+                var ids = await groupService.GetProfileIdsInGroupAsync(_selectedGroup.GroupId);
 
-            // D15: Strict Group Filter — always filter strictly to profiles assigned to this group
-            // so the displayed rows match the sidebar member count badge 1:1.
-            allowedIds = ids.ToHashSet();
+                // Abort if a newer filter change arrived while awaiting SQLite (F-04).
+                if (version != _filterVersion)
+                {
+                    return;
+                }
+
+                // D15: Strict Group Filter — always filter strictly to profiles assigned to this group
+                // so the displayed rows match the sidebar member count badge 1:1.
+                allowedIds = ids.ToHashSet();
+            }
+
+            var criteria = new ProfileFilterCriteria(
+                SearchText: _searchText,
+                FavoritesOnly: _activeSection == WorkspaceSection.Favorites,
+                ArchivedOnly: _activeSection == WorkspaceSection.Archived,
+                AllowedProfileIds: allowedIds);
+
+            var filtered = ProfileFilter.Apply(_allProfiles, criteria);
+            var activeMap = _sessionManager.GetActiveSessions().ToDictionary(s => s.ProfileId, s => s.OpenWindowCount);
+
+            var items = filtered.Select(profile =>
+            {
+                var state = _sessionManager.GetState(profile.ProfileId);
+                var windowCount = activeMap.TryGetValue(profile.ProfileId, out var c) ? c : 0;
+                var isDocked = _activeDockedProfileId.HasValue && profile.ProfileId == _activeDockedProfileId.Value;
+                _profileManualGroupMap.TryGetValue(profile.ProfileId, out var groupName);
+                return new ProfileListItemViewModel(profile, state, windowCount, isDocked, groupName);
+            });
+
+            items = _statusFilter switch
+            {
+                ProfileStatusFilter.Running => items.Where(i => i.IsActive),
+                ProfileStatusFilter.Inactive => items.Where(i => !i.IsActive),
+                _ => items,
+            };
+
+            items = _sortOrder switch
+            {
+                ProfileSortOrder.NameAsc => items.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
+                ProfileSortOrder.RecentlyUsed => items
+                    .OrderByDescending(i => i.LastOpenedUtc ?? DateTimeOffset.MinValue)
+                    .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
+                ProfileSortOrder.NewestCreated => items
+                    .OrderByDescending(i => i.CreatedUtc)
+                    .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
+                ProfileSortOrder.GroupAsc => items
+                    .OrderBy(i => i.HasManualGroup ? 0 : 1)
+                    .ThenBy(i => i.GroupBadgeLabel, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
+                _ => items
+                    .OrderByDescending(i => i.IsCurrentlyDocked)
+                    .ThenByDescending(i => i.IsActive)
+                    .ThenByDescending(i => i.IsFavorite)
+                    .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
+            };
+
+            VisibleProfiles.Clear();
+            foreach (var item in items)
+            {
+                VisibleProfiles.Add(item);
+            }
+
+            IsEmpty = VisibleProfiles.Count == 0;
+            OnPropertyChanged(nameof(VisibleProfileCountLabel));
+            NotifySelectionChanged();
         }
-
-        var criteria = new ProfileFilterCriteria(
-            SearchText: _searchText,
-            FavoritesOnly: _activeSection == WorkspaceSection.Favorites,
-            ArchivedOnly: _activeSection == WorkspaceSection.Archived,
-            AllowedProfileIds: allowedIds);
-
-        var filtered = ProfileFilter.Apply(_allProfiles, criteria);
-        var activeMap = _sessionManager.GetActiveSessions().ToDictionary(s => s.ProfileId, s => s.OpenWindowCount);
-
-        var items = filtered.Select(profile =>
+        catch (Exception ex)
         {
-            var state = _sessionManager.GetState(profile.ProfileId);
-            var windowCount = activeMap.TryGetValue(profile.ProfileId, out var c) ? c : 0;
-            var isDocked = _activeDockedProfileId.HasValue && profile.ProfileId == _activeDockedProfileId.Value;
-            _profileManualGroupMap.TryGetValue(profile.ProfileId, out var groupName);
-            return new ProfileListItemViewModel(profile, state, windowCount, isDocked, groupName);
-        });
-
-        items = _statusFilter switch
-        {
-            ProfileStatusFilter.Running => items.Where(i => i.IsActive),
-            ProfileStatusFilter.Inactive => items.Where(i => !i.IsActive),
-            _ => items,
-        };
-
-        items = _sortOrder switch
-        {
-            ProfileSortOrder.NameAsc => items.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
-            ProfileSortOrder.RecentlyUsed => items
-                .OrderByDescending(i => i.LastOpenedUtc ?? DateTimeOffset.MinValue)
-                .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
-            ProfileSortOrder.NewestCreated => items
-                .OrderByDescending(i => i.CreatedUtc)
-                .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
-            ProfileSortOrder.GroupAsc => items
-                .OrderBy(i => i.HasManualGroup ? 0 : 1)
-                .ThenBy(i => i.GroupBadgeLabel, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
-            _ => items
-                .OrderByDescending(i => i.IsCurrentlyDocked)
-                .ThenByDescending(i => i.IsActive)
-                .ThenByDescending(i => i.IsFavorite)
-                .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase),
-        };
-
-        VisibleProfiles.Clear();
-        foreach (var item in items)
-        {
-            VisibleProfiles.Add(item);
+            _logger.LogWarning(ex, "Failed to apply profile filter.");
         }
-
-        IsEmpty = VisibleProfiles.Count == 0;
-        OnPropertyChanged(nameof(VisibleProfileCountLabel));
-        NotifySelectionChanged();
     }
 
     private void OnSessionStateChanged(ProfileSessionSnapshot snapshot)

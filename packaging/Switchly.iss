@@ -38,6 +38,8 @@ OutputBaseFilename=Switchly-{#AppVersion}-win-x64-setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
+CloseApplications=force
+CloseApplicationsFilter=*.exe,*.dll
 UninstallDisplayIcon={app}\Switchly.App.exe
 ; For public GA release with an Authenticode certificate, enable SignTool in Inno Setup IDE or CLI:
 ; SignTool=signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 $f

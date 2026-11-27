@@ -49,15 +49,30 @@ New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
 New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
 
 # 3. Publish Switchly.App self-contained win-x64 (includes .NET 10 runtime + CEF + proprietary overlay if present)
-Write-Host "Publishing Switchly.App (Release, win-x64, self-contained)..."
+Write-Host "Publishing Switchly.App (Release, win-x64, self-contained, Version=$Version)..."
 dotnet publish (Join-Path $repoRoot "src\Switchly.App\Switchly.App.csproj") `
     -c Release `
     -r win-x64 `
     --self-contained true `
+    -p:Version=$Version `
+    -p:AssemblyVersion=$Version `
+    -p:FileVersion=$Version `
+    -p:DebugType=none `
+    -p:DebugSymbols=false `
+    -p:ContinuousIntegrationBuild=true `
     -o $stageDir
 
 if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish failed with exit code $LASTEXITCODE"
+}
+
+Get-ChildItem -Path $stageDir -Filter "*.pdb" -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force
+
+$requiredCefFiles = @("Switchly.App.exe", "libcef.dll", "CefSharp.BrowserSubprocess.exe", "icudtl.dat", "locales\en-US.pak")
+foreach ($rel in $requiredCefFiles) {
+    if (-not (Test-Path (Join-Path $stageDir $rel))) {
+        throw "Required runtime asset missing in MSIX stage directory: $rel"
+    }
 }
 
 # Include required third-party notices & privacy notice inside package
@@ -100,14 +115,14 @@ foreach ($tile in $requiredTiles) {
     }
 }
 
-# 5. Render AppxManifest.xml with exact Partner Center identity
+# 5. Render AppxManifest.xml with XML-escaped Partner Center identity
 $templatePath = Join-Path $PSScriptRoot "msix\AppxManifest.template.xml"
 $manifest = Get-Content $templatePath -Raw -Encoding UTF8
-$manifest = $manifest.Replace("{{IDENTITY_NAME}}", $IdentityName.Trim())
-$manifest = $manifest.Replace("{{PUBLISHER}}", $Publisher.Trim())
-$manifest = $manifest.Replace("{{PUBLISHER_DISPLAY_NAME}}", $PublisherDisplayName.Trim())
-$manifest = $manifest.Replace("{{VERSION}}", $Version.Trim())
-Set-Content -Path (Join-Path $stageDir "AppxManifest.xml") -Value $manifest -Encoding UTF8
+$manifest = $manifest.Replace("{{IDENTITY_NAME}}", [System.Security.SecurityElement]::Escape($IdentityName.Trim()))
+$manifest = $manifest.Replace("{{PUBLISHER}}", [System.Security.SecurityElement]::Escape($Publisher.Trim()))
+$manifest = $manifest.Replace("{{PUBLISHER_DISPLAY_NAME}}", [System.Security.SecurityElement]::Escape($PublisherDisplayName.Trim()))
+$manifest = $manifest.Replace("{{VERSION}}", [System.Security.SecurityElement]::Escape($Version.Trim()))
+[System.IO.File]::WriteAllText((Join-Path $stageDir "AppxManifest.xml"), $manifest, [System.Text.UTF8Encoding]::new($false))
 
 # 6. Pack .msix (unsigned — Microsoft Store signs it automatically on upload)
 if (Test-Path $outputMsix) { Remove-Item $outputMsix -Force }

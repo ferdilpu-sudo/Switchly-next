@@ -19,20 +19,21 @@ public sealed record MidtransCheckoutResult(
     string? ErrorMessage = null);
 
 public sealed record MidtransWebhookPayload(
-    [property: JsonPropertyName("order_id")] string OrderId,
-    [property: JsonPropertyName("status_code")] string StatusCode,
-    [property: JsonPropertyName("gross_amount")] string GrossAmount,
-    [property: JsonPropertyName("signature_key")] string SignatureKey,
-    [property: JsonPropertyName("transaction_status")] string TransactionStatus,
-    [property: JsonPropertyName("fraud_status")] string? FraudStatus);
+    [property: JsonPropertyName("order_id")] string? OrderId,
+    [property: JsonPropertyName("status_code")] string? StatusCode,
+    [property: JsonPropertyName("gross_amount")] string? GrossAmount,
+    [property: JsonPropertyName("signature_key")] string? SignatureKey,
+    [property: JsonPropertyName("transaction_status")] string? TransactionStatus,
+    [property: JsonPropertyName("fraud_status")] string? FraudStatus,
+    [property: JsonPropertyName("currency")] string? Currency = null);
 
 public sealed record MidtransWebhookResult(bool Succeeded, int HttpStatusCode, string Message);
 
 public interface IMidtransService
 {
-    bool VerifyWebhookSignature(string orderId, string statusCode, string grossAmount, string signatureKey);
+    bool VerifyWebhookSignature(string? orderId, string? statusCode, string? grossAmount, string? signatureKey);
 
-    Task<MidtransCheckoutResult> CreateSnapCheckoutAsync(Account account, string planCode, CancellationToken ct);
+    Task<MidtransCheckoutResult> CreateSnapCheckoutAsync(Account account, string? planCode, CancellationToken ct);
 
     Task<MidtransWebhookResult> ProcessWebhookAsync(MidtransWebhookPayload payload, CancellationToken ct);
 }
@@ -46,7 +47,7 @@ public sealed class MidtransService(
 {
     private readonly MidtransOptions _options = options.Value;
 
-    public bool VerifyWebhookSignature(string orderId, string statusCode, string grossAmount, string signatureKey)
+    public bool VerifyWebhookSignature(string? orderId, string? statusCode, string? grossAmount, string? signatureKey)
     {
         if (string.IsNullOrWhiteSpace(_options.ServerKey)
             || string.IsNullOrWhiteSpace(orderId)
@@ -69,10 +70,10 @@ public sealed class MidtransService(
 
     public async Task<MidtransCheckoutResult> CreateSnapCheckoutAsync(
         Account account,
-        string planCode,
+        string? planCode,
         CancellationToken ct)
     {
-        if (!PlanCodes.Catalog.TryGetValue(planCode, out var plan))
+        if (string.IsNullOrWhiteSpace(planCode) || !PlanCodes.Catalog.TryGetValue(planCode.Trim(), out var plan))
         {
             return new MidtransCheckoutResult(false, ErrorMessage: "Paket tidak dikenal.");
         }
@@ -157,11 +158,20 @@ public sealed class MidtransService(
 
     public async Task<MidtransWebhookResult> ProcessWebhookAsync(MidtransWebhookPayload payload, CancellationToken ct)
     {
-        if (!VerifyWebhookSignature(payload.OrderId, payload.StatusCode, payload.GrossAmount, payload.SignatureKey))
+        if (payload is null ||
+            !VerifyWebhookSignature(payload.OrderId, payload.StatusCode, payload.GrossAmount, payload.SignatureKey))
         {
-            logger.LogWarning("Rejected Midtrans webhook with invalid signature for order {OrderId}", payload.OrderId);
+            logger.LogWarning("Rejected Midtrans webhook with invalid signature for order {OrderId}", payload?.OrderId);
             return new MidtransWebhookResult(false, StatusCodes.Status401Unauthorized, "Invalid signature");
         }
+
+        if (!string.IsNullOrWhiteSpace(payload.Currency) &&
+            !string.Equals(payload.Currency.Trim(), "IDR", StringComparison.OrdinalIgnoreCase))
+        {
+            return new MidtransWebhookResult(false, StatusCodes.Status400BadRequest, "Unsupported currency");
+        }
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         var order = await db.PaymentOrders.FirstOrDefaultAsync(x => x.OrderId == payload.OrderId, ct);
         if (order is null)
@@ -169,8 +179,12 @@ public sealed class MidtransService(
             return new MidtransWebhookResult(false, StatusCodes.Status404NotFound, "Order not found");
         }
 
-        if (!decimal.TryParse(payload.GrossAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var paidAmount)
-            || (long)decimal.Truncate(paidAmount) != order.GrossAmountIdr)
+        if (!decimal.TryParse(
+                payload.GrossAmount,
+                NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite | NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture,
+                out var paidAmount)
+            || paidAmount != order.GrossAmountIdr)
         {
             logger.LogWarning(
                 "Rejected Midtrans webhook amount mismatch for {OrderId}: expected {Expected}, got {Actual}",
@@ -180,17 +194,36 @@ public sealed class MidtransService(
             return new MidtransWebhookResult(false, StatusCodes.Status400BadRequest, "Amount mismatch");
         }
 
-        var txStatus = payload.TransactionStatus.Trim().ToLowerInvariant();
+        var txStatus = (payload.TransactionStatus ?? string.Empty).Trim().ToLowerInvariant();
         var fraudStatus = payload.FraudStatus?.Trim().ToLowerInvariant();
+
+        // Handle refund / chargeback by revoking the associated license (S1-04).
+        if (txStatus is "refund" or "partial_refund" or "chargeback")
+        {
+            var licenseToRevoke = await db.Licenses.FirstOrDefaultAsync(x => x.ExternalOrderId == order.OrderId, ct);
+            if (licenseToRevoke is not null)
+            {
+                licenseToRevoke.Status = "revoked";
+            }
+
+            order.Status = txStatus;
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            return new MidtransWebhookResult(true, StatusCodes.Status200OK, "License revoked due to refund/chargeback");
+        }
+
         var isPaid = txStatus == "settlement"
             || (txStatus == "capture" && (string.IsNullOrEmpty(fraudStatus) || fraudStatus == "accept"));
 
         if (!isPaid)
         {
-            if (txStatus is "expire" or "cancel" or "deny")
+            // Never regress an already-paid order back to expire/cancel/deny on out-of-order webhook delivery (S1-04).
+            if (txStatus is "expire" or "cancel" or "deny" &&
+                string.Equals(order.Status, "pending", StringComparison.OrdinalIgnoreCase))
             {
                 order.Status = txStatus;
                 await db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
             }
 
             return new MidtransWebhookResult(true, StatusCodes.Status200OK, $"Recorded status: {txStatus}");
@@ -215,7 +248,6 @@ public sealed class MidtransService(
 
         if (plan.DurationDays is int durationDays)
         {
-            // Extend from current active subscription expiry if the user renews early.
             var activeExpiries = await db.Licenses
                 .Where(l => l.AccountId == order.AccountId && l.Status == "active" && l.ExpiresAtUtc != null)
                 .Select(l => l.ExpiresAtUtc)
@@ -251,7 +283,17 @@ public sealed class MidtransService(
 
         order.Status = "paid";
         order.PaidAtUtc = now;
-        await db.SaveChangesAsync(ct);
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            await tx.RollbackAsync(ct);
+            return new MidtransWebhookResult(true, StatusCodes.Status200OK, "Already processed");
+        }
 
         logger.LogInformation("Activated {PlanCode} license for account {AccountId} via order {OrderId}", plan.Code, order.AccountId, order.OrderId);
         return new MidtransWebhookResult(true, StatusCodes.Status200OK, "License activated");

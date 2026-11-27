@@ -153,6 +153,7 @@ public partial class BrowserWorkspaceView : UserControl
             SetFullscreenMode(false);
         }
 
+        _toastTimer.Stop();
         _disposed = true;
         foreach (var tab in _tabs.ToList())
         {
@@ -331,6 +332,11 @@ public partial class BrowserWorkspaceView : UserControl
             return;
         }
 
+        if (_isFullscreen && _activeTab != selected)
+        {
+            SetFullscreenMode(false);
+        }
+
         _activeTab = selected;
         BrowserContainer.Content = selected.Host.Control;
         AddressBox.Text = selected.Address;
@@ -365,6 +371,12 @@ public partial class BrowserWorkspaceView : UserControl
         });
 
         _ = RecordVisitAsync(address, tab.Title);
+        if (!string.IsNullOrWhiteSpace(address) &&
+            (address.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+             address.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
+        {
+            _ = _onUrlVisitedCallback(_profile.ProfileId, address);
+        }
     }
 
     private void UpdateSecurityIcon(string? address)
@@ -379,10 +391,7 @@ public partial class BrowserWorkspaceView : UserControl
         }
 
         var brushKey = isHttps ? "SuccessTextBrush" : "TextMutedBrush";
-        if (System.Windows.Application.Current?.TryFindResource(brushKey) is Brush brush)
-        {
-            SecurityIconPath.Stroke = brush;
-        }
+        SecurityIconPath.SetResourceReference(System.Windows.Shapes.Shape.StrokeProperty, brushKey);
 
         SecurityIconPath.ToolTip = isHttps
             ? "Koneksi aman (HTTPS)"
@@ -928,9 +937,12 @@ public partial class BrowserWorkspaceView : UserControl
                 OpenFindBar();
                 break;
             case BrowserShortcutCommand.QuickSearch:
-                if (Window.GetWindow(this) is MainWindow mainWindow)
+                var targetMain = Window.GetWindow(this) as MainWindow
+                    ?? System.Windows.Application.Current?.MainWindow as MainWindow;
+                if (targetMain is not null)
                 {
-                    mainWindow.OpenProfileSwitcher();
+                    targetMain.Activate();
+                    targetMain.OpenProfileSwitcher();
                 }
                 break;
         }
@@ -940,6 +952,12 @@ public partial class BrowserWorkspaceView : UserControl
     {
         if (e.Key == Key.Escape)
         {
+            if (_isFullscreen)
+            {
+                SetFullscreenMode(false);
+                e.Handled = true;
+                return;
+            }
             if (DownloadFlyoutPanel.Visibility == Visibility.Visible)
             {
                 DownloadFlyoutPanel.Visibility = Visibility.Collapsed;

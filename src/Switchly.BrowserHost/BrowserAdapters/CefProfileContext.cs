@@ -27,6 +27,15 @@ internal sealed class CefProfileContext : IBrowserProfileContext
                 nameof(storagePath));
         }
 
+        var leafName = Path.GetFileName(fullStorage);
+        if (!(Guid.TryParseExact(leafName, "N", out var leafGuid) || Guid.TryParseExact(leafName, "D", out leafGuid))
+            || leafGuid == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "Profile CachePath leaf directory must be a non-empty profile GUID (never CEF reserved 'Default').",
+                nameof(storagePath));
+        }
+
         Directory.CreateDirectory(fullStorage);
 
         var settings = new RequestContextSettings

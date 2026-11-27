@@ -53,17 +53,6 @@ public static class DownloadFileNameSanitizer
         }
 
         var cleaned = sb.ToString().Trim().TrimEnd('.', ' ');
-        if (string.IsNullOrWhiteSpace(cleaned) || cleaned is "." or "..")
-        {
-            return DefaultFallback;
-        }
-
-        var baseName = Path.GetFileNameWithoutExtension(cleaned);
-        if (ReservedDeviceNames.Contains(baseName))
-        {
-            cleaned = "_" + cleaned;
-        }
-
         if (cleaned.Length > MaxLength)
         {
             var ext = Path.GetExtension(cleaned);
@@ -73,11 +62,28 @@ public static class DownloadFileNameSanitizer
             }
             else
             {
-                cleaned = cleaned[..(MaxLength - ext.Length)] + ext;
+                cleaned = cleaned[..(MaxLength - ext.Length)].TrimEnd('.', ' ') + ext;
             }
         }
 
-        return cleaned;
+        cleaned = cleaned.TrimEnd('.', ' ');
+        if (string.IsNullOrWhiteSpace(cleaned) || cleaned is "." or "..")
+        {
+            return DefaultFallback;
+        }
+
+        var firstDot = cleaned.IndexOf('.');
+        var stem = (firstDot >= 0 ? cleaned[..firstDot] : cleaned).Trim();
+        if (ReservedDeviceNames.Contains(stem))
+        {
+            cleaned = "_" + cleaned;
+            if (cleaned.Length > MaxLength)
+            {
+                cleaned = cleaned[..MaxLength].TrimEnd('.', ' ');
+            }
+        }
+
+        return string.IsNullOrWhiteSpace(cleaned) ? DefaultFallback : cleaned;
     }
 
     private static bool IsBidiControl(char ch)

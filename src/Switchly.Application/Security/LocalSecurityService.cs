@@ -15,6 +15,7 @@ public sealed class LocalSecurityService : ILocalSecurityService
 
     private readonly ILocalDataProtector _protector;
     private readonly string _configFilePath;
+    private readonly object _configLock = new();
 
     public LocalSecurityService(ILocalDataProtector protector, string dataDirectory)
     {
@@ -99,7 +100,9 @@ public sealed class LocalSecurityService : ILocalSecurityService
                 return true;
             }
 
-            if (string.IsNullOrEmpty(config.SaltBase64) || string.IsNullOrEmpty(config.VerifierHashBase64))
+            if (string.IsNullOrEmpty(config.SaltBase64) ||
+                string.IsNullOrEmpty(config.VerifierHashBase64) ||
+                config.KdfIterations is < 10_000 or > 5_000_000)
             {
                 return false;
             }
@@ -159,17 +162,20 @@ public sealed class LocalSecurityService : ILocalSecurityService
 
     private void WriteProtectedConfig(StoredSecurityConfig config)
     {
-        var plaintext = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(config));
-        try
+        lock (_configLock)
         {
-            var encrypted = _protector.Protect(plaintext, ConfigEntropy);
-            var tempPath = _configFilePath + ".tmp";
-            File.WriteAllBytes(tempPath, encrypted);
-            File.Move(tempPath, _configFilePath, overwrite: true);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(plaintext);
+            var plaintext = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(config));
+            try
+            {
+                var encrypted = _protector.Protect(plaintext, ConfigEntropy);
+                var tempPath = $"{_configFilePath}.{Guid.NewGuid():N}.tmp";
+                File.WriteAllBytes(tempPath, encrypted);
+                File.Move(tempPath, _configFilePath, overwrite: true);
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(plaintext);
+            }
         }
     }
 

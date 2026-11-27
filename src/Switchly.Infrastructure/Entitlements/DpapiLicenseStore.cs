@@ -17,6 +17,7 @@ public sealed class DpapiLicenseStore : ILicenseStore
 
     private readonly string _filePath;
     private readonly ILocalDataProtector _protector;
+    private readonly object _sync = new();
 
     public DpapiLicenseStore(string filePath, ILocalDataProtector protector)
     {
@@ -31,27 +32,30 @@ public sealed class DpapiLicenseStore : ILicenseStore
 
     public StoredLicenseState? Load()
     {
-        if (!File.Exists(_filePath))
+        lock (_sync)
         {
-            return null;
-        }
+            if (!File.Exists(_filePath))
+            {
+                return null;
+            }
 
-        try
-        {
-            var encrypted = File.ReadAllBytes(_filePath);
-            var plaintext = _protector.Unprotect(encrypted, Entropy);
             try
             {
-                return JsonSerializer.Deserialize<StoredLicenseState>(plaintext);
+                var encrypted = File.ReadAllBytes(_filePath);
+                var plaintext = _protector.Unprotect(encrypted, Entropy);
+                try
+                {
+                    return JsonSerializer.Deserialize<StoredLicenseState>(plaintext);
+                }
+                finally
+                {
+                    CryptographicOperations.ZeroMemory(plaintext);
+                }
             }
-            finally
+            catch (Exception ex) when (ex is CryptographicException or JsonException or IOException or UnauthorizedAccessException)
             {
-                CryptographicOperations.ZeroMemory(plaintext);
+                return null;
             }
-        }
-        catch (Exception ex) when (ex is CryptographicException or JsonException or IOException or UnauthorizedAccessException)
-        {
-            return null;
         }
     }
 
@@ -59,31 +63,37 @@ public sealed class DpapiLicenseStore : ILicenseStore
     {
         ArgumentNullException.ThrowIfNull(state);
 
-        var dir = Path.GetDirectoryName(_filePath);
-        if (!string.IsNullOrWhiteSpace(dir))
+        lock (_sync)
         {
-            Directory.CreateDirectory(dir);
-        }
+            var dir = Path.GetDirectoryName(_filePath);
+            if (!string.IsNullOrWhiteSpace(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
 
-        var plaintext = JsonSerializer.SerializeToUtf8Bytes(state);
-        try
-        {
-            var encrypted = _protector.Protect(plaintext, Entropy);
-            var tempPath = $"{_filePath}.{Guid.NewGuid():N}.tmp";
-            File.WriteAllBytes(tempPath, encrypted);
-            File.Move(tempPath, _filePath, overwrite: true);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(plaintext);
+            var plaintext = JsonSerializer.SerializeToUtf8Bytes(state);
+            try
+            {
+                var encrypted = _protector.Protect(plaintext, Entropy);
+                var tempPath = $"{_filePath}.{Guid.NewGuid():N}.tmp";
+                File.WriteAllBytes(tempPath, encrypted);
+                File.Move(tempPath, _filePath, overwrite: true);
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(plaintext);
+            }
         }
     }
 
     public void Clear()
     {
-        if (File.Exists(_filePath))
+        lock (_sync)
         {
-            File.Delete(_filePath);
+            if (File.Exists(_filePath))
+            {
+                File.Delete(_filePath);
+            }
         }
     }
 }

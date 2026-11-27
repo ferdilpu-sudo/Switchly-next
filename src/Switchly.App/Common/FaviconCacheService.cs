@@ -11,21 +11,56 @@ namespace Switchly.App.Common;
 
 /// <summary>
 /// Lightweight local-cached favicon fetcher for Web Workspace Groups (D10).
-/// Treats downloaded bytes as untrusted input (size-capped, timeout-bounded, frozen BitmapImage)
-/// and gracefully returns null on offline/failure so the UI falls back to the vector Globe icon.
+/// Treats downloaded bytes as untrusted input (size-capped, timeout-bounded, frozen BitmapImage,
+/// manual redirect validation + DNS-rebinding-safe ConnectCallback) and gracefully returns null on failure.
 /// </summary>
 public static partial class FaviconCacheService
 {
     private const int MaxIconBytes = 256 * 1024;
     private const int MaxHtmlProbeBytes = 64 * 1024;
+    private const int MaxRedirects = 3;
 
     private static readonly HttpClient Http = CreateHttpClient();
 
     private static HttpClient CreateHttpClient()
     {
-        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        var handler = new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false,
+            ConnectTimeout = TimeSpan.FromSeconds(4),
+            ConnectCallback = SafePublicConnectAsync,
+        };
+
+        var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
         client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
         return client;
+    }
+
+    private static async ValueTask<Stream> SafePublicConnectAsync(SocketsHttpConnectionContext context, CancellationToken ct)
+    {
+        var host = context.DnsEndPoint.Host;
+        if (IsBlockedInternalHost(host))
+        {
+            throw new HttpRequestException("Blocked internal host.");
+        }
+
+        var addresses = await Dns.GetHostAddressesAsync(host, ct).ConfigureAwait(false);
+        if (addresses.Length == 0 || addresses.Any(IsBlockedIpAddress))
+        {
+            throw new HttpRequestException("Blocked private/loopback DNS resolution.");
+        }
+
+        var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+        try
+        {
+            await socket.ConnectAsync(addresses[0], context.DnsEndPoint.Port, ct).ConfigureAwait(false);
+            return new NetworkStream(socket, ownsSocket: true);
+        }
+        catch
+        {
+            socket.Dispose();
+            throw;
+        }
     }
 
     private static readonly ConcurrentDictionary<string, ImageSource?> MemoryCache = new(StringComparer.OrdinalIgnoreCase);
@@ -41,12 +76,12 @@ public static partial class FaviconCacheService
         if (string.IsNullOrWhiteSpace(url) ||
             !Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) ||
-            string.IsNullOrWhiteSpace(uri.Host))
+            string.IsNullOrWhiteSpace(uri.DnsSafeHost))
         {
             return null;
         }
 
-        var host = uri.Host.ToLowerInvariant();
+        var host = uri.DnsSafeHost.ToLowerInvariant();
         if (IsBlockedInternalHost(host))
         {
             return null;
@@ -57,12 +92,11 @@ public static partial class FaviconCacheService
             return cached;
         }
 
-        // Normalize flow.google to its canonical domain flow.google.com so the official Google Flow favicon resolves cleanly.
         var effectiveUrl = string.Equals(host, "flow.google", StringComparison.OrdinalIgnoreCase)
             ? "https://flow.google.com"
             : url;
-        var effectiveHost = Uri.TryCreate(effectiveUrl, UriKind.Absolute, out var effUri) && !string.IsNullOrWhiteSpace(effUri.Host)
-            ? effUri.Host.ToLowerInvariant()
+        var effectiveHost = Uri.TryCreate(effectiveUrl, UriKind.Absolute, out var effUri) && !string.IsNullOrWhiteSpace(effUri.DnsSafeHost)
+            ? effUri.DnsSafeHost.ToLowerInvariant()
             : host;
 
         var safeFileName = SafeFileRegex().Replace(effectiveHost, "_") + ".png";
@@ -108,7 +142,6 @@ public static partial class FaviconCacheService
         }
         catch
         {
-            // Non-critical cache write failure; keep decoded in-memory image.
         }
 
         MemoryCache[host] = decoded;
@@ -133,12 +166,52 @@ public static partial class FaviconCacheService
             ?? await TryDownloadBytesAsync($"https://{host}/favicon.ico");
     }
 
+    private static async Task<HttpResponseMessage?> SendFollowingSafeRedirectsAsync(HttpMethod method, string initialUrl)
+    {
+        if (!Uri.TryCreate(initialUrl, UriKind.Absolute, out var currentUri) ||
+            (currentUri.Scheme != Uri.UriSchemeHttp && currentUri.Scheme != Uri.UriSchemeHttps) ||
+            IsBlockedInternalHost(currentUri.DnsSafeHost))
+        {
+            return null;
+        }
+
+        for (var hop = 0; hop <= MaxRedirects; hop++)
+        {
+            using var req = new HttpRequestMessage(method, currentUri);
+            var resp = await Http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead);
+
+            var status = (int)resp.StatusCode;
+            if (status is 301 or 302 or 303 or 307 or 308 && resp.Headers.Location is { } loc)
+            {
+                resp.Dispose();
+                if (!Uri.TryCreate(currentUri, loc, out var nextUri) ||
+                    (nextUri.Scheme != Uri.UriSchemeHttp && nextUri.Scheme != Uri.UriSchemeHttps) ||
+                    IsBlockedInternalHost(nextUri.DnsSafeHost))
+                {
+                    return null;
+                }
+
+                currentUri = nextUri;
+                if (status == 303 && method != HttpMethod.Head)
+                {
+                    method = HttpMethod.Get;
+                }
+
+                continue;
+            }
+
+            return resp;
+        }
+
+        return null;
+    }
+
     private static async Task<string?> TryExtractHtmlIconUrlAsync(string pageUrl)
     {
         try
         {
-            using var response = await Http.GetAsync(pageUrl, HttpCompletionOption.ResponseHeadersRead);
-            if (!response.IsSuccessStatusCode)
+            using var response = await SendFollowingSafeRedirectsAsync(HttpMethod.Get, pageUrl);
+            if (response is null || !response.IsSuccessStatusCode)
             {
                 return null;
             }
@@ -173,14 +246,15 @@ public static partial class FaviconCacheService
                     continue;
                 }
 
-                var rawHref = System.Net.WebUtility.HtmlDecode(hrefMatch.Groups[1].Value.Trim());
+                var rawHref = WebUtility.HtmlDecode(hrefMatch.Groups[1].Value.Trim());
                 if (string.IsNullOrWhiteSpace(rawHref) || rawHref.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
                 }
 
                 if (Uri.TryCreate(baseUri, rawHref, out var resolved) &&
-                    (resolved.Scheme == Uri.UriSchemeHttp || resolved.Scheme == Uri.UriSchemeHttps))
+                    (resolved.Scheme == Uri.UriSchemeHttp || resolved.Scheme == Uri.UriSchemeHttps) &&
+                    !IsBlockedInternalHost(resolved.DnsSafeHost))
                 {
                     return resolved.AbsoluteUri;
                 }
@@ -198,9 +272,8 @@ public static partial class FaviconCacheService
     {
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Head, url);
-            using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-            return response.RequestMessage?.RequestUri?.Host?.ToLowerInvariant();
+            using var response = await SendFollowingSafeRedirectsAsync(HttpMethod.Head, url);
+            return response?.RequestMessage?.RequestUri?.DnsSafeHost?.ToLowerInvariant();
         }
         catch
         {
@@ -212,8 +285,8 @@ public static partial class FaviconCacheService
     {
         try
         {
-            using var response = await Http.GetAsync(iconUrl, HttpCompletionOption.ResponseHeadersRead);
-            if (!response.IsSuccessStatusCode)
+            using var response = await SendFollowingSafeRedirectsAsync(HttpMethod.Get, iconUrl);
+            if (response is null || !response.IsSuccessStatusCode)
             {
                 return null;
             }
@@ -280,22 +353,27 @@ public static partial class FaviconCacheService
         }
     }
 
-    private static bool IsBlockedInternalHost(string host)
+    public static bool IsBlockedInternalHost(string? host)
     {
-        if (string.IsNullOrWhiteSpace(host) ||
-            string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) ||
-            host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) ||
-            host.EndsWith(".local", StringComparison.OrdinalIgnoreCase) ||
-            host.EndsWith(".internal", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(host))
         {
             return true;
         }
 
-        if (!IPAddress.TryParse(host, out var ip))
+        var clean = host.Trim().Trim('[', ']');
+        if (string.Equals(clean, "localhost", StringComparison.OrdinalIgnoreCase) ||
+            clean.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) ||
+            clean.EndsWith(".local", StringComparison.OrdinalIgnoreCase) ||
+            clean.EndsWith(".internal", StringComparison.OrdinalIgnoreCase))
         {
-            return false;
+            return true;
         }
 
+        return IPAddress.TryParse(clean, out var ip) && IsBlockedIpAddress(ip);
+    }
+
+    public static bool IsBlockedIpAddress(IPAddress ip)
+    {
         if (IPAddress.IsLoopback(ip) || ip.Equals(IPAddress.Any) || ip.Equals(IPAddress.IPv6Any))
         {
             return true;
@@ -309,19 +387,21 @@ public static partial class FaviconCacheService
         var bytes = ip.GetAddressBytes();
         if (ip.AddressFamily == AddressFamily.InterNetwork && bytes.Length == 4)
         {
-            // Block 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16 (link-local/IMDS), 172.16.0.0/12, 192.168.0.0/16
+            // Block 0.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10 (CGNAT), 127.0.0.0/8,
+            // 169.254.0.0/16 (link-local/IMDS), 172.16.0.0/12, 192.168.0.0/16, >=224.0.0.0 (multicast/reserved)
             return bytes[0] == 0
                 || bytes[0] == 10
+                || (bytes[0] == 100 && bytes[1] >= 64 && bytes[1] <= 127)
                 || bytes[0] == 127
                 || (bytes[0] == 169 && bytes[1] == 254)
                 || (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
-                || (bytes[0] == 192 && bytes[1] == 168);
+                || (bytes[0] == 192 && bytes[1] == 168)
+                || bytes[0] >= 224;
         }
 
         if (ip.AddressFamily == AddressFamily.InterNetworkV6 && bytes.Length == 16)
         {
-            // Block IPv6 link-local (fe80::/10) and unique local addresses (fc00::/7)
-            return ip.IsIPv6LinkLocal || (bytes[0] & 0xFE) == 0xFC;
+            return ip.IsIPv6LinkLocal || ip.IsIPv6SiteLocal || ip.IsIPv6Multicast || (bytes[0] & 0xFE) == 0xFC;
         }
 
         return false;

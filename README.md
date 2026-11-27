@@ -1,7 +1,7 @@
 # Switchly Next
 
-> **Project phase:** M-009 Release Readiness (`TASK-039`..`042` + Quiet Precision Dark/Light UI, Web-Space Mode D9–D12 & BrowserHardening complete; **127/127 tests PASS** on Win11) — ready for Beta package rebuild & `TASK-043` approval.  
-> **Product name:** Switchly (official name per D8; `0.9.0-beta.1`).  
+> **Project phase:** M-009 Release Readiness (`TASK-039`..`042` + Browser-First UI D14/D15, OCI/Midtrans Hybrid Billing D16, Microsoft Store MSIX packaging, & Full Security/Engine Audit complete; **145 desktop + 4 server tests PASS**) — awaiting CEF proprietary-codec artifact (`D13`) & final `TASK-043` release sign-off.  
+> **Product name:** Switchly (official name per D8; https://www.switchly.site/).  
 > **Purpose:** Windows desktop workspace for managing many isolated web browser profiles, tabs and windows.
 
 ## 1. At a glance
@@ -45,6 +45,7 @@ The Windows 10 target needs explicit qualification. Microsoft currently lists .N
 dotnet restore .\Switchly.sln
 dotnet build .\Switchly.sln -c Release
 dotnet test .\Switchly.sln -c Release
+dotnet test .\server\Switchly.LicenseApi.Tests\Switchly.LicenseApi.Tests.csproj -c Release
 ```
 
 M-001 engine spike artifacts live under `artifacts/engine-spike/`; M-008 compatibility and QA evidence lives in [docs/compatibility-and-qa-matrix.md](./docs/compatibility-and-qa-matrix.md).
@@ -62,7 +63,10 @@ tests/
   Switchly.Domain.Tests/
   Switchly.Application.Tests/
   Switchly.Infrastructure.Tests/
-  Switchly.E2E.Tests/
+server/
+  Switchly.LicenseApi/
+  Switchly.LicenseApi.Tests/
+packaging/
 artifacts/
 docs/
 ```
@@ -71,13 +75,14 @@ This is a proposed layout. Keep each source file focused on one primary responsi
 
 ## 6. Configuration
 
-No environment variables or service credentials are required for the local Free MVP.
+No environment variables or service credentials are required for local Free / Beta usage.
 
-Potential future Pro configuration names only (not yet selected/implemented):
-- `SWITCHLY_NEXT_LICENSE_API_BASE_URL`
-- `SWITCHLY_NEXT_AUTH_CLIENT_ID`
+Optional GA commercial licensing overrides (`D16`, read by `HttpLicenseApiClient` or `%LOCALAPPDATA%\SwitchlyNext\Data\license-config.json`):
+- `SWITCHLY_LICENSE_API_URL` (e.g., `https://api.switchly.site`)
+- `SWITCHLY_ED25519_PUBLIC_KEY` (32-byte Base64 Ed25519 public key)
+- `SWITCHLY_ENFORCE_LICENSING` (`true` | `false`)
 
-Do not add these settings until the account/licensing provider is selected. Never put real secrets in documentation or source control.
+Never put real secrets or private keys in documentation or source control.
 
 ## 7. Quality checks
 
@@ -114,9 +119,9 @@ The original Switchly repository is reference-only. This generation starts from 
 - Profile storage is isolated per direct-child `<profile-guid>` context (`ADR-011`); validated in M-001 on Windows 11.
 - Chrome/Edge cookies and login sessions are intentionally not imported (`ADR-010`), and cross-device backup restore does not carry device-bound Chromium cookies (D3).
 - Unattended scheduled backups (D2, `REQ-017`) and optional extensions (`REQ-007`, M-005) are deferred post-MVP. (Encrypted password vault & CSV import were reopened and implemented per D6.)
-- Free/Pro feature limits, pricing, payment and license provider are unresolved (`OPEN-001`, `OPEN-005`).
-- Windows 10 Home/Pro support status needs a product policy decision (`OPEN-002`).
+- Commercial billing direction is locked per `D16` (Free max 5 profiles without login, 7-day Pro Trial with email OTP, Midtrans Snap IDR hybrid subscription/perpetual, offline-tolerant Ed25519 tokens); Beta builds remain unlocked by default.
+- Official supported OS is Windows 11 x64 (`D8` / `OPEN-002`); Windows 10 is best-effort/unsupported.
 
 ## 11. Current next step
 
-Run `.\packaging\package-beta.ps1` to generate the `0.9.0-beta.1` Portable ZIP / Inno Setup EXE, verify clean install/launch on Windows 11 x64, and record Product Owner Beta approval (`M-009` `TASK-043`).
+Verify proprietary-codec CEF build (`D13`), then build the Microsoft Store MSIX update (`.\packaging\package-msix.ps1`) for Store ID `9PH5FF24TKZR` and/or Portable ZIP & Inno Setup EXE (`.\packaging\package-beta.ps1`) upon Product Owner release sign-off (`M-009` `TASK-043`).

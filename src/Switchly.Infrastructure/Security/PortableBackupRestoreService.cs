@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Switchly.Application.Profiles;
 using Switchly.Application.Security;
+using Switchly.Application.Vault;
 using Switchly.Domain.Profiles;
 using Switchly.Domain.Security;
 
@@ -15,13 +16,19 @@ namespace Switchly.Infrastructure.Security;
 /// </summary>
 public sealed class PortableBackupRestoreService : IBackupRestoreService
 {
+    private const string DbEntryName = "data/switchly-next.db";
+    private const string VaultKeyEntryName = "data/vault-key.raw";
+    private const int VaultKeyBytes = 32;
+
     private readonly string _appDataRoot;
     private readonly string _dataDirectory;
     private readonly string _tempDirectory;
     private readonly string _profilesRootPath;
     private readonly string _databasePath;
+    private readonly string _vaultKeyPath;
     private readonly IProfileRepository _profileRepository;
     private readonly IBackupJobRepository _backupJobRepository;
+    private readonly ILocalDataProtector? _dataProtector;
     private readonly TimeProvider _timeProvider;
     private readonly int? _kdfIterationsOverride;
 
@@ -30,7 +37,8 @@ public sealed class PortableBackupRestoreService : IBackupRestoreService
         IProfileRepository profileRepository,
         IBackupJobRepository backupJobRepository,
         TimeProvider? timeProvider = null,
-        int? kdfIterationsOverride = null)
+        int? kdfIterationsOverride = null,
+        ILocalDataProtector? dataProtector = null)
     {
         if (string.IsNullOrWhiteSpace(appDataRoot))
         {
@@ -42,11 +50,18 @@ public sealed class PortableBackupRestoreService : IBackupRestoreService
         _tempDirectory = Path.Combine(_dataDirectory, "Temp");
         _profilesRootPath = Path.Combine(_appDataRoot, "Profiles");
         _databasePath = Path.Combine(_dataDirectory, "switchly-next.db");
+        _vaultKeyPath = Path.Combine(_dataDirectory, PasswordVaultService.VaultKeyFileName);
         _profileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
         _backupJobRepository = backupJobRepository ?? throw new ArgumentNullException(nameof(backupJobRepository));
         _timeProvider = timeProvider ?? TimeProvider.System;
         _kdfIterationsOverride = kdfIterationsOverride;
+        _dataProtector = dataProtector;
     }
+
+    public static bool IsValidProfileDirectorySegment(string? segment) =>
+        !string.IsNullOrWhiteSpace(segment)
+        && (Guid.TryParseExact(segment, "N", out var g) || Guid.TryParseExact(segment, "D", out g))
+        && g != Guid.Empty;
 
     public async Task<BackupCreationResult> CreateBackupAsync(
         string destinationArchivePath,
@@ -106,14 +121,36 @@ public sealed class PortableBackupRestoreService : IBackupRestoreService
             using (var zipStream = new FileStream(tempZipPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None))
             using (var zip = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: false))
             {
-                AddFileToZip(zip, tempDbCopyPath, "data/switchly-next.db");
+                AddFileToZip(zip, tempDbCopyPath, DbEntryName);
                 estimatedPlainBytes += new FileInfo(tempDbCopyPath).Length;
+
+                // Export unwrapped 32-byte vault key in memory into the passphrase-encrypted archive
+                // so VaultCredentials remain decryptable after cross-device restore (REQ-011, SEC-02).
+                if (_dataProtector is not null && File.Exists(_vaultKeyPath))
+                {
+                    var wrappedVaultKey = File.ReadAllBytes(_vaultKeyPath);
+                    var rawVaultKey = _dataProtector.Unprotect(wrappedVaultKey, PasswordVaultService.VaultMasterKeyEntropy);
+                    try
+                    {
+                        if (rawVaultKey.Length == VaultKeyBytes)
+                        {
+                            var keyEntry = zip.CreateEntry(VaultKeyEntryName, CompressionLevel.NoCompression);
+                            using var keyStream = keyEntry.Open();
+                            keyStream.Write(rawVaultKey, 0, rawVaultKey.Length);
+                            estimatedPlainBytes += rawVaultKey.Length;
+                        }
+                    }
+                    finally
+                    {
+                        CryptographicOperations.ZeroMemory(rawVaultKey);
+                    }
+                }
 
                 foreach (var profile in profiles)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     var rel = profile.StorageRelativePath?.Trim() ?? string.Empty;
-                    if (!Guid.TryParseExact(rel, "D", out _))
+                    if (!IsValidProfileDirectorySegment(rel))
                     {
                         continue;
                     }
@@ -267,7 +304,7 @@ public sealed class PortableBackupRestoreService : IBackupRestoreService
             }
 
             progress?.Report(new BackupProgress("Mengekstrak ke folder staging aman...", 0.85));
-            var extractedCount = ExtractZipSafelyToStaging(tempDecryptedZip, stagingDir, cancellationToken);
+            var extractedCount = ExtractZipSafelyToStaging(tempDecryptedZip, stagingDir, _dataProtector, cancellationToken);
 
             var stagedDb = Path.Combine(stagingDir, "data", "switchly-next.db");
             if (!File.Exists(stagedDb))
@@ -396,7 +433,11 @@ public sealed class PortableBackupRestoreService : IBackupRestoreService
         fileStream.CopyTo(entryStream);
     }
 
-    private static int ExtractZipSafelyToStaging(string zipPath, string stagingDir, CancellationToken cancellationToken)
+    private static int ExtractZipSafelyToStaging(
+        string zipPath,
+        string stagingDir,
+        ILocalDataProtector? dataProtector,
+        CancellationToken cancellationToken)
     {
         var stagingFull = Path.GetFullPath(stagingDir);
         if (!stagingFull.EndsWith(Path.DirectorySeparatorChar))
@@ -431,7 +472,57 @@ public sealed class PortableBackupRestoreService : IBackupRestoreService
                 throw new CryptographicException("Arsip backup ditolak karena mengandung jalur path traversal ilegal.");
             }
 
-            var normalizedRel = entry.FullName.Replace('/', Path.DirectorySeparatorChar);
+            var normalizedSlash = entry.FullName.Replace('\\', '/');
+
+            // Re-wrap portable vault master key in memory using target device's DPAPI (never write raw key to disk).
+            if (string.Equals(normalizedSlash, VaultKeyEntryName, StringComparison.OrdinalIgnoreCase))
+            {
+                if (dataProtector is not null)
+                {
+                    using var keyStream = entry.Open();
+                    var rawKey = new byte[VaultKeyBytes + 1];
+                    var totalKeyRead = 0;
+                    int r;
+                    while ((r = keyStream.Read(rawKey, totalKeyRead, rawKey.Length - totalKeyRead)) > 0)
+                    {
+                        totalKeyRead += r;
+                    }
+
+                    try
+                    {
+                        if (totalKeyRead != VaultKeyBytes)
+                        {
+                            throw new CryptographicException("Kunci Password Vault di dalam arsip backup tidak valid.");
+                        }
+
+                        var rewrapped = dataProtector.Protect(rawKey.AsSpan(0, VaultKeyBytes), PasswordVaultService.VaultMasterKeyEntropy);
+                        var stagedKeyPath = Path.Combine(stagingFull, "data", PasswordVaultService.VaultKeyFileName);
+                        Directory.CreateDirectory(Path.GetDirectoryName(stagedKeyPath)!);
+                        File.WriteAllBytes(stagedKeyPath, rewrapped);
+                        extractedFiles++;
+                    }
+                    finally
+                    {
+                        CryptographicOperations.ZeroMemory(rawKey);
+                    }
+                }
+
+                continue;
+            }
+
+            // Strict archive entry allowlist: only data/switchly-next.db and profiles/<valid-guid>/... (SEC-03, ADR-011)
+            if (!string.Equals(normalizedSlash, DbEntryName, StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = normalizedSlash.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length < 3
+                    || !string.Equals(parts[0], "profiles", StringComparison.OrdinalIgnoreCase)
+                    || !IsValidProfileDirectorySegment(parts[1]))
+                {
+                    throw new CryptographicException("Arsip backup ditolak karena memuat jalur di luar daftar profil yang diizinkan.");
+                }
+            }
+
+            var normalizedRel = normalizedSlash.Replace('/', Path.DirectorySeparatorChar);
             if (ShouldExcludeRelativePath(normalizedRel))
             {
                 // Enforce D3 cross-device cookie exclusion even if an older/external archive included them.

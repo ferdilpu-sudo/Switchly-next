@@ -5,8 +5,8 @@ using Switchly.Domain.Browser;
 namespace Switchly.BrowserHost.CefCallbacks;
 
 /// <summary>
-/// Enforces top-level navigation URL scheme policy inside CEF and observes renderer crashes
-/// so a crashed tab surfaces non-modal recovery UI without affecting other profiles (TASK-035, REQ-005).
+/// Enforces navigation URL scheme policy inside CEF (blocking file:, chrome:, data: top-level,
+/// and external OS protocol invocations) and observes renderer crashes (TASK-035, REQ-005).
 /// </summary>
 internal sealed class ProfileRequestHandler : RequestHandler
 {
@@ -25,19 +25,26 @@ internal sealed class ProfileRequestHandler : RequestHandler
         bool userGesture,
         bool isRedirect)
     {
-        if (frame is { IsMain: true } && request is not null)
+        if (request is null)
         {
-            var url = request.Url;
-            // Allow http/https/about:blank and blob/data URLs used by in-browser media/PDF viewers;
-            // block local filesystem and internal Chromium schemes (file:, chrome:, chrome-extension:, etc.).
-            if (!BrowserUrlPolicy.IsAllowedDownloadUrl(url) &&
-                !string.Equals(url?.Trim(), BrowserUrlPolicy.BlankUrl, StringComparison.OrdinalIgnoreCase))
-            {
-                return true; // Cancel disallowed top-level navigation.
-            }
+            return false;
         }
 
-        return false;
+        var url = request.Url?.Trim() ?? string.Empty;
+        if (frame is { IsMain: true })
+        {
+            // Main frame: allow http/https, about:blank, and blob: (block top-level data:, file:, chrome:, custom OS schemes).
+            var isAllowedMain = BrowserUrlPolicy.IsAllowedNavigationUrl(url)
+                || url.StartsWith("blob:", StringComparison.OrdinalIgnoreCase);
+
+            return !isAllowedMain;
+        }
+
+        // Subframe: allow http/https, about:blank/about:srcdoc, blob:, and data: media/frames; block file:, chrome:, devtools:, OS schemes.
+        var isAllowedSubframe = BrowserUrlPolicy.IsAllowedDownloadUrl(url)
+            || string.Equals(url, "about:srcdoc", StringComparison.OrdinalIgnoreCase);
+
+        return !isAllowedSubframe;
     }
 
     protected override void OnRenderProcessTerminated(

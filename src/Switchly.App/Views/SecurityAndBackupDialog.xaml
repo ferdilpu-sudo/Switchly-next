@@ -92,7 +92,7 @@
                             <Button DockPanel.Dock="Right" Content="Pilih File..." Click="OnBrowseRestoreArchiveClick"
                                     Padding="12,6" Margin="8,0,0,0"/>
                             <TextBox x:Name="RestoreArchivePathBox" IsReadOnly="True"
-                                     themes:TextBoxAssist.PlaceholderText="Pilih file arsip cadangan (.swbak)..."
+                                     themes:TextBoxAssist.PlaceholderText="Pilih file arsip cadangan (.snbak)..."
                                      ToolTip="Path file cadangan terenkripsi"/>
                         </DockPanel>
 

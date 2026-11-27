@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Input;
 using Switchly.Application.Entitlements;
 using Switchly.Domain.Entitlements;
 
@@ -9,6 +10,7 @@ public partial class LicenseAccountDialog : Window
 {
     private readonly LicenseAccountService _accountService;
     private readonly string? _initialReason;
+    private bool _isBusy;
 
     public LicenseAccountDialog(LicenseAccountService accountService, string? initialReason = null)
     {
@@ -16,6 +18,20 @@ public partial class LicenseAccountDialog : Window
         _accountService = accountService;
         _initialReason = initialReason;
         RefreshUiState();
+    }
+
+    private void SetBusy(bool busy)
+    {
+        _isBusy = busy;
+        var canCallApi = !busy && _accountService.IsBackendConfigured;
+        SendOtpButton.IsEnabled = canCallApi;
+        VerifyOtpButton.IsEnabled = canCallApi;
+        StartTrialButton.IsEnabled = !busy;
+        CheckoutMonthlyButton.IsEnabled = !busy;
+        CheckoutAnnualButton.IsEnabled = !busy;
+        CheckoutPerpetualButton.IsEnabled = !busy;
+        RefreshLicenseButton.IsEnabled = !busy;
+        SignOutButton.IsEnabled = !busy;
     }
 
     private void RefreshUiState()
@@ -44,8 +60,7 @@ public partial class LicenseAccountDialog : Window
         LoginSection.Visibility = isSignedIn ? Visibility.Collapsed : Visibility.Visible;
         SignedInSection.Visibility = isSignedIn ? Visibility.Visible : Visibility.Collapsed;
 
-        SendOtpButton.IsEnabled = _accountService.IsBackendConfigured;
-        VerifyOtpButton.IsEnabled = _accountService.IsBackendConfigured;
+        SetBusy(_isBusy);
 
         if (isSignedIn && stored is not null)
         {
@@ -71,13 +86,36 @@ public partial class LicenseAccountDialog : Window
         else
         {
             AccountSubtitleText.Text = snapshot.ActiveTier == SubscriptionTier.FreeBeta
-                ? "Kamu sedang menggunakan Switchly Beta Gratis tanpa perlu akun."
+                ? "Anda sedang menggunakan Switchly Beta Gratis tanpa perlu akun."
                 : "Mode Free (maks. 5 profil) berjalan 100% lokal tanpa login.";
+        }
+    }
+
+    private void OnEmailBoxKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && SendOtpButton.IsEnabled)
+        {
+            OnSendOtpClick(sender, e);
+            e.Handled = true;
+        }
+    }
+
+    private void OnOtpCodeBoxKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && VerifyOtpButton.IsEnabled)
+        {
+            OnVerifyOtpClick(sender, e);
+            e.Handled = true;
         }
     }
 
     private async void OnSendOtpClick(object sender, RoutedEventArgs e)
     {
+        if (_isBusy)
+        {
+            return;
+        }
+
         var email = EmailTextBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(email))
         {
@@ -85,7 +123,7 @@ public partial class LicenseAccountDialog : Window
             return;
         }
 
-        SendOtpButton.IsEnabled = false;
+        SetBusy(true);
         StatusText.Text = "Mengirim kode OTP ke email...";
         try
         {
@@ -97,14 +135,23 @@ public partial class LicenseAccountDialog : Window
                 OtpCodeTextBox.Focus();
             }
         }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"Terjadi kesalahan: {ex.Message}";
+        }
         finally
         {
-            SendOtpButton.IsEnabled = _accountService.IsBackendConfigured;
+            SetBusy(false);
         }
     }
 
     private async void OnVerifyOtpClick(object sender, RoutedEventArgs e)
     {
+        if (_isBusy)
+        {
+            return;
+        }
+
         var email = EmailTextBox.Text.Trim();
         var code = OtpCodeTextBox.Text.Trim();
         if (code.Length != 6)
@@ -113,7 +160,7 @@ public partial class LicenseAccountDialog : Window
             return;
         }
 
-        VerifyOtpButton.IsEnabled = false;
+        SetBusy(true);
         StatusText.Text = "Memverifikasi OTP...";
         try
         {
@@ -127,15 +174,24 @@ public partial class LicenseAccountDialog : Window
             StatusText.Text = "Berhasil masuk! Status lisensi diperbarui.";
             RefreshUiState();
         }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"Terjadi kesalahan: {ex.Message}";
+        }
         finally
         {
-            VerifyOtpButton.IsEnabled = _accountService.IsBackendConfigured;
+            SetBusy(false);
         }
     }
 
     private async void OnStartTrialClick(object sender, RoutedEventArgs e)
     {
-        StartTrialButton.IsEnabled = false;
+        if (_isBusy)
+        {
+            return;
+        }
+
+        SetBusy(true);
         StatusText.Text = "Mengaktifkan Trial Pro 7 hari...";
         try
         {
@@ -145,30 +201,40 @@ public partial class LicenseAccountDialog : Window
                 : result.ErrorMessage ?? "Gagal mengaktifkan Trial Pro.";
             RefreshUiState();
         }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"Terjadi kesalahan: {ex.Message}";
+        }
         finally
         {
-            StartTrialButton.IsEnabled = true;
+            SetBusy(false);
         }
     }
 
-    private void OnCheckoutMonthlyClick(object sender, RoutedEventArgs e) => _ = StartCheckoutAsync("pro_monthly");
+    private async void OnCheckoutMonthlyClick(object sender, RoutedEventArgs e) => await StartCheckoutAsync("pro_monthly");
 
-    private void OnCheckoutAnnualClick(object sender, RoutedEventArgs e) => _ = StartCheckoutAsync("pro_annual");
+    private async void OnCheckoutAnnualClick(object sender, RoutedEventArgs e) => await StartCheckoutAsync("pro_annual");
 
-    private void OnCheckoutPerpetualClick(object sender, RoutedEventArgs e) => _ = StartCheckoutAsync("pro_perpetual");
+    private async void OnCheckoutPerpetualClick(object sender, RoutedEventArgs e) => await StartCheckoutAsync("pro_perpetual");
 
     private async Task StartCheckoutAsync(string planCode)
     {
-        StatusText.Text = "Membuat halaman pembayaran Midtrans (QRIS/VA)...";
-        var result = await _accountService.StartCheckoutAsync(planCode);
-        if (!result.Succeeded || string.IsNullOrWhiteSpace(result.CheckoutUrl))
+        if (_isBusy)
         {
-            StatusText.Text = result.ErrorMessage ?? "Gagal membuka halaman pembayaran.";
             return;
         }
 
+        SetBusy(true);
+        StatusText.Text = "Membuat halaman pembayaran Midtrans (QRIS/VA)...";
         try
         {
+            var result = await _accountService.StartCheckoutAsync(planCode);
+            if (!result.Succeeded || string.IsNullOrWhiteSpace(result.CheckoutUrl))
+            {
+                StatusText.Text = result.ErrorMessage ?? "Gagal membuka halaman pembayaran.";
+                return;
+            }
+
             Process.Start(new ProcessStartInfo
             {
                 FileName = result.CheckoutUrl,
@@ -178,13 +244,22 @@ public partial class LicenseAccountDialog : Window
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Tidak dapat membuka browser: {ex.Message}";
+            StatusText.Text = $"Tidak dapat membuka halaman pembayaran: {ex.Message}";
+        }
+        finally
+        {
+            SetBusy(false);
         }
     }
 
     private async void OnRefreshLicenseClick(object sender, RoutedEventArgs e)
     {
-        RefreshLicenseButton.IsEnabled = false;
+        if (_isBusy)
+        {
+            return;
+        }
+
+        SetBusy(true);
         StatusText.Text = "Memeriksa status lisensi terbaru...";
         try
         {
@@ -194,19 +269,36 @@ public partial class LicenseAccountDialog : Window
                 : result.ErrorMessage ?? "Gagal memperbarui status lisensi.";
             RefreshUiState();
         }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"Terjadi kesalahan: {ex.Message}";
+        }
         finally
         {
-            RefreshLicenseButton.IsEnabled = true;
+            SetBusy(false);
         }
     }
 
-    private void OnSignOutClick(object sender, RoutedEventArgs e)
+    private async void OnSignOutClick(object sender, RoutedEventArgs e)
     {
-        _accountService.SignOut();
-        OtpVerifyRow.Visibility = Visibility.Collapsed;
-        OtpCodeTextBox.Clear();
-        StatusText.Text = "Berhasil keluar. Semua profil lokal kamu tetap aman.";
-        RefreshUiState();
+        if (_isBusy)
+        {
+            return;
+        }
+
+        SetBusy(true);
+        try
+        {
+            await _accountService.SignOutAsync();
+            OtpVerifyRow.Visibility = Visibility.Collapsed;
+            OtpCodeTextBox.Clear();
+            StatusText.Text = "Berhasil keluar. Semua profil lokal Anda tetap aman.";
+            RefreshUiState();
+        }
+        finally
+        {
+            SetBusy(false);
+        }
     }
 
     private void OnCloseClick(object sender, RoutedEventArgs e) => Close();

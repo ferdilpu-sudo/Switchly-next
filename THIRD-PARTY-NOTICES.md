@@ -13,7 +13,13 @@ Switchly incorporates third-party open-source software components. Each componen
 | **Microsoft.EntityFrameworkCore.Sqlite** & **Design** | `10.0.11` | MIT License | https://github.com/dotnet/efcore |
 | **SQLite / `SQLitePCLRaw` / `e_sqlite3`** | Transitive via EF Core `10.0.11` | Public Domain (SQLite) / Apache-2.0 (`SQLitePCLRaw`) | https://www.sqlite.org/copyright.html |
 
-## 2. Test-Only Dependencies (Not Redistributed in Release Packages)
+## 2. Server-Only Dependencies (`server/Switchly.LicenseApi` — Not Shipped in Desktop Packages)
+
+| Component | Version | License | Upstream |
+|---|---|---|---|
+| **Npgsql.EntityFrameworkCore.PostgreSQL** & **Npgsql** | `10.0.0` | PostgreSQL License | https://github.com/npgsql/efcore.pg |
+
+## 3. Test-Only Dependencies (Not Redistributed in Release Packages)
 
 | Component | Version | License |
 |---|---|---|
@@ -21,8 +27,8 @@ Switchly incorporates third-party open-source software components. Each componen
 | **Microsoft.NET.Test.Sdk** | `17.14.1` | MIT License |
 | **coverlet.collector** | `6.0.4` | MIT License |
 
-## 3. Redistribution Checklist (Before Public Distribution)
+## 4. Redistribution Checklist (Before Public Distribution)
 
-- Ship this `THIRD-PARTY-NOTICES.md` alongside both the Portable ZIP and Inno Setup installer.
+- Ship this `THIRD-PARTY-NOTICES.md` alongside the Microsoft Store MSIX, Portable ZIP, and Inno Setup installer.
 - Preserve CEF/Chromium license files (`LICENSE.txt` / `credits.html` when bundled by the CEF runtime package) in the distribution directory.
 - Before wide commercial distribution with proprietary media codecs (`H.264`/`AAC`), complete separate patent/licensing review (MPEG-LA / Via LA).

@@ -5,13 +5,17 @@ using Switchly.LicenseApi.Services;
 
 namespace Switchly.LicenseApi.Endpoints;
 
-public sealed record OtpRequestDto(string Email);
-public sealed record OtpVerifyDto(string Email, string Code, string DeviceHash, string? DeviceLabel);
-public sealed record DeviceActionDto(string DeviceHash, string? DeviceLabel);
-public sealed record CheckoutRequestDto(string PlanCode);
+public sealed record OtpRequestDto(string? Email);
+public sealed record OtpVerifyDto(string? Email, string? Code, string? DeviceHash, string? DeviceLabel);
+public sealed record DeviceActionDto(string? DeviceHash, string? DeviceLabel);
+public sealed record CheckoutRequestDto(string? PlanCode);
 
 public static class ApiEndpoints
 {
+    public const string OtpRequestRateLimitPolicy = "otp-request";
+    public const string OtpVerifyRateLimitPolicy = "otp-verify";
+    public const string CheckoutRateLimitPolicy = "checkout";
+
     public static void MapLicenseApiEndpoints(this WebApplication app)
     {
         app.MapGet("/healthz", async (LicenseDbContext db, IEd25519TokenService tokens, CancellationToken ct) =>
@@ -34,20 +38,25 @@ public static class ApiEndpoints
             max_devices = p.MaxDevices,
         })));
 
-        v1.MapPost("/auth/otp/request", async (OtpRequestDto dto, OtpService otpService, CancellationToken ct) =>
+        v1.MapPost("/auth/otp/request", async (OtpRequestDto? dto, OtpService otpService, CancellationToken ct) =>
         {
-            var result = await otpService.RequestOtpAsync(dto.Email, ct);
+            var result = await otpService.RequestOtpAsync(dto?.Email, ct);
             return result.Succeeded
-                ? Results.Ok(new { message = "Kode OTP telah dikirim ke email kamu." })
+                ? Results.Ok(new { message = "Kode OTP telah dikirim ke email Anda." })
                 : Results.BadRequest(new { error = result.ErrorMessage });
-        });
+        }).RequireRateLimiting(OtpRequestRateLimitPolicy);
 
         v1.MapPost("/auth/otp/verify", async (
-            OtpVerifyDto dto,
+            OtpVerifyDto? dto,
             OtpService otpService,
             EntitlementIssuer issuer,
             CancellationToken ct) =>
         {
+            if (dto is null)
+            {
+                return Results.BadRequest(new { error = "Payload tidak valid." });
+            }
+
             var verify = await otpService.VerifyOtpAsync(dto.Email, dto.Code, dto.DeviceHash, ct);
             if (!verify.Succeeded || verify.Account is null || verify.SessionToken is null)
             {
@@ -76,11 +85,29 @@ public static class ApiEndpoints
                 tier = issued.Payload?.Tier,
                 trial_eligible = issued.TrialEligible,
             });
+        }).RequireRateLimiting(OtpVerifyRateLimitPolicy);
+
+        v1.MapPost("/auth/logout", async (
+            HttpRequest httpRequest,
+            OtpService otpService,
+            LicenseDbContext db,
+            TimeProvider timeProvider,
+            CancellationToken ct) =>
+        {
+            var session = await AuthenticateAsync(httpRequest, otpService, ct);
+            if (session is null)
+            {
+                return Results.Unauthorized();
+            }
+
+            session.RevokedAtUtc = timeProvider.GetUtcNow();
+            await db.SaveChangesAsync(ct);
+            return Results.Ok(new { message = "Sesi berhasil diakhiri." });
         });
 
         v1.MapPost("/trial/start", async (
             HttpRequest httpRequest,
-            DeviceActionDto dto,
+            DeviceActionDto? dto,
             OtpService otpService,
             EntitlementIssuer issuer,
             CancellationToken ct) =>
@@ -93,8 +120,8 @@ public static class ApiEndpoints
 
             var result = await issuer.StartTrialAsync(
                 session.Account,
-                dto.DeviceHash,
-                dto.DeviceLabel ?? "Windows PC",
+                dto?.DeviceHash,
+                dto?.DeviceLabel ?? "Windows PC",
                 ct);
 
             return result.Succeeded
@@ -108,7 +135,7 @@ public static class ApiEndpoints
 
         v1.MapPost("/entitlement/refresh", async (
             HttpRequest httpRequest,
-            DeviceActionDto dto,
+            DeviceActionDto? dto,
             OtpService otpService,
             EntitlementIssuer issuer,
             CancellationToken ct) =>
@@ -121,8 +148,8 @@ public static class ApiEndpoints
 
             var issued = await issuer.IssueForDeviceAsync(
                 session.Account,
-                dto.DeviceHash,
-                dto.DeviceLabel ?? "Windows PC",
+                dto?.DeviceHash,
+                dto?.DeviceLabel ?? "Windows PC",
                 ct);
 
             return issued.Succeeded
@@ -149,8 +176,11 @@ public static class ApiEndpoints
                 return Results.Unauthorized();
             }
 
-            var devices = await db.DeviceActivations
+            var allDevices = await db.DeviceActivations
                 .Where(d => d.AccountId == session.AccountId && d.RevokedAtUtc == null)
+                .ToListAsync(ct);
+
+            var devices = allDevices
                 .OrderByDescending(d => d.LastSeenUtc)
                 .Select(d => new
                 {
@@ -160,7 +190,7 @@ public static class ApiEndpoints
                     last_seen_utc = d.LastSeenUtc,
                     is_current_session = d.DeviceHash == session.DeviceHash,
                 })
-                .ToListAsync(ct);
+                .ToList();
 
             return Results.Ok(devices);
         });
@@ -187,14 +217,25 @@ public static class ApiEndpoints
                 return Results.NotFound(new { error = "Perangkat tidak ditemukan." });
             }
 
-            device.RevokedAtUtc = timeProvider.GetUtcNow();
+            var now = timeProvider.GetUtcNow();
+            device.RevokedAtUtc = now;
+
+            // Also revoke all active bearer sessions bound to that device so a revoked PC cannot silently re-activate (S1-02).
+            var deviceSessions = await db.Sessions
+                .Where(s => s.AccountId == session.AccountId && s.DeviceHash == device.DeviceHash && s.RevokedAtUtc == null)
+                .ToListAsync(ct);
+            foreach (var s in deviceSessions)
+            {
+                s.RevokedAtUtc = now;
+            }
+
             await db.SaveChangesAsync(ct);
-            return Results.Ok(new { message = "Perangkat berhasil dinonaktifkan." });
+            return Results.Ok(new { message = "Perangkat dan sesi terkait berhasil dinonaktifkan." });
         });
 
         v1.MapPost("/billing/checkout", async (
             HttpRequest httpRequest,
-            CheckoutRequestDto dto,
+            CheckoutRequestDto? dto,
             OtpService otpService,
             IMidtransService midtrans,
             CancellationToken ct) =>
@@ -205,7 +246,7 @@ public static class ApiEndpoints
                 return Results.Unauthorized();
             }
 
-            var checkout = await midtrans.CreateSnapCheckoutAsync(session.Account, dto.PlanCode, ct);
+            var checkout = await midtrans.CreateSnapCheckoutAsync(session.Account, dto?.PlanCode, ct);
             return checkout.Succeeded
                 ? Results.Ok(new
                 {
@@ -214,7 +255,7 @@ public static class ApiEndpoints
                     checkout_url = checkout.RedirectUrl,
                 })
                 : Results.BadRequest(new { error = checkout.ErrorMessage });
-        });
+        }).RequireRateLimiting(CheckoutRateLimitPolicy);
 
         v1.MapPost("/webhooks/payment/midtrans", async (
             MidtransWebhookPayload payload,

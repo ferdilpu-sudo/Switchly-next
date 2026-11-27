@@ -74,7 +74,7 @@ public sealed class OtpService(
         return DisposableDomains.Contains(domain);
     }
 
-    public async Task<OtpRequestResult> RequestOtpAsync(string rawEmail, CancellationToken ct)
+    public async Task<OtpRequestResult> RequestOtpAsync(string? rawEmail, CancellationToken ct)
     {
         if (!TryNormalizeEmail(rawEmail, out var email))
         {
@@ -88,39 +88,51 @@ public sealed class OtpService(
 
         var now = timeProvider.GetUtcNow();
         var windowStart = now.AddMinutes(-15);
-        var recentTimestamps = await db.OtpChallenges
+        var existingChallenges = await db.OtpChallenges
             .Where(x => x.EmailNormalized == email)
-            .Select(x => x.CreatedAtUtc)
             .ToListAsync(ct);
 
-        var recentCount = recentTimestamps.Count(t => t >= windowStart);
-
+        var recentCount = existingChallenges.Count(x => x.CreatedAtUtc >= windowStart);
         if (recentCount >= 3)
         {
             return new OtpRequestResult(false, "Terlalu banyak permintaan OTP. Coba lagi dalam 15 menit.");
         }
 
         var otpCode = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
-        var challenge = new OtpChallenge
+
+        // Send email BEFORE committing the challenge so transient Resend errors never lock out the user (S1-07).
+        try
+        {
+            await emailSender.SendOtpAsync(email, otpCode, _options.OtpExpiryMinutes, ct);
+        }
+        catch (Exception)
+        {
+            return new OtpRequestResult(false, "Gagal mengirim email OTP saat ini. Silakan coba beberapa saat lagi.");
+        }
+
+        // Invalidate any prior unconsumed OTPs for this email before issuing the new challenge.
+        foreach (var old in existingChallenges.Where(x => x.ConsumedAtUtc == null))
+        {
+            old.ConsumedAtUtc = now;
+        }
+
+        db.OtpChallenges.Add(new OtpChallenge
         {
             EmailNormalized = email,
             CodeHash = HashSecret($"{email}:{otpCode}", _options.TokenHashPepper),
             CreatedAtUtc = now,
             ExpiresAtUtc = now.AddMinutes(_options.OtpExpiryMinutes),
             Attempts = 0,
-        };
+        });
 
-        db.OtpChallenges.Add(challenge);
         await db.SaveChangesAsync(ct);
-
-        await emailSender.SendOtpAsync(email, otpCode, _options.OtpExpiryMinutes, ct);
         return new OtpRequestResult(true);
     }
 
     public async Task<OtpVerifyResult> VerifyOtpAsync(
-        string rawEmail,
-        string code,
-        string deviceHash,
+        string? rawEmail,
+        string? code,
+        string? deviceHash,
         CancellationToken ct)
     {
         if (!TryNormalizeEmail(rawEmail, out var email))
@@ -133,10 +145,13 @@ public sealed class OtpService(
             return new OtpVerifyResult(false, ErrorMessage: "Kode OTP harus 6 digit.");
         }
 
-        if (string.IsNullOrWhiteSpace(deviceHash) || deviceHash.Length > 128)
+        var cleanDevice = deviceHash?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(cleanDevice) || cleanDevice.Length > 128)
         {
             return new OtpVerifyResult(false, ErrorMessage: "Identitas perangkat tidak valid.");
         }
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         var now = timeProvider.GetUtcNow();
         var activeChallenges = await db.OtpChallenges
@@ -164,6 +179,7 @@ public sealed class OtpService(
         {
             latestChallenge.Attempts++;
             await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
             return new OtpVerifyResult(false, ErrorMessage: "Kode OTP salah.");
         }
 
@@ -195,17 +211,26 @@ public sealed class OtpService(
         {
             AccountId = account.Id,
             TokenHash = HashSecret(rawSessionToken, _options.TokenHashPepper),
-            DeviceHash = deviceHash.Trim(),
+            DeviceHash = cleanDevice,
             CreatedAtUtc = now,
             ExpiresAtUtc = now.AddDays(_options.SessionExpiryDays),
         };
         db.Sessions.Add(session);
 
-        await db.SaveChangesAsync(ct);
-        return new OtpVerifyResult(true, account, rawSessionToken);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            return new OtpVerifyResult(true, account, rawSessionToken);
+        }
+        catch (DbUpdateException)
+        {
+            await tx.RollbackAsync(ct);
+            return new OtpVerifyResult(false, ErrorMessage: "Permintaan verifikasi sedang diproses secara bersamaan. Silakan coba lagi.");
+        }
     }
 
-    public async Task<SessionRecord?> ValidateSessionAsync(string rawSessionToken, CancellationToken ct)
+    public async Task<SessionRecord?> ValidateSessionAsync(string? rawSessionToken, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(rawSessionToken))
         {
@@ -228,7 +253,8 @@ public sealed class OtpService(
 
     public static string HashSecret(string input, string pepper)
     {
-        var bytes = Encoding.UTF8.GetBytes($"{pepper}:{input}");
-        return Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        var keyBytes = Encoding.UTF8.GetBytes(pepper ?? string.Empty);
+        var dataBytes = Encoding.UTF8.GetBytes(input);
+        return Convert.ToHexString(HMACSHA256.HashData(keyBytes, dataBytes)).ToLowerInvariant();
     }
 }

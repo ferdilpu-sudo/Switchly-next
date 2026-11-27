@@ -19,6 +19,19 @@ public static class VaultOriginNormalizer
         var trimmed = rawUrlOrOrigin.Trim();
         if (!trimmed.Contains("://", StringComparison.Ordinal))
         {
+            // Reject non-HTTP colon schemes like "javascript:..." or "data:..." instead of prepending https:// (SEC-08)
+            var colonIdx = trimmed.IndexOf(':');
+            if (colonIdx > 0)
+            {
+                var beforeColon = trimmed[..colonIdx];
+                var afterColon = trimmed[(colonIdx + 1)..];
+                if (!beforeColon.Contains('.') && !string.Equals(beforeColon, "localhost", StringComparison.OrdinalIgnoreCase)
+                    && !ushort.TryParse(afterColon.Split('/')[0], out _))
+                {
+                    throw new ArgumentException("Only https and http origins are allowed for credentials.", nameof(rawUrlOrOrigin));
+                }
+            }
+
             trimmed = "https://" + trimmed;
         }
 

@@ -32,6 +32,7 @@ public sealed class BrowserWindowCoordinator
     private readonly Dictionary<WorkspaceKey, BrowserWorkspaceView> _dockedWorkspaces = [];
     private readonly Dictionary<Guid, List<BrowserWindow>> _openWindows = [];
     private WorkspaceKey? _activeDockedKey;
+    private bool _suppressWindowClosePersist;
 
     public BrowserWindowCoordinator(
         IProfileSessionManager sessionManager,
@@ -233,9 +234,18 @@ public sealed class BrowserWindowCoordinator
 
         if (_openWindows.TryGetValue(profileId, out var windows))
         {
-            foreach (var window in windows.ToList())
+            var prevSuppress = _suppressWindowClosePersist;
+            _suppressWindowClosePersist = true;
+            try
             {
-                window.Close();
+                foreach (var window in windows.ToList())
+                {
+                    window.Close();
+                }
+            }
+            finally
+            {
+                _suppressWindowClosePersist = prevSuppress;
             }
         }
 
@@ -258,13 +268,25 @@ public sealed class BrowserWindowCoordinator
         _dockedWorkspaces.Clear();
         _activeDockedKey = null;
 
-        foreach (var windows in _openWindows.Values.ToList())
+        var prevSuppress = _suppressWindowClosePersist;
+        _suppressWindowClosePersist = true;
+        try
         {
-            foreach (var window in windows.ToList())
+            foreach (var windows in _openWindows.Values.ToList())
             {
-                window.Close();
+                foreach (var window in windows.ToList())
+                {
+                    window.Close();
+                }
             }
         }
+        finally
+        {
+            _suppressWindowClosePersist = prevSuppress;
+        }
+
+        ActiveDockedWorkspaceChanged?.Invoke(null);
+        DockedWorkspacesChanged?.Invoke();
     }
 
     private async Task<List<string>> ResolveInitialUrlsAsync(BrowserProfile profile, bool isFirstSurface, string? initialUrl)
@@ -313,7 +335,11 @@ public sealed class BrowserWindowCoordinator
 
     private void OnWindowClosed(Guid profileId, BrowserWindow window)
     {
-        PersistTabs(profileId, window.WindowId, window.CaptureOpenTabs());
+        var hasDockedGeneralWorkspace = _dockedWorkspaces.ContainsKey(new WorkspaceKey(profileId, null));
+        if (!_suppressWindowClosePersist && !hasDockedGeneralWorkspace)
+        {
+            PersistTabs(profileId, window.WindowId, window.CaptureOpenTabs());
+        }
 
         if (_openWindows.TryGetValue(profileId, out var windows))
         {
@@ -351,9 +377,12 @@ public sealed class BrowserWindowCoordinator
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var tabSessions = scope.ServiceProvider.GetRequiredService<ITabSessionService>();
-            tabSessions.SaveOpenTabsAsync(profileId, windowId, tabs).GetAwaiter().GetResult();
+            Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var tabSessions = scope.ServiceProvider.GetRequiredService<ITabSessionService>();
+                await tabSessions.SaveOpenTabsAsync(profileId, windowId, tabs).ConfigureAwait(false);
+            }).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {

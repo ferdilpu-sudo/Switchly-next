@@ -25,11 +25,17 @@ dotnet publish $projectPath `
     -r win-x64 `
     --self-contained $scFlag `
     -p:Version=$Version `
+    -p:DebugType=none `
+    -p:DebugSymbols=false `
+    -p:ContinuousIntegrationBuild=true `
     -o $publishDir
 
 if ($LASTEXITCODE -ne 0) {
     throw "dotnet publish gagal dengan exit code $LASTEXITCODE."
 }
+
+# Remove any transitive third-party .pdb files so developer paths and symbols are never shipped (S2-05)
+Get-ChildItem -Path $publishDir -Filter "*.pdb" -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force
 
 # Verify required CEF native assets before packaging
 $requiredFiles = @(
@@ -55,6 +61,14 @@ if (Test-Path $noticesPath) {
 $releaseNotesPath = Join-Path $repoRoot "docs\BETA-RELEASE-NOTES.md"
 if (Test-Path $releaseNotesPath) {
     Copy-Item $releaseNotesPath (Join-Path $publishDir "BETA-RELEASE-NOTES.md") -Force
+}
+$privacyPath = Join-Path $repoRoot "docs\PRIVACY.md"
+if (Test-Path $privacyPath) {
+    Copy-Item $privacyPath (Join-Path $publishDir "PRIVACY.md") -Force
+}
+$guidePath = Join-Path $repoRoot "docs\USER-GUIDE-BETA.md"
+if (Test-Path $guidePath) {
+    Copy-Item $guidePath (Join-Path $publishDir "USER-GUIDE-BETA.md") -Force
 }
 
 # 1. Create Portable ZIP
@@ -99,5 +113,5 @@ else {
 }
 
 $checksumPath = Join-Path $releaseDir "SHA256SUMS.txt"
-$checksumLines | Set-Content -Path $checksumPath -Encoding UTF8
-Write-Host "==> Checksum ditulis ke: $checksumPath" -ForegroundColor Green
+[System.IO.File]::WriteAllLines($checksumPath, $checksumLines, [System.Text.UTF8Encoding]::new($false))
+Write-Host "==> Checksum ditulis (UTF-8 tanpa BOM) ke: $checksumPath" -ForegroundColor Green

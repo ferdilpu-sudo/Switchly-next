@@ -16,6 +16,7 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
     private const double MaxZoomLevel = 4.0;
 
     private readonly ChromiumWebBrowser _browser;
+    private readonly ProfileLifeSpanHandler _lifeSpanHandler;
     private double _zoomLevel;
     private bool _disposed;
 
@@ -27,10 +28,11 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
             ? initialUrl
             : BrowserUrlPolicy.BlankUrl;
 
+        _lifeSpanHandler = new ProfileLifeSpanHandler(url => NewTabRequested?.Invoke(url));
         _browser = new ChromiumWebBrowser(safeInitialUrl)
         {
             RequestContext = profileContext.RequestContext,
-            LifeSpanHandler = new ProfileLifeSpanHandler(url => NewTabRequested?.Invoke(url)),
+            LifeSpanHandler = _lifeSpanHandler,
             DownloadHandler = new ProfileDownloadHandler(profileContext.ProfileId, evt => DownloadUpdated?.Invoke(evt)),
             RequestHandler = new ProfileRequestHandler(reason => RendererCrashed?.Invoke(reason)),
             KeyboardHandler = new ProfileKeyboardHandler(cmd => ShortcutPressed?.Invoke(cmd)),
@@ -196,19 +198,22 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
             return false;
         }
 
+        if (!Switchly.Domain.Vault.VaultOriginNormalizer.TryNormalizeOrigin(expectedOrigin, out var normalizedExpectedOrigin))
+        {
+            return false;
+        }
+
         var userJson = JsonSerializer.Serialize(username ?? string.Empty);
         var passJson = JsonSerializer.Serialize(password ?? string.Empty);
-        var originJson = JsonSerializer.Serialize(expectedOrigin ?? string.Empty);
+        var originJson = JsonSerializer.Serialize(normalizedExpectedOrigin);
 
-        // One-shot IIFE with in-page TOCTOU origin check and native HTMLInputElement value setter
+        // One-shot IIFE with mandatory fail-closed in-page TOCTOU origin check and native HTMLInputElement value setter
         // so React/Vue/Next.js/Angular controlled inputs receive the updated value cleanly.
         var script = $$"""
             (function(u, p, expectedOrigin) {
-                if (expectedOrigin) {
-                    var currentOrigin = (window.location && window.location.origin) ? window.location.origin.toLowerCase() : '';
-                    if (currentOrigin !== expectedOrigin.toLowerCase()) {
-                        return false;
-                    }
+                var currentOrigin = (window.location && window.location.origin) ? window.location.origin.toLowerCase() : '';
+                if (!expectedOrigin || currentOrigin !== expectedOrigin.toLowerCase()) {
+                    return false;
                 }
                 function isVisible(el) {
                     if (!el || el.disabled || el.readOnly) return false;
@@ -279,6 +284,18 @@ internal sealed class CefWpfWindowHost : IWpfBrowserWindowHost
         }
 
         _disposed = true;
+        _lifeSpanHandler.CloseAllPopups();
+        try
+        {
+            if (_browser.IsBrowserInitialized)
+            {
+                _browser.CloseDevTools();
+            }
+        }
+        catch
+        {
+        }
+
         _browser.AddressChanged -= OnBrowserAddressChanged;
         _browser.TitleChanged -= OnBrowserTitleChanged;
         _browser.LoadingStateChanged -= OnBrowserLoadingStateChanged;

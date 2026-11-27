@@ -63,6 +63,8 @@ public interface ILicenseApiClient
     Task<IReadOnlyList<ActiveDeviceDto>> ListDevicesAsync(string sessionToken, CancellationToken ct = default);
 
     Task<LicenseApiOutcome> RevokeDeviceAsync(string sessionToken, Guid deviceId, CancellationToken ct = default);
+
+    Task LogoutAsync(string sessionToken, CancellationToken ct = default);
 }
 
 public sealed class LicenseAccountService
@@ -71,6 +73,7 @@ public sealed class LicenseAccountService
     private readonly ILicenseStore _licenseStore;
     private readonly IDeviceFingerprintProvider _fingerprintProvider;
     private readonly IFeatureEntitlementService _entitlementService;
+    private readonly ILicenseTokenVerifier? _tokenVerifier;
     private readonly TimeProvider _timeProvider;
 
     public LicenseAccountService(
@@ -78,12 +81,14 @@ public sealed class LicenseAccountService
         ILicenseStore licenseStore,
         IDeviceFingerprintProvider fingerprintProvider,
         IFeatureEntitlementService entitlementService,
+        ILicenseTokenVerifier? tokenVerifier = null,
         TimeProvider? timeProvider = null)
     {
         _apiClient = apiClient;
         _licenseStore = licenseStore;
         _fingerprintProvider = fingerprintProvider;
         _entitlementService = entitlementService;
+        _tokenVerifier = tokenVerifier;
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
@@ -104,6 +109,11 @@ public sealed class LicenseAccountService
         var result = await _apiClient.VerifyOtpAsync(email, code, deviceHash, GetDeviceLabel(), ct);
         if (result.Succeeded && !string.IsNullOrWhiteSpace(result.EntitlementToken))
         {
+            if (!IsTokenTrustedForDevice(result.EntitlementToken, deviceHash))
+            {
+                return new OtpVerifyApiResult(false, ErrorMessage: "Tanda tangan token lisensi dari server tidak valid.");
+            }
+
             _licenseStore.Save(new StoredLicenseState(
                 SignedToken: result.EntitlementToken,
                 SessionToken: result.SessionToken,
@@ -122,14 +132,20 @@ public sealed class LicenseAccountService
             return new TrialStartApiResult(false, ErrorMessage: "Masuk dengan email OTP terlebih dahulu untuk mengaktifkan Trial Pro 7 hari.");
         }
 
+        var deviceHash = _fingerprintProvider.GetDeviceHash();
         var result = await _apiClient.StartTrialAsync(
             stored.SessionToken,
-            _fingerprintProvider.GetDeviceHash(),
+            deviceHash,
             GetDeviceLabel(),
             ct);
 
         if (result.Succeeded && !string.IsNullOrWhiteSpace(result.EntitlementToken))
         {
+            if (!IsTokenTrustedForDevice(result.EntitlementToken, deviceHash))
+            {
+                return new TrialStartApiResult(false, ErrorMessage: "Tanda tangan token Trial dari server tidak valid.");
+            }
+
             _licenseStore.Save(stored with
             {
                 SignedToken = result.EntitlementToken,
@@ -148,14 +164,20 @@ public sealed class LicenseAccountService
             return new RefreshApiResult(false, ErrorMessage: "Belum ada akun Switchly yang masuk.");
         }
 
+        var deviceHash = _fingerprintProvider.GetDeviceHash();
         var result = await _apiClient.RefreshEntitlementAsync(
             stored.SessionToken,
-            _fingerprintProvider.GetDeviceHash(),
+            deviceHash,
             GetDeviceLabel(),
             ct);
 
         if (result.Succeeded && !string.IsNullOrWhiteSpace(result.EntitlementToken))
         {
+            if (!IsTokenTrustedForDevice(result.EntitlementToken, deviceHash))
+            {
+                return new RefreshApiResult(false, ErrorMessage: "Tanda tangan token lisensi tidak valid. Cache lokal dipertahankan.");
+            }
+
             _licenseStore.Save(stored with
             {
                 SignedToken = result.EntitlementToken,
@@ -209,5 +231,34 @@ public sealed class LicenseAccountService
         return _apiClient.RevokeDeviceAsync(stored.SessionToken, deviceId, ct);
     }
 
-    public void SignOut() => _licenseStore.Clear();
+    public async Task SignOutAsync(CancellationToken ct = default)
+    {
+        var stored = _licenseStore.Load();
+        _licenseStore.Clear();
+
+        if (stored is not null && !string.IsNullOrWhiteSpace(stored.SessionToken))
+        {
+            try
+            {
+                await _apiClient.LogoutAsync(stored.SessionToken, ct);
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    public void SignOut() => _ = SignOutAsync();
+
+    private bool IsTokenTrustedForDevice(string signedToken, string expectedDeviceHash)
+    {
+        if (_tokenVerifier is null)
+        {
+            return true;
+        }
+
+        return _tokenVerifier.TryVerify(signedToken, out var payload)
+            && payload is not null
+            && string.Equals(payload.DeviceHash, expectedDeviceHash, StringComparison.Ordinal);
+    }
 }

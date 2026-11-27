@@ -77,7 +77,7 @@ public sealed class LicenseDbContext(DbContextOptions<LicenseDbContext> options)
             entity.HasKey(x => x.Id);
             entity.Property(x => x.DeviceHash).HasMaxLength(128).IsRequired();
             entity.Property(x => x.DeviceLabel).HasMaxLength(128).IsRequired();
-            entity.HasIndex(x => new { x.AccountId, x.DeviceHash });
+            entity.HasIndex(x => new { x.AccountId, x.DeviceHash }).IsUnique();
             entity.HasOne(x => x.Account).WithMany(a => a.Devices).HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Cascade);
         });
     }

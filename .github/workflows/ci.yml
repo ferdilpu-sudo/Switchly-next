@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   build-test:
     runs-on: windows-latest
@@ -18,14 +21,17 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Restore
+      - name: Restore Desktop Solution
         run: dotnet restore Switchly.sln
 
-      - name: Format check
+      - name: Format check Desktop Solution
         run: dotnet format Switchly.sln --verify-no-changes --no-restore
 
-      - name: Build
+      - name: Build Desktop Solution
         run: dotnet build Switchly.sln -c Release --no-restore
 
-      - name: Test
+      - name: Test Desktop Solution
         run: dotnet test Switchly.sln -c Release --no-build
+
+      - name: Build & Test License API Server
+        run: dotnet test server/Switchly.LicenseApi.Tests/Switchly.LicenseApi.Tests.csproj -c Release

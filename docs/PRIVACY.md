@@ -32,4 +32,5 @@ Jika Anda memilih membuat akun untuk mengaktifkan **Trial Pro 7 hari** atau memb
 ## 5. Penghapusan Data
 
 - Menghapus profil di dalam aplikasi akan menghapus metadata serta folder data browser profil tersebut secara permanen setelah sesi ditutup.
-- Menghapus aplikasi (*uninstall*) **tidak** otomatis menghapus `%LOCALAPPDATA%\SwitchlyNext\` agar data profil tidak hilang saat pembaruan. Untuk menghapus seluruh data lokal secara permanen, hapus folder `%LOCALAPPDATA%\SwitchlyNext\` secara manual setelah menutup Switchly.
+- **Installer Standar / Portable ZIP:** Menghapus aplikasi (*uninstall*) **tidak** otomatis menghapus `%LOCALAPPDATA%\SwitchlyNext\` agar data profil tidak hilang saat pembaruan. Untuk menghapus seluruh data lokal secara permanen, hapus folder `%LOCALAPPDATA%\SwitchlyNext\` secara manual setelah menutup Switchly.
+- **Paket Microsoft Store (MSIX):** Berdasarkan perilaku standar kontainer aplikasi Windows Store, menghapus instalasi (*uninstall*) aplikasi Microsoft Store akan **ikut menghapus folder data lokal tervirtualisasi milik paket tersebut**. Pastikan Anda mengekspor cadangan terenkripsi (`.snbak`) terlebih dahulu sebelum meng-uninstall versi Microsoft Store jika ingin menyimpan data profil dan Password Vault Anda.

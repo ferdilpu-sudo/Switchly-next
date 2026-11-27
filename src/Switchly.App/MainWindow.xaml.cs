@@ -33,6 +33,7 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
 
         _windowCoordinator.ActiveDockedWorkspaceChanged += OnActiveDockedWorkspaceChanged;
+        _viewModel.UpgradePromptRequested += OpenLicenseAccountDialog;
         UpdateThemeToggleIcon();
 
         _resourceTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
@@ -46,6 +47,7 @@ public partial class MainWindow : Window
         Closed += (_, _) =>
         {
             _resourceTimer.Stop();
+            _viewModel.UpgradePromptRequested -= OpenLicenseAccountDialog;
             _windowCoordinator.ActiveDockedWorkspaceChanged -= OnActiveDockedWorkspaceChanged;
             _windowCoordinator.CloseAllWindows();
         };
@@ -129,7 +131,7 @@ public partial class MainWindow : Window
         OpenLicenseAccountDialog(initialReason: null);
     }
 
-    private void OpenLicenseAccountDialog(string? initialReason)
+    private async void OpenLicenseAccountDialog(string? initialReason)
     {
         var accountService = App.Services.GetRequiredService<Switchly.Application.Entitlements.LicenseAccountService>();
         var dialog = new LicenseAccountDialog(accountService, initialReason)
@@ -138,6 +140,18 @@ public partial class MainWindow : Window
         };
         dialog.ShowDialog();
         RefreshSettingsLicenseBadge();
+
+        // If the user signed out or downgraded to Free with >5 active profiles, cleanly close disallowed sessions (F-09).
+        var sessionManager = App.Services.GetRequiredService<Switchly.Application.Browser.IProfileSessionManager>();
+        foreach (var active in sessionManager.GetActiveSessions())
+        {
+            if (!_viewModel.EvaluateCanOpenProfile(active.ProfileId).IsAllowed)
+            {
+                await _windowCoordinator.CloseProfileWindowsAsync(active.ProfileId);
+            }
+        }
+
+        _viewModel.RefreshResourceUsage();
     }
 
     private void OnSelectLightThemeClick(object sender, RoutedEventArgs e)

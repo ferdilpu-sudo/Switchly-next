@@ -36,7 +36,7 @@ public sealed class LicenseApiTests : IDisposable
         _apiOptions = Microsoft.Extensions.Options.Options.Create(new LicenseApiOptions
         {
             Ed25519PrivateKeyBase64 = priv,
-            TokenHashPepper = "test-pepper-12345",
+            TokenHashPepper = "test-pepper-at-least-32-chars-long-012345",
             FreeMaxProfiles = 5,
             TrialDays = 7,
             DefaultMaxDevices = 2,
@@ -196,6 +196,17 @@ public sealed class LicenseApiTests : IDisposable
         Assert.Equal("pro_subscription", dev1.Payload!.Tier);
         Assert.True(dev2.Succeeded);
         Assert.False(dev3.Succeeded);
+
+        // 6. Refund webhook revokes the license and downgrades subsequent token refresh to Free (S1-04)
+        var refundSig = ComputeMidtransSig("SW-ORDER-001", "200", "249000.00", "SB-Mid-server-TESTKEY");
+        var refunded = await midtrans.ProcessWebhookAsync(
+            new MidtransWebhookPayload("SW-ORDER-001", "200", "249000.00", refundSig, "refund", "accept", "IDR"),
+            CancellationToken.None);
+        Assert.Equal(200, refunded.HttpStatusCode);
+
+        var afterRefund = await issuer.IssueForDeviceAsync(acct, "pc-1", "PC 1", CancellationToken.None);
+        Assert.True(afterRefund.Succeeded);
+        Assert.Equal("free", afterRefund.Payload!.Tier);
     }
 
     private static string ComputeMidtransSig(string orderId, string statusCode, string grossAmount, string serverKey)

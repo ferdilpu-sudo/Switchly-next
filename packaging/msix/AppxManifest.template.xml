@@ -25,6 +25,8 @@
   <Dependencies>
     <!-- Windows 11 x64 minimum (build 22000) per D8 -->
     <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.22000.0" MaxVersionTested="10.0.26100.0" />
+    <!-- VC++ 2015-2022 CRT required by CefSharp.Core.Runtime.dll & CefSharp.BrowserSubprocess.Core.dll -->
+    <PackageDependency Name="Microsoft.VCLibs.140.00.UWPDesktop" MinVersion="14.0.30704.0" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" />
   </Dependencies>
 
   <Resources>

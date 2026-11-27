@@ -123,7 +123,16 @@ public sealed class LocalProfileStorageDirectory : IProfileStorageDirectory
                 nameof(storageRelativePath));
         }
 
-        var combined = Path.GetFullPath(Path.Combine(_rootCachePath, storageRelativePath))
+        var trimmed = storageRelativePath.Trim();
+        if (!(Guid.TryParseExact(trimmed, "N", out var parsedGuid) || Guid.TryParseExact(trimmed, "D", out parsedGuid))
+            || parsedGuid == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "StorageRelativePath must be a non-empty profile GUID directory name (ADR-011, CEF-05).",
+                nameof(storageRelativePath));
+        }
+
+        var combined = Path.GetFullPath(Path.Combine(_rootCachePath, trimmed))
             .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var parent = Path.GetDirectoryName(combined)
             ?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);

@@ -25,11 +25,15 @@ public sealed class CefBrowserRuntime : IBrowserRuntime
         var resolvedLogDir = string.IsNullOrWhiteSpace(logDirectory) ? fullRoot : Path.GetFullPath(logDirectory);
         Directory.CreateDirectory(resolvedLogDir);
 
+        var baseDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var settings = new CefSettings
         {
             RootCachePath = fullRoot,
             LogFile = Path.Combine(resolvedLogDir, "cef-runtime.log"),
             LogSeverity = LogSeverity.Error,
+            BrowserSubprocessPath = Path.Combine(baseDir, "CefSharp.BrowserSubprocess.exe"),
+            LocalesDirPath = Path.Combine(baseDir, "locales"),
+            ResourcesDirPath = baseDir,
         };
 
 #if DEBUG

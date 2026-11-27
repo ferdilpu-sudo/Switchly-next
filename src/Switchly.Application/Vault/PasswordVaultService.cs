@@ -14,6 +14,7 @@ namespace Switchly.Application.Vault;
 /// </summary>
 public sealed class PasswordVaultService : IPasswordVaultService
 {
+    public const string VaultKeyFileName = "vault-key.dat";
     private const int KeyLength = 32;
     private const int NonceLength = 12;
     private const int TagLength = 16;
@@ -22,12 +23,14 @@ public sealed class PasswordVaultService : IPasswordVaultService
     private const int MaxFieldLength = 2048;
 
     private static readonly byte[] VaultKeyEntropy = "SwitchlyNext.VaultMasterKey.v1"u8.ToArray();
+    private static readonly object KeyLock = new();
+
+    public static ReadOnlySpan<byte> VaultMasterKeyEntropy => VaultKeyEntropy;
 
     private readonly IVaultCredentialRepository _repository;
     private readonly ILocalDataProtector _protector;
     private readonly string _vaultKeyFilePath;
     private readonly TimeProvider _timeProvider;
-    private readonly object _keyLock = new();
 
     public PasswordVaultService(
         IVaultCredentialRepository repository,
@@ -351,7 +354,7 @@ public sealed class PasswordVaultService : IPasswordVaultService
 
     private byte[] LoadOrCreateVaultKey()
     {
-        lock (_keyLock)
+        lock (KeyLock)
         {
             if (File.Exists(_vaultKeyFilePath))
             {
@@ -368,7 +371,7 @@ public sealed class PasswordVaultService : IPasswordVaultService
 
             var newKey = RandomNumberGenerator.GetBytes(KeyLength);
             var wrapped = _protector.Protect(newKey, VaultKeyEntropy);
-            var tempPath = _vaultKeyFilePath + ".tmp";
+            var tempPath = $"{_vaultKeyFilePath}.{Guid.NewGuid():N}.tmp";
             File.WriteAllBytes(tempPath, wrapped);
             File.Move(tempPath, _vaultKeyFilePath, overwrite: true);
             return newKey;
@@ -377,7 +380,7 @@ public sealed class PasswordVaultService : IPasswordVaultService
 
     private byte[] LoadExistingVaultKeyOrFail()
     {
-        lock (_keyLock)
+        lock (KeyLock)
         {
             if (!File.Exists(_vaultKeyFilePath))
             {

@@ -113,8 +113,8 @@ public partial class SecurityAndBackupDialog : Window
             return;
         }
 
-        // Close open browser windows before backup so profile storage is flushed cleanly (design.md §4.5).
-        _windowCoordinator.CloseAllWindows();
+        // Close all active profile sessions cleanly before backup so profile storage & SQLite are flushed (F-18).
+        await App.Services.GetRequiredService<Switchly.App.ViewModels.WorkspaceViewModel>().CloseAllSessionsAsync();
 
         await RunWithProgressAsync(async (progress, ct) =>
         {
@@ -212,7 +212,7 @@ public partial class SecurityAndBackupDialog : Window
                     var exePath = Environment.ProcessPath;
                     if (!string.IsNullOrEmpty(exePath))
                     {
-                        Process.Start(new ProcessStartInfo(exePath) { UseShellExecute = true });
+                        Process.Start(new ProcessStartInfo(exePath, "--applying-restore") { UseShellExecute = true });
                     }
 
                     System.Windows.Application.Current.Shutdown(0);

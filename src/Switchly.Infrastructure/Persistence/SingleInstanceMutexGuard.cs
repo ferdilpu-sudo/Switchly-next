@@ -11,11 +11,12 @@ namespace Switchly.Infrastructure.Persistence;
 public sealed class SingleInstanceMutexGuard : IAppInstanceGuard
 {
     private readonly string _mutexName;
+    private readonly TimeSpan _acquireTimeout;
     private Mutex? _mutex;
     private bool _ownsMutex;
     private bool _disposed;
 
-    public SingleInstanceMutexGuard(string rootCachePath)
+    public SingleInstanceMutexGuard(string rootCachePath, TimeSpan? acquireTimeout = null)
     {
         if (string.IsNullOrWhiteSpace(rootCachePath))
         {
@@ -27,6 +28,7 @@ public sealed class SingleInstanceMutexGuard : IAppInstanceGuard
             .ToUpperInvariant();
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(normalized)))[..16];
         _mutexName = $"Local\\SwitchlyNext.Instance.{hash}";
+        _acquireTimeout = acquireTimeout ?? TimeSpan.Zero;
     }
 
     public bool TryAcquire()
@@ -44,6 +46,25 @@ public sealed class SingleInstanceMutexGuard : IAppInstanceGuard
             _mutex = mutex;
             _ownsMutex = true;
             return true;
+        }
+
+        if (_acquireTimeout > TimeSpan.Zero)
+        {
+            try
+            {
+                if (mutex.WaitOne(_acquireTimeout))
+                {
+                    _mutex = mutex;
+                    _ownsMutex = true;
+                    return true;
+                }
+            }
+            catch (AbandonedMutexException)
+            {
+                _mutex = mutex;
+                _ownsMutex = true;
+                return true;
+            }
         }
 
         mutex.Dispose();

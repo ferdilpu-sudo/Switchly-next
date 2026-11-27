@@ -20,6 +20,7 @@ public sealed class ProfileSessionManager : IProfileSessionManager
     private readonly object _gate = new();
     private readonly Dictionary<Guid, ActiveProfileSession> _sessions = [];
     private readonly Dictionary<Guid, Task<IBrowserProfileContext>> _inFlightOpens = [];
+    private readonly HashSet<Guid> _closingProfiles = [];
     private readonly Dictionary<Guid, ProfileRuntimeState> _states = [];
     private bool _disposed;
 
@@ -42,7 +43,9 @@ public sealed class ProfileSessionManager : IProfileSessionManager
     public Task<IBrowserProfileContext> OpenProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        cancellationToken.ThrowIfCancellationRequested();
 
+        Task<IBrowserProfileContext> sharedTask;
         lock (_gate)
         {
             if (_sessions.TryGetValue(profileId, out var existing))
@@ -52,24 +55,29 @@ public sealed class ProfileSessionManager : IProfileSessionManager
 
             if (_inFlightOpens.TryGetValue(profileId, out var inFlight))
             {
-                return inFlight;
+                sharedTask = inFlight;
             }
-
-            var openTask = OpenProfileCoreAsync(profileId, cancellationToken);
-            if (!openTask.IsCompleted)
+            else
             {
-                _inFlightOpens[profileId] = openTask;
+                _closingProfiles.Remove(profileId);
+                sharedTask = OpenProfileCoreAsync(profileId);
+                if (!sharedTask.IsCompleted)
+                {
+                    _inFlightOpens[profileId] = sharedTask;
+                }
             }
-
-            return openTask;
         }
+
+        return cancellationToken.CanBeCanceled
+            ? sharedTask.WaitAsync(cancellationToken)
+            : sharedTask;
     }
 
-    private async Task<IBrowserProfileContext> OpenProfileCoreAsync(Guid profileId, CancellationToken cancellationToken)
+    private async Task<IBrowserProfileContext> OpenProfileCoreAsync(Guid profileId)
     {
         try
         {
-            var profile = await _store.GetProfileAsync(profileId, cancellationToken)
+            var profile = await _store.GetProfileAsync(profileId, CancellationToken.None)
                 ?? throw new ProfileNotFoundException(profileId);
 
             if (profile.IsArchived)
@@ -90,10 +98,15 @@ public sealed class ProfileSessionManager : IProfileSessionManager
                 var fullStoragePath = _storage.EnsureCreated(profile.StorageRelativePath);
                 context = _runtime.CreateProfileContext(profile.ProfileId, fullStoragePath, profile.PersistSessionCookies);
 
-                await _store.RecordLastOpenedAsync(profileId, _timeProvider.GetUtcNow(), cancellationToken);
+                await _store.RecordLastOpenedAsync(profileId, _timeProvider.GetUtcNow(), CancellationToken.None);
 
                 lock (_gate)
                 {
+                    if (_disposed || _closingProfiles.Remove(profileId))
+                    {
+                        throw new OperationCanceledException($"Profile '{profileId}' was closed during startup.");
+                    }
+
                     _sessions[profileId] = new ActiveProfileSession(profile, context);
                 }
 
@@ -104,7 +117,8 @@ public sealed class ProfileSessionManager : IProfileSessionManager
             {
                 context?.Dispose();
                 _lockManager.Release(profileId);
-                SetState(profileId, ProfileRuntimeState.Error, openWindowCount: 0, lastError: ex.GetType().Name);
+                var nextState = ex is OperationCanceledException ? ProfileRuntimeState.Closed : ProfileRuntimeState.Error;
+                SetState(profileId, nextState, openWindowCount: 0, lastError: ex is OperationCanceledException ? null : ex.GetType().Name);
                 throw;
             }
         }
@@ -137,7 +151,32 @@ public sealed class ProfileSessionManager : IProfileSessionManager
                 : session.Profile.StartupUrl ?? DefaultBlankUrl;
         }
 
-        var windowHost = _runtime.CreateWindowHost(context, resolvedUrl);
+        IBrowserWindowHost windowHost;
+        try
+        {
+            windowHost = _runtime.CreateWindowHost(context, resolvedUrl);
+        }
+        catch
+        {
+            ActiveProfileSession? orphanToClose = null;
+            lock (_gate)
+            {
+                if (_sessions.TryGetValue(profileId, out var s) && s.Windows.Count == 0)
+                {
+                    _sessions.Remove(profileId);
+                    orphanToClose = s;
+                }
+            }
+
+            if (orphanToClose is not null)
+            {
+                orphanToClose.Context.Dispose();
+                _lockManager.Release(profileId);
+                SetState(profileId, ProfileRuntimeState.Error, openWindowCount: 0, lastError: "WindowCreationFailed");
+            }
+
+            throw;
+        }
 
         int count;
         lock (_gate)
@@ -165,12 +204,12 @@ public sealed class ProfileSessionManager : IProfileSessionManager
 
         lock (_gate)
         {
-            if (!_sessions.TryGetValue(profileId, out var session))
+            if (!_sessions.TryGetValue(profileId, out var session) || !session.Windows.Remove(windowHost))
             {
+                windowHost.Dispose();
                 return;
             }
 
-            session.Windows.Remove(windowHost);
             remainingWindows = session.Windows.Count;
 
             if (remainingWindows == 0)
@@ -195,17 +234,39 @@ public sealed class ProfileSessionManager : IProfileSessionManager
         }
     }
 
-    public Task CloseProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
+    public async Task CloseProfileAsync(Guid profileId, CancellationToken cancellationToken = default)
     {
+        Task<IBrowserProfileContext>? inFlightToDrain;
+        lock (_gate)
+        {
+            if (_inFlightOpens.TryGetValue(profileId, out inFlightToDrain))
+            {
+                _closingProfiles.Add(profileId);
+            }
+        }
+
+        if (inFlightToDrain is not null)
+        {
+            try
+            {
+                await inFlightToDrain.ConfigureAwait(false);
+            }
+            catch
+            {
+                // Expected when cancelled/faulted during startup; drain before proceeding.
+            }
+        }
+
         ActiveProfileSession? sessionToClose;
         List<IBrowserWindowHost> windowsToDispose;
 
         lock (_gate)
         {
+            _closingProfiles.Remove(profileId);
             if (!_sessions.TryGetValue(profileId, out sessionToClose))
             {
                 SetState(profileId, ProfileRuntimeState.Closed, openWindowCount: 0);
-                return Task.CompletedTask;
+                return;
             }
 
             _sessions.Remove(profileId);
@@ -223,8 +284,6 @@ public sealed class ProfileSessionManager : IProfileSessionManager
         sessionToClose.Context.Dispose();
         _lockManager.Release(profileId);
         SetState(profileId, ProfileRuntimeState.Closed, openWindowCount: 0);
-
-        return Task.CompletedTask;
     }
 
     public ProfileRuntimeState GetState(Guid profileId)
@@ -258,13 +317,13 @@ public sealed class ProfileSessionManager : IProfileSessionManager
         }
 
         _disposed = true;
-        List<Guid> activeIds;
+        List<Guid> idsToClose;
         lock (_gate)
         {
-            activeIds = [.. _sessions.Keys];
+            idsToClose = [.. _sessions.Keys.Union(_inFlightOpens.Keys)];
         }
 
-        foreach (var id in activeIds)
+        foreach (var id in idsToClose)
         {
             CloseProfileAsync(id).GetAwaiter().GetResult();
         }
@@ -283,9 +342,7 @@ public sealed class ProfileSessionManager : IProfileSessionManager
     private sealed class ActiveProfileSession(BrowserProfile profile, IBrowserProfileContext context)
     {
         public BrowserProfile Profile { get; } = profile;
-
         public IBrowserProfileContext Context { get; } = context;
-
         public List<IBrowserWindowHost> Windows { get; } = [];
     }
 }
