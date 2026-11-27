@@ -18,19 +18,8 @@
         <Border x:Name="SidebarPanel" Grid.Column="0" Background="{DynamicResource BgSidebarBrush}"
                 BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,1,0" Padding="12,14,12,10">
             <DockPanel>
-                <!-- Top Brand Header + Labeled Theme Toggle -->
+                <!-- Top Brand Header (Calm & Focused — Theme Moved to Settings Hub) -->
                 <DockPanel DockPanel.Dock="Top" Margin="2,0,0,12">
-                    <Button x:Name="ThemeToggleButton" DockPanel.Dock="Right"
-                            Style="{StaticResource GhostButtonStyle}"
-                            Click="OnToggleThemeClick" Padding="8,5"
-                            ToolTip="Ganti tema Gelap / Terang"
-                            AutomationProperties.Name="Ganti tema Gelap atau Terang">
-                        <StackPanel Orientation="Horizontal">
-                            <Path x:Name="ThemeIconPath" Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconSun}" Width="14" Height="14" Margin="0,0,5,0"/>
-                            <TextBlock x:Name="ThemeLabelText" Text="Terang" FontSize="11.5" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
-                        </StackPanel>
-                    </Button>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Border Width="28" Height="28" CornerRadius="8" Background="{DynamicResource AccentBrush}" Margin="0,0,9,0">
                             <TextBlock Text="S" Foreground="White" FontWeight="Bold" FontSize="15"
@@ -80,50 +69,34 @@
                     </UniformGrid>
                 </Border>
 
-                <!-- Compact 2x2 Global Utility Footer (Activity, Settings, Import, Security — D14 Phase 3) -->
+                <!-- Clean 2-Item Global Utility Footer (Aktivitas & Pengaturan — Zero Duplicate Nav) -->
                 <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
                     <Separator DockPanel.Dock="Top" Margin="0,0,0,8"/>
-                    <UniformGrid Columns="2" Rows="2">
+                    <UniformGrid Columns="2">
                         <Button x:Name="SidebarActivityButton" Style="{StaticResource GhostButtonStyle}" Click="OnOpenActivityViewClick"
-                                Padding="8,7" Margin="0,0,3,4"
+                                Padding="8,7" Margin="0,0,3,0"
                                 ToolTip="Pantau sesi profil yang sedang berjalan dan penggunaan RAM">
                             <StackPanel Orientation="Horizontal">
                                 <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconActivity}" Width="14" Height="14" Margin="0,0,6,0"/>
-                                <TextBlock Text="Aktivitas" FontSize="12" VerticalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                <TextBlock Text="Aktivitas" FontSize="12.5" VerticalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="SidebarSettingsButton" Style="{StaticResource GhostButtonStyle}" Click="OnOpenSettingsViewClick"
-                                Padding="8,7" Margin="3,0,0,4"
-                                ToolTip="Pengaturan tampilan, Auto-Sleep, privasi, dan informasi aplikasi">
+                                Padding="8,7" Margin="3,0,0,0"
+                                ToolTip="Pengaturan tampilan, keamanan, sandi, cadangan, impor, dan akun">
                             <StackPanel Orientation="Horizontal">
                                 <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconSettings}" Width="14" Height="14" Margin="0,0,6,0"/>
-                                <TextBlock Text="Pengaturan" FontSize="12" VerticalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Style="{StaticResource GhostButtonStyle}" Click="OnImportBrowserClick"
-                                Padding="8,7" Margin="0,0,3,0"
-                                ToolTip="Impor bookmark, riwayat, atau tab terbuka dari Chrome/Edge">
-                            <StackPanel Orientation="Horizontal">
-                                <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconDownload}" Width="14" Height="14" Margin="0,0,6,0"/>
-                                <TextBlock Text="Impor" FontSize="12" VerticalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Style="{StaticResource GhostButtonStyle}" Click="OnSecurityAndBackupClick"
-                                Padding="8,7" Margin="3,0,0,0"
-                                ToolTip="Kunci aplikasi, Password Vault, dan cadangan terenkripsi">
-                            <StackPanel Orientation="Horizontal">
-                                <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconShield}" Width="14" Height="14" Margin="0,0,6,0"/>
-                                <TextBlock Text="Keamanan" FontSize="12" VerticalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                <TextBlock Text="Pengaturan" FontSize="12.5" VerticalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                             </StackPanel>
                         </Button>
                     </UniformGrid>
                 </DockPanel>
 
-                <!-- Independent Scroll Sections: PROFIL (Top, Elastic) + GRUP (Pinned Bottom, Always Reachable at Scale) -->
+                <!-- Independent Scroll Sections: PROFIL (Top, Elastic) + GRUP (Pinned Bottom, Zero Empty Gap When Collapsed) -->
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition x:Name="SidebarProfilesRow" Height="*"/>
-                        <RowDefinition Height="Auto"/>
+                        <RowDefinition x:Name="SidebarGroupsRow" Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <!-- Section 1: PROFIL -->
@@ -142,7 +115,7 @@
                                     <Path x:Name="SidebarProfilesChevron" Style="{StaticResource VectorIconStyle}"
                                           Data="{StaticResource IconChevronDown}" Stroke="{DynamicResource TextMutedBrush}"
                                           Width="11" Height="11" Margin="0,0,5,0"/>
-                                    <TextBlock Text="PROFIL" FontSize="11.5" FontWeight="SemiBold"
+                                    <TextBlock Text="PROFIL" FontSize="12" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
@@ -156,8 +129,8 @@
                                                 Padding="8,7" Margin="0,0,0,3" Cursor="Hand">
                                             <Button.ContextMenu>
                                                 <ContextMenu>
-                                                    <MenuItem Header="Buka di Workspace (Terintegrasi)" Click="OnOpenProfileClick" Tag="{Binding}"/>
-                                                    <MenuItem Header="Buka di Jendela Baru (Pop-out)" Click="OnOpenNewWindowClick" Tag="{Binding}"/>
+                                                    <MenuItem Header="Buka di Ruang Kerja" Click="OnOpenProfileClick" Tag="{Binding}"/>
+                                                    <MenuItem Header="Buka di Jendela Baru" Click="OnOpenNewWindowClick" Tag="{Binding}"/>
                                                     <MenuItem Header="Tutup Sesi" Click="OnCloseSessionClick" Tag="{Binding}" IsEnabled="{Binding IsActive}"/>
                                                     <Separator/>
                                                     <MenuItem Header="Ubah Profil &amp; Atur Grup" Click="OnEditProfileClick" Tag="{Binding}"/>
@@ -166,7 +139,8 @@
                                                     <MenuItem Header="Impor dari Chrome/Edge..." Click="OnImportForProfileClick" Tag="{Binding}"/>
                                                     <MenuItem Header="Arsipkan / Pulihkan" Click="OnToggleArchiveClick" Tag="{Binding}"/>
                                                     <Separator/>
-                                                    <MenuItem Header="Hapus Profil" Click="OnDeleteProfileClick" Tag="{Binding}"/>
+                                                    <MenuItem Header="Hapus Profil" Click="OnDeleteProfileClick" Tag="{Binding}"
+                                                              Foreground="{DynamicResource DangerSoftTextBrush}" FontWeight="SemiBold"/>
                                                 </ContextMenu>
                                             </Button.ContextMenu>
                                             <Button.Style>
@@ -203,12 +177,24 @@
                                                     <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconClose}" Width="10" Height="10"/>
                                                 </Button>
                                                 <Ellipse DockPanel.Dock="Right" Width="7" Height="7" Fill="{Binding StatusColor}"
-                                                         VerticalAlignment="Center" Margin="6,0,2,0"/>
+                                                         VerticalAlignment="Center" Margin="6,0,2,0"
+                                                         ToolTip="Sesi browser sedang berjalan">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"
-                                                               FontSize="12.5" FontWeight="SemiBold" LineHeight="17"/>
+                                                               FontSize="13" FontWeight="SemiBold" LineHeight="18"/>
                                                     <TextBlock Text="{Binding GroupBadgeLabel}" TextTrimming="CharacterEllipsis"
-                                                               FontSize="11" LineHeight="16" Padding="0,0,0,1"
+                                                               FontSize="12" LineHeight="16" Padding="0,0,0,1"
                                                                Foreground="{DynamicResource TextMutedBrush}"/>
                                                 </StackPanel>
                                             </DockPanel>
@@ -219,7 +205,7 @@
                         </ScrollViewer>
                     </DockPanel>
 
-                    <!-- Section 2: GRUP (Pinned & Keyboard-Accessible) -->
+                    <!-- Section 2: GRUP (Filter — Pinned & Keyboard-Accessible) -->
                     <DockPanel Grid.Row="1">
                         <Separator DockPanel.Dock="Top" Margin="0,0,0,8"/>
                         <DockPanel DockPanel.Dock="Top" Margin="2,0,2,6">
@@ -237,17 +223,17 @@
                                     <Path x:Name="SidebarGroupsChevron" Style="{StaticResource VectorIconStyle}"
                                           Data="{StaticResource IconChevronDown}" Stroke="{DynamicResource TextMutedBrush}"
                                           Width="11" Height="11" Margin="0,0,5,0"/>
-                                    <TextBlock Text="GRUP" FontSize="11.5" FontWeight="SemiBold"
+                                    <TextBlock Text="GRUP" FontSize="12" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </DockPanel>
 
-                        <ScrollViewer x:Name="SidebarGroupsBody" MaxHeight="200"
+                        <ScrollViewer x:Name="SidebarGroupsBody" MaxHeight="180"
                                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel>
                                 <TextBlock Text="Belum ada grup. Buat grup (mis. Kerja, Pribadi) lalu pilih di menu Ubah Profil."
-                                           FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap"
+                                           FontSize="12" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap"
                                            Margin="4,0,4,8">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -294,7 +280,7 @@
                                                         <Border Background="{DynamicResource BgAppBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
                                                                 BorderThickness="1" CornerRadius="9" Padding="6,1" Margin="0,0,4,0" VerticalAlignment="Center"
                                                                 ToolTip="Jumlah profil di grup ini">
-                                                            <TextBlock Text="{Binding MemberCount}" FontSize="10.5" FontWeight="SemiBold"
+                                                            <TextBlock Text="{Binding MemberCount}" FontSize="12" FontWeight="SemiBold"
                                                                        Foreground="{DynamicResource TextSecondaryBrush}"/>
                                                         </Border>
                                                         <Button Style="{StaticResource GhostButtonStyle}"
@@ -364,9 +350,9 @@
 
                                                     <!-- Center: Group Name + Domain Subtitle -->
                                                     <StackPanel VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold" LineHeight="17"
+                                                        <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" LineHeight="18"
                                                                    Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                                        <TextBlock Text="{Binding DomainSubtitle}" FontSize="11" LineHeight="16" Padding="0,0,0,1"
+                                                        <TextBlock Text="{Binding DomainSubtitle}" FontSize="12" LineHeight="16" Padding="0,0,0,1"
                                                                    Foreground="{DynamicResource TextMutedBrush}" TextTrimming="CharacterEllipsis"/>
                                                     </StackPanel>
                                                 </DockPanel>
@@ -560,7 +546,7 @@
                 </DockPanel>
             </Border>
 
-            <!-- Clean 3-Zone Footer Status Bar (D12) -->
+            <!-- Calm 3-Zone Footer Status Bar (No Unguarded Destructive Buttons — Heuristic #2 & #5) -->
             <Border x:Name="FooterStatusBar" DockPanel.Dock="Bottom" Background="{DynamicResource BgSidebarBrush}"
                     BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0" Padding="18,6">
                 <Grid>
@@ -570,12 +556,12 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Left Zone: Profile Counts + Quick Close -->
+                    <!-- Left Zone: Profile Counts + Safe Background Sleep -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="{Binding FooterProfileSummary}" Foreground="{DynamicResource TextSecondaryBrush}"
                                    FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
                         <Button Content="Tutup Sesi Lain" Click="OnCloseBackgroundSessionsClick"
-                                Padding="8,3" FontSize="11.5" Margin="0,0,4,0"
+                                Padding="8,3" FontSize="12"
                                 ToolTip="Tutup semua sesi di latar belakang kecuali profil yang sedang Anda lihat">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
@@ -589,39 +575,21 @@
                                 </Style>
                             </Button.Style>
                         </Button>
-                        <Button Content="Tutup Semua" Click="OnCloseAllSessionsClick"
-                                Padding="9,3" FontSize="11.5" FontWeight="SemiBold"
-                                ToolTip="Matikan seluruh sesi profil yang sedang berjalan">
-                            <Button.Style>
-                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Setter Property="Background" Value="{DynamicResource DangerSoftBgBrush}"/>
-                                    <Setter Property="BorderBrush" Value="{DynamicResource DangerSoftBorderBrush}"/>
-                                    <Setter Property="BorderThickness" Value="1"/>
-                                    <Setter Property="Foreground" Value="{DynamicResource DangerSoftTextBrush}"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding HasActiveSessions}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
                     </StackPanel>
 
                     <!-- Center Zone: Compact RAM Telemetry -->
                     <TextBlock Grid.Column="1" Text="{Binding FooterRamSummary}"
-                               Foreground="{DynamicResource TextMutedBrush}" FontSize="11.5"
+                               Foreground="{DynamicResource TextMutedBrush}" FontSize="12"
                                VerticalAlignment="Center" HorizontalAlignment="Center"/>
 
-                    <!-- Right Zone: Auto-Sleep Toggle + Version -->
+                    <!-- Right Zone: Tidur Otomatis Toggle + Version -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                         <Button Style="{StaticResource GhostButtonStyle}" Content="{Binding AutoSleepLabel}"
-                                Click="OnToggleAutoSleepClick" Padding="8,3" FontSize="11.5" Margin="0,0,10,0"
+                                Click="OnToggleAutoSleepClick" Padding="8,3" FontSize="12" Margin="0,0,10,0"
                                 Foreground="{DynamicResource TextSecondaryBrush}"
-                                ToolTip="Otomatis tidurkan profil latar belakang yang tidak dipakai selama 30 menit (klik untuk ON/OFF)"/>
+                                ToolTip="Tidurkan otomatis profil latar belakang yang tidak dipakai selama 30 menit"/>
                         <TextBlock Text="{Binding AppVersionDisplay}" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextMutedBrush}" FontSize="11.5"/>
+                                   Foreground="{DynamicResource TextMutedBrush}" FontSize="12"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -634,7 +602,7 @@
                             BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="24,18">
                         <DockPanel>
                             <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}"
-                                    Click="OnNewProfileClick" Padding="16,9">
+                                     Click="OnNewProfileClick" Padding="16,9">
                                 <StackPanel Orientation="Horizontal">
                                     <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconPlus}"
                                           Stroke="White" Width="14" Height="14" Margin="0,0,7,0"/>
@@ -646,7 +614,7 @@
                                 <TextBlock Text="{Binding SectionTitle}" FontSize="24" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"/>
                                 <TextBlock Text="{Binding SectionSubtitle}"
-                                           FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0"/>
+                                           FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0"/>
                             </StackPanel>
                         </DockPanel>
                     </Border>
@@ -668,13 +636,13 @@
                                    FontSize="12.5" TextWrapping="Wrap"/>
                     </Border>
 
-                    <!-- Profile Library Control Bar: Status Filter + Count + Sorting (D14 Phase 2) -->
+                    <!-- Profile Library Control Bar: Status Filter + Count + Sorting -->
                     <Border DockPanel.Dock="Top" Background="{DynamicResource BgAppBrush}"
                             BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="24,10">
                         <DockPanel>
                             <!-- Right: Stable Sorting Selector -->
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                <TextBlock Text="Urutkan:" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"
+                                <TextBlock Text="Urutkan:" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}"
                                            VerticalAlignment="Center" Margin="0,0,8,0"/>
                                 <ComboBox x:Name="SortOrderCombo" Width="170" SelectedIndex="0"
                                           SelectionChanged="OnSortOrderSelectionChanged"
@@ -701,7 +669,7 @@
                                                 Content="Tertutup" Click="OnStatusFilterInactiveClick" Padding="10,4" FontSize="12"/>
                                     </StackPanel>
                                 </Border>
-                                <TextBlock Text="{Binding VisibleProfileCountLabel}" FontSize="12"
+                                <TextBlock Text="{Binding VisibleProfileCountLabel}" FontSize="12.5"
                                            Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </DockPanel>
@@ -726,7 +694,7 @@
                                         Click="OnBulkCloseSessionsClick" Padding="10,4" FontSize="12" Margin="0,0,6,0"/>
                                 <Button Style="{StaticResource GhostButtonStyle}" Content="Arsipkan / Pulihkan"
                                         Click="OnBulkArchiveClick" Padding="10,4" FontSize="12" Margin="0,0,6,0"/>
-                                <Button Style="{StaticResource DangerButtonStyle}" Content="Hapus Terpilih"
+                                <Button Style="{StaticResource DangerOutlineButtonStyle}" Content="Hapus Terpilih"
                                         Click="OnBulkDeleteClick" Padding="10,4" FontSize="12" Margin="0,0,8,0"/>
                                 <Button Style="{StaticResource GhostButtonStyle}" Content="Batal Pilih"
                                         Click="OnBulkClearSelectionClick" Padding="8,4" FontSize="12"/>
@@ -736,7 +704,7 @@
                         </DockPanel>
                     </Border>
 
-                    <!-- Empty State + Scale-Ready Virtualized Profile Library Table (50–1,000+ profiles, D14 Phase 2) -->
+                    <!-- Empty State + Calm Virtualized Profile Library Table -->
                     <Grid Margin="24,14,24,16">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <StackPanel.Style>
@@ -750,7 +718,7 @@
                                 </Style>
                             </StackPanel.Style>
                             <Border Width="54" Height="54" CornerRadius="14" Background="{DynamicResource AccentSoftBrush}"
-                                    HorizontalAlignment="Center" Margin="0,0,0,14">
+                                     HorizontalAlignment="Center" Margin="0,0,0,14">
                                 <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconGrid}"
                                       Stroke="{DynamicResource AccentBrush}" Width="24" Height="24"/>
                             </Border>
@@ -771,23 +739,17 @@
 
                         <Border VerticalAlignment="Top" CornerRadius="12" Background="{DynamicResource BgSurfaceBrush}"
                                 BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsEmpty}" Value="True">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
-                                <DockPanel>
-                                    <!-- Subtle Keyboard Hint Footer Bar Inside Table -->
-                                    <Border DockPanel.Dock="Bottom" Background="{DynamicResource BgAppBrush}"
-                                            CornerRadius="0,0,12,12" Padding="14,8">
-                                        <TextBlock Text="Tip: Klik baris profil untuk langsung membuka sesi terisolasi, atau tekan Ctrl+Shift+K dari mana saja untuk pindah cepat."
-                                                   FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}"/>
-                                    </Border>
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsEmpty}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <DockPanel>
                                 <!-- Sticky Table Header -->
                                 <Border DockPanel.Dock="Top" Background="{DynamicResource BgSidebarBrush}"
                                         BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1"
@@ -796,29 +758,29 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="32"/>
                                             <ColumnDefinition Width="*" MinWidth="150"/>
-                                            <ColumnDefinition Width="115"/>
-                                            <ColumnDefinition Width="96"/>
-                                            <ColumnDefinition Width="105"/>
-                                            <ColumnDefinition Width="148"/>
+                                            <ColumnDefinition Width="136"/>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="110"/>
+                                            <ColumnDefinition Width="126"/>
                                         </Grid.ColumnDefinitions>
                                         <CheckBox x:Name="SelectAllProfilesCheckBox" Grid.Column="0" VerticalAlignment="Center"
                                                   Click="OnSelectAllProfilesClick"
                                                   ToolTip="Pilih semua profil yang tampil"
                                                   AutomationProperties.Name="Pilih semua profil"/>
-                                        <TextBlock Grid.Column="1" Text="PROFIL" FontSize="11" FontWeight="SemiBold"
+                                        <TextBlock Grid.Column="1" Text="PROFIL" FontSize="12" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" Text="GRUP" FontSize="11" FontWeight="SemiBold"
+                                        <TextBlock Grid.Column="2" Text="GRUP" FontSize="12" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="3" Text="STATUS" FontSize="11" FontWeight="SemiBold"
+                                        <TextBlock Grid.Column="3" Text="STATUS" FontSize="12" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="4" Text="TERAKHIR DIBUKA" FontSize="11" FontWeight="SemiBold"
+                                        <TextBlock Grid.Column="4" Text="TERAKHIR DIBUKA" FontSize="12" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="5" Text="AKSI" FontSize="11" FontWeight="SemiBold"
+                                        <TextBlock Grid.Column="5" Text="AKSI" FontSize="12" FontWeight="SemiBold"
                                                    Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,6,0"/>
                                     </Grid>
                                 </Border>
 
-                                <!-- Virtualized Recycling ListBox (Scale-Ready for 1,000+ profiles) -->
+                                <!-- Virtualized Recycling ListBox -->
                                 <ListBox x:Name="ProfileLibraryList"
                                          ItemsSource="{Binding VisibleProfiles}"
                                          BorderThickness="0" Background="Transparent" Padding="0"
@@ -842,7 +804,7 @@
                                     </ListBox.ItemContainerStyle>
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Padding="14,10" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1"
+                                            <Border x:Name="RowSurface" Padding="14,10" BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1"
                                                     Cursor="Hand" MouseLeftButtonUp="OnProfileCardClick" Tag="{Binding}">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
@@ -859,8 +821,8 @@
                                                 </Border.Style>
                                                 <Border.ContextMenu>
                                                     <ContextMenu>
-                                                        <MenuItem Header="Buka di Workspace (Terintegrasi)" Click="OnOpenProfileClick" Tag="{Binding}"/>
-                                                        <MenuItem Header="Buka di Jendela Baru (Pop-out)" Click="OnOpenNewWindowClick" Tag="{Binding}"/>
+                                                        <MenuItem Header="Buka di Ruang Kerja" Click="OnOpenProfileClick" Tag="{Binding}"/>
+                                                        <MenuItem Header="Buka di Jendela Baru" Click="OnOpenNewWindowClick" Tag="{Binding}"/>
                                                         <MenuItem Header="Tutup Sesi" Click="OnCloseSessionClick" Tag="{Binding}" IsEnabled="{Binding IsActive}"/>
                                                         <Separator/>
                                                         <MenuItem Header="Ubah Profil &amp; Atur Grup" Click="OnEditProfileClick" Tag="{Binding}"/>
@@ -869,17 +831,18 @@
                                                         <MenuItem Header="Impor dari Chrome/Edge..." Click="OnImportForProfileClick" Tag="{Binding}"/>
                                                         <MenuItem Header="Arsipkan / Pulihkan" Click="OnToggleArchiveClick" Tag="{Binding}"/>
                                                         <Separator/>
-                                                        <MenuItem Header="Hapus Profil" Click="OnDeleteProfileClick" Tag="{Binding}"/>
+                                                        <MenuItem Header="Hapus Profil" Click="OnDeleteProfileClick" Tag="{Binding}"
+                                                                  Foreground="{DynamicResource DangerSoftTextBrush}" FontWeight="SemiBold"/>
                                                     </ContextMenu>
                                                 </Border.ContextMenu>
                                                 <Grid>
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="32"/>
                                                         <ColumnDefinition Width="*" MinWidth="150"/>
-                                                        <ColumnDefinition Width="115"/>
-                                                        <ColumnDefinition Width="96"/>
-                                                        <ColumnDefinition Width="105"/>
-                                                        <ColumnDefinition Width="148"/>
+                                                        <ColumnDefinition Width="136"/>
+                                                        <ColumnDefinition Width="100"/>
+                                                        <ColumnDefinition Width="110"/>
+                                                        <ColumnDefinition Width="126"/>
                                                     </Grid.ColumnDefinitions>
 
                                                     <!-- Col 0: Bulk Selection Checkbox -->
@@ -887,38 +850,39 @@
                                                               Click="OnRowSelectionCheckboxClick" VerticalAlignment="Center"
                                                               AutomationProperties.Name="Pilih profil"/>
 
-                                                    <!-- Col 1: Avatar + Profile Name + Startup URL -->
+                                                    <!-- Col 1: Colored Avatar + Profile Name + Startup URL -->
                                                     <DockPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0">
                                                         <Border DockPanel.Dock="Left" Width="32" Height="32" CornerRadius="8"
                                                                 Background="{Binding ColorHex}" Margin="0,0,10,0" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding InitialLetter}" Foreground="White" FontSize="13.5" FontWeight="Bold"
+                                                            <TextBlock Text="{Binding InitialLetter}" Foreground="White" FontSize="14" FontWeight="Bold"
                                                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                         </Border>
                                                         <StackPanel VerticalAlignment="Center">
                                                             <TextBlock Text="{Binding Name}" FontSize="13.5" FontWeight="SemiBold" LineHeight="19"
                                                                        Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
                                                             <TextBlock Text="{Binding StartupUrlDisplay}" Foreground="{DynamicResource TextSecondaryBrush}"
-                                                                       FontSize="11.5" LineHeight="17" Padding="0,0,0,1" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"/>
+                                                                       FontSize="12" LineHeight="17" Padding="0,0,0,1" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"/>
                                                         </StackPanel>
                                                     </DockPanel>
 
-                                                    <!-- Col 2: Manual / Web Workspace Group Pill -->
+                                                    <!-- Col 2: Group Badge (+N format, full list in ToolTip) -->
                                                     <Border Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center"
                                                             Background="{DynamicResource BgAppBrush}"
                                                             BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1"
-                                                            CornerRadius="6" Padding="8,3" Margin="0,0,8,0">
-                                                        <TextBlock Text="{Binding GroupBadgeLabel}" FontSize="11.5"
+                                                            CornerRadius="6" Padding="8,3" Margin="0,0,8,0"
+                                                            ToolTip="{Binding FullGroupTooltip}">
+                                                        <TextBlock Text="{Binding GroupBadgeLabel}" FontSize="12"
                                                                    Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
                                                     </Border>
 
-                                                    <!-- Col 3: D14 Status Pill (Tampil / Berjalan / Dijeda / Tertutup) -->
+                                                    <!-- Col 3: Status Pill (Tampil / Berjalan / Tertutup) -->
                                                     <Border Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Center"
                                                             Background="{DynamicResource BgAppBrush}"
                                                             BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1"
                                                             CornerRadius="10" Padding="8,3">
                                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                             <Ellipse Width="7" Height="7" Fill="{Binding StatusColor}" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                                            <TextBlock Text="{Binding StatusLabel}" FontSize="11.5" FontWeight="Medium"
+                                                            <TextBlock Text="{Binding StatusLabel}" FontSize="12" FontWeight="Medium"
                                                                        Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
                                                         </StackPanel>
                                                     </Border>
@@ -928,18 +892,28 @@
                                                                Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"
                                                                TextTrimming="CharacterEllipsis"/>
 
-                                                    <!-- Col 5: Quick Actions -->
+                                                    <!-- Col 5: Calm Actions (Star shown when favorited or hovered + Buka + ⋯ Menu, >= 30px WCAG 2.5.8) -->
                                                     <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                                                        <Button Content="Buka"
-                                                                Click="OnOpenProfileClick" Tag="{Binding}"
-                                                                Padding="12,4" MinHeight="28" FontSize="12" Margin="0,0,6,0"
-                                                                Background="{DynamicResource BgAppBrush}"
-                                                                BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1"
-                                                                Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
-                                                        <Button Style="{StaticResource IconButtonStyle}" Width="28" Height="28" MinWidth="28"
+                                                        <Button Width="30" Height="30" MinWidth="30" Margin="0,0,4,0"
                                                                 Click="OnToggleFavoriteClick" Tag="{Binding}"
-                                                                ToolTip="Favorit" AutomationProperties.Name="Tandai atau hapus favorit">
-                                                            <Path Data="{StaticResource IconStar}" Width="13" Height="13" Stretch="Uniform" StrokeThickness="1.8"
+                                                                ToolTip="Tandai / hapus favorit" AutomationProperties.Name="Tandai atau hapus favorit">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                                                                    <Setter Property="Opacity" Value="0"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsFavorite}" Value="True">
+                                                                            <Setter Property="Opacity" Value="1"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding IsMouseOver, ElementName=RowSurface}" Value="True">
+                                                                            <Setter Property="Opacity" Value="1"/>
+                                                                        </DataTrigger>
+                                                                        <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                            <Setter Property="Opacity" Value="1"/>
+                                                                        </Trigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Button.Style>
+                                                            <Path Data="{StaticResource IconStar}" Width="14" Height="14" Stretch="Uniform" StrokeThickness="1.8"
                                                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round">
                                                                 <Path.Style>
                                                                     <Style TargetType="Path">
@@ -955,15 +929,17 @@
                                                                 </Path.Style>
                                                             </Path>
                                                         </Button>
-                                                        <Button Style="{StaticResource IconButtonStyle}" Width="28" Height="28" MinWidth="28"
-                                                                Click="OnOpenNewWindowClick" Tag="{Binding}"
-                                                                ToolTip="Buka di jendela terpisah (pop-out)" AutomationProperties.Name="Buka di jendela baru">
-                                                            <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconExternalLink}" Width="13" Height="13"/>
-                                                        </Button>
-                                                        <Button Style="{StaticResource IconButtonStyle}" Width="28" Height="28" MinWidth="28"
+                                                        <Button Content="Buka"
+                                                                Click="OnOpenProfileClick" Tag="{Binding}"
+                                                                Padding="12,4" MinHeight="30" FontSize="12" Margin="0,0,4,0"
+                                                                Background="{DynamicResource BgAppBrush}"
+                                                                BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1"
+                                                                Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
+                                                        <Button Style="{StaticResource IconButtonStyle}" Width="30" Height="30" MinWidth="30"
                                                                 Click="OnCardMoreClick" Tag="{Binding}"
-                                                                ToolTip="Opsi lainnya" AutomationProperties.Name="Opsi lainnya">
-                                                            <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconMoreHorizontal}" Width="13" Height="13"/>
+                                                                ToolTip="Opsi lainnya (Jendela Baru, Ubah, Duplikat, Arsip, Hapus)"
+                                                                AutomationProperties.Name="Opsi lainnya">
+                                                            <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconMoreHorizontal}" Width="14" Height="14"/>
                                                         </Button>
                                                     </StackPanel>
                                                 </Grid>
@@ -979,7 +955,7 @@
                 <!-- Mode B: Active Docked Browser Workspace -->
                 <ContentControl x:Name="DockedBrowserHost" Visibility="Collapsed"/>
 
-                <!-- Mode C: Dedicated Activity & Running Sessions View (D14 Phase 3) -->
+                <!-- Mode C: Dedicated Activity & Running Sessions View -->
                 <DockPanel x:Name="ActivityView" Visibility="Collapsed">
                     <Border DockPanel.Dock="Top" Background="{DynamicResource BgSurfaceElevatedBrush}"
                             BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="24,18">
@@ -988,15 +964,15 @@
                                 <Button Style="{StaticResource GhostButtonStyle}" Content="Tutup Sesi Lain"
                                         Click="OnCloseBackgroundSessionsClick" Padding="12,7" Margin="0,0,8,0"
                                         IsEnabled="{Binding HasBackgroundSessions}"/>
-                                <Button Style="{StaticResource DangerButtonStyle}" Content="Tutup Semua Sesi"
+                                <Button Style="{StaticResource DangerOutlineButtonStyle}" Content="Tutup Semua Sesi"
                                         Click="OnCloseAllSessionsClick" Padding="12,7"
                                         IsEnabled="{Binding HasActiveSessions}"/>
                             </StackPanel>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="Aktivitas &amp; Sesi Berjalan" FontSize="24" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                <TextBlock Text="Pantau semua sesi browser yang sedang aktif, fokuskan workspace, atau tutup sesi latar belakang untuk menghemat RAM."
-                                           FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0"/>
+                                <TextBlock Text="Pantau semua sesi browser yang sedang aktif, fokuskan ruang kerja, atau tutup sesi latar belakang untuk menghemat RAM."
+                                           FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0"/>
                             </StackPanel>
                         </DockPanel>
                     </Border>
@@ -1008,7 +984,7 @@
                             <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
                                     BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="0,0,10,0">
                                 <StackPanel>
-                                    <TextBlock Text="RINGKASAN PROFIL" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}"/>
+                                    <TextBlock Text="RINGKASAN PROFIL" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}"/>
                                     <TextBlock Text="{Binding FooterProfileSummary}" FontSize="14.5" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,4,0,0"/>
                                 </StackPanel>
@@ -1016,7 +992,7 @@
                             <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
                                     BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="5,0,5,0">
                                 <StackPanel>
-                                    <TextBlock Text="PENGGUNAAN MEMORI" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}"/>
+                                    <TextBlock Text="PENGGUNAAN MEMORI" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}"/>
                                     <TextBlock Text="{Binding FooterRamSummary}" FontSize="14.5" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,4,0,0"/>
                                 </StackPanel>
@@ -1024,7 +1000,7 @@
                             <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
                                     BorderThickness="1" CornerRadius="10" Padding="14,10" Margin="10,0,0,0">
                                 <StackPanel>
-                                    <TextBlock Text="PENGHEMAT RAM OTOMATIS" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}"/>
+                                    <TextBlock Text="TIDUR OTOMATIS" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextMutedBrush}"/>
                                     <TextBlock Text="{Binding AutoSleepLabel}" FontSize="14.5" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,4,0,0"/>
                                 </StackPanel>
@@ -1081,7 +1057,7 @@
                                                             BorderThickness="1" CornerRadius="10" Padding="9,3" Margin="0,0,10,0" VerticalAlignment="Center">
                                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                                             <Ellipse Width="7" Height="7" Fill="{DynamicResource SuccessBrush}" Margin="0,0,6,0"/>
-                                                            <TextBlock FontSize="11.5" FontWeight="Medium" Foreground="{DynamicResource TextPrimaryBrush}">
+                                                            <TextBlock FontSize="12" FontWeight="Medium" Foreground="{DynamicResource TextPrimaryBrush}">
                                                                 <TextBlock.Style>
                                                                     <Style TargetType="TextBlock">
                                                                         <Setter Property="Text" Value="Berjalan"/>
@@ -1090,7 +1066,7 @@
                                                                                 <Setter Property="Text" Value="Tampil"/>
                                                                             </DataTrigger>
                                                                             <DataTrigger Binding="{Binding IsPopOut}" Value="True">
-                                                                                <Setter Property="Text" Value="Pop-out"/>
+                                                                                <Setter Property="Text" Value="Jendela Baru"/>
                                                                             </DataTrigger>
                                                                         </Style.Triggers>
                                                                     </Style>
@@ -1102,10 +1078,9 @@
                                                             Click="OnActiveWorkspaceClick" Tag="{Binding}"
                                                             Padding="12,5" FontSize="12" Margin="0,0,6,0"
                                                             Foreground="{DynamicResource AccentBrush}" FontWeight="SemiBold"/>
-                                                    <Button Style="{StaticResource GhostButtonStyle}" Content="Tutup Sesi"
+                                                    <Button Style="{StaticResource DangerOutlineButtonStyle}" Content="Tutup Sesi"
                                                             Click="OnCloseActiveWorkspaceClick" Tag="{Binding}"
-                                                            Padding="10,5" FontSize="12"
-                                                            Foreground="{DynamicResource DangerSoftTextBrush}"/>
+                                                            Padding="10,5" FontSize="12"/>
                                                 </StackPanel>
 
                                                 <Border DockPanel.Dock="Left" Width="36" Height="36" CornerRadius="9"
@@ -1129,109 +1104,193 @@
                     </Grid>
                 </DockPanel>
 
-                <!-- Mode D: Dedicated Settings View (D14 Phase 3) -->
+                <!-- Mode D: Structured 2-Column Settings Hub (Left Sub-Nav + Single Primary CTA per Section — Heuristics #5, #6, #8) -->
                 <DockPanel x:Name="SettingsView" Visibility="Collapsed">
                     <Border DockPanel.Dock="Top" Background="{DynamicResource BgSurfaceElevatedBrush}"
                             BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,0,0,1" Padding="24,18">
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="Pengaturan Switchly" FontSize="24" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextPrimaryBrush}"/>
-                            <TextBlock Text="Kelola tampilan, efisiensi memori, keamanan lokal, dan informasi versi aplikasi."
-                                       FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0"/>
+                            <TextBlock Text="Atur tampilan, keamanan lokal, cadangan, impor, lisensi, dan pintasan aplikasi."
+                                       FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0"/>
                         </StackPanel>
                     </Border>
 
-                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,18">
-                        <StackPanel MaxWidth="760" HorizontalAlignment="Left">
-                            <!-- Card 1: Appearance -->
-                            <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
-                                    BorderThickness="1" CornerRadius="12" Padding="18,16" Margin="0,0,0,14">
-                                <DockPanel>
-                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button x:Name="SettingsLightThemeButton" Style="{StaticResource NavButtonActiveStyle}"
-                                                Content="Terang (Light)" Click="OnSelectLightThemeClick" Padding="12,6" Margin="0,0,6,0"/>
-                                        <Button x:Name="SettingsDarkThemeButton" Style="{StaticResource NavButtonStyle}"
-                                                Content="Gelap (Dark)" Click="OnSelectDarkThemeClick" Padding="12,6"/>
-                                    </StackPanel>
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock Text="Tampilan &amp; Tema" FontSize="15" FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                        <TextBlock Text="Pilih mode Terang (default) atau Gelap. Preferensi disimpan secara lokal."
-                                                   FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,3,0,0"/>
-                                    </StackPanel>
-                                </DockPanel>
-                            </Border>
+                    <Grid Margin="24,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="210"/>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                            <!-- Card 2: Resource Management -->
-                            <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
-                                    BorderThickness="1" CornerRadius="12" Padding="18,16" Margin="0,0,0,14">
-                                <DockPanel>
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}"
-                                            Content="{Binding AutoSleepLabel}" Click="OnToggleAutoSleepClick"
-                                            Padding="14,7" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <TextBlock Text="Manajemen Memori (Auto-Sleep)" FontSize="15" FontWeight="SemiBold"
-                                                   Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                        <TextBlock Text="Otomatis menutup sesi profil latar belakang yang tidak aktif selama 30 menit (profil yang sedang dibuka atau pop-out tidak disentuh)."
-                                                   FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
-                                    </StackPanel>
-                                </DockPanel>
-                            </Border>
-
-                            <!-- Card 3: Security, Vault & Import Shortcuts -->
-                            <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
-                                    BorderThickness="1" CornerRadius="12" Padding="18,16" Margin="0,0,0,14">
-                                <StackPanel>
-                                    <TextBlock Text="Keamanan, Password Vault, Impor &amp; Cadangan" FontSize="15" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}"/>
-                                    <TextBlock Text="Semua kredensial dienkripsi secara lokal dengan keamanan bawaan Windows dan AES-256. Tidak ada sinkronisasi cloud atau penyimpanan sandi terbuka."
-                                               FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,3,0,12"/>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Button Style="{StaticResource PrimaryButtonStyle}" Content="Buka Keamanan, Vault &amp; Cadangan"
-                                                Click="OnSecurityAndBackupClick" Padding="14,8" Margin="0,0,10,0"/>
-                                        <Button Style="{StaticResource GhostButtonStyle}" Content="Impor dari Chrome / Edge"
-                                                Click="OnImportBrowserClick" Padding="14,8"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-
-                            <!-- Card 4: Account & Licensing (D16 / M-009) -->
-                            <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
-                                    BorderThickness="1" CornerRadius="12" Padding="18,16" Margin="0,0,0,14">
-                                <DockPanel>
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}"
-                                            Content="Kelola Akun &amp; Lisensi" Click="OnManageLicenseClick"
-                                            Padding="14,8" VerticalAlignment="Center"/>
-                                    <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="Akun &amp; Lisensi" FontSize="15" FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center"/>
-                                            <Border Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource AccentBrush}"
-                                                    BorderThickness="1" CornerRadius="10" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
-                                                <TextBlock x:Name="SettingsLicenseBadgeText" Text="Free Beta" FontSize="11" FontWeight="SemiBold"
-                                                           Foreground="{DynamicResource AccentBrush}"/>
-                                            </Border>
-                                        </StackPanel>
-                                        <TextBlock Text="Mode Free (maks. 5 profil) berjalan lokal tanpa login. Buat akun untuk Trial Pro 7 hari gratis atau upgrade Pro (QRIS / Virtual Account)."
-                                                   FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                                    </StackPanel>
-                                </DockPanel>
-                            </Border>
-
-                            <!-- Card 5: Privacy & App Info -->
-                            <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
-                                    BorderThickness="1" CornerRadius="12" Padding="18,16">
-                                <StackPanel>
-                                    <TextBlock Text="Privasi &amp; Tentang Switchly" FontSize="15" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,8"/>
-                                    <TextBlock Text="{Binding AboutVersionLine}" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                                    <TextBlock Text="• Mesin Browser: Chromium 156 (isolasi cookie &amp; penyimpanan penuh per profil)" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                                    <TextBlock Text="• Telemetri: NONAKTIF (Local-first, log diagnostik lokal dengan redaksi rahasia)" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                                    <TextBlock Text="• Pintasan Keyboard: Ctrl+Shift+K (Pindah Profil), Ctrl+B (Sidebar), Ctrl+T/W/L/F, Ctrl+Tab / Ctrl+Shift+Tab" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                </StackPanel>
-                            </Border>
+                        <!-- Settings Left Sub-Navigation -->
+                        <StackPanel Grid.Column="0">
+                            <Button x:Name="SettingsNavGeneralButton" Style="{StaticResource NavButtonActiveStyle}"
+                                    Content="Umum &amp; Tampilan" Tag="General" Click="OnSettingsSubNavClick"
+                                    HorizontalContentAlignment="Left" Padding="12,9" Margin="0,0,0,4"/>
+                            <Button x:Name="SettingsNavSecurityButton" Style="{StaticResource GhostButtonStyle}"
+                                    Content="Keamanan &amp; Sandi" Tag="Security" Click="OnSettingsSubNavClick"
+                                    HorizontalContentAlignment="Left" Padding="12,9" Margin="0,0,0,4"/>
+                            <Button x:Name="SettingsNavDataButton" Style="{StaticResource GhostButtonStyle}"
+                                    Content="Cadangan &amp; Impor" Tag="Data" Click="OnSettingsSubNavClick"
+                                    HorizontalContentAlignment="Left" Padding="12,9" Margin="0,0,0,4"/>
+                            <Button x:Name="SettingsNavAccountButton" Style="{StaticResource GhostButtonStyle}"
+                                    Content="Akun &amp; Lisensi" Tag="Account" Click="OnSettingsSubNavClick"
+                                    HorizontalContentAlignment="Left" Padding="12,9" Margin="0,0,0,4"/>
+                            <Button x:Name="SettingsNavAboutButton" Style="{StaticResource GhostButtonStyle}"
+                                    Content="Pintasan &amp; Tentang" Tag="About" Click="OnSettingsSubNavClick"
+                                    HorizontalContentAlignment="Left" Padding="12,9"/>
                         </StackPanel>
-                    </ScrollViewer>
+
+                        <!-- Settings Right Content Panels -->
+                        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                            <StackPanel MaxWidth="680" HorizontalAlignment="Left">
+
+                                <!-- Sub-Page 1: General & Appearance -->
+                                <StackPanel x:Name="SettingsPanelGeneral">
+                                    <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                            BorderThickness="1" CornerRadius="12" Padding="18,16" Margin="0,0,0,14">
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button x:Name="SettingsLightThemeButton" Style="{StaticResource NavButtonActiveStyle}"
+                                                        Content="Terang" Click="OnSelectLightThemeClick" Padding="14,6" Margin="0,0,6,0"/>
+                                                <Button x:Name="SettingsDarkThemeButton" Style="{StaticResource NavButtonStyle}"
+                                                        Content="Gelap" Click="OnSelectDarkThemeClick" Padding="14,6"/>
+                                            </StackPanel>
+                                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                                <TextBlock Text="Tema Antarmuka" FontSize="15" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Pilih mode Terang atau Gelap dengan palet kontras teruji. Preferensi tersimpan lokal."
+                                                           FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+
+                                    <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                            BorderThickness="1" CornerRadius="12" Padding="18,16">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Content="{Binding AutoSleepLabel}"
+                                                    Click="OnToggleAutoSleepClick" Padding="14,7" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                                <TextBlock Text="Tidur Otomatis Hemat RAM" FontSize="15" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Menutup sesi profil latar belakang yang tidak disentuh selama 30 menit tanpa mengganggu profil yang sedang tampil atau dibuka di jendela baru."
+                                                           FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Sub-Page 2: Security & Password Vault (1 Primary CTA) -->
+                                <StackPanel x:Name="SettingsPanelSecurity" Visibility="Collapsed">
+                                    <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                            BorderThickness="1" CornerRadius="12" Padding="18,16" Margin="0,0,0,14">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}"
+                                                    Content="Kelola Password Vault" Click="OnOpenVaultDialogClick"
+                                                    Padding="14,8" VerticalAlignment="Center"/>
+                                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                                <TextBlock Text="Password Vault Terisolasi" FontSize="15" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Simpan atau impor CSV sandi per profil dengan enkripsi AES-256-GCM + Windows DPAPI tanpa sinkronisasi cloud."
+                                                           FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+
+                                    <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                            BorderThickness="1" CornerRadius="12" Padding="18,16">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Content="Atur Kunci Aplikasi"
+                                                    Click="OnSecurityAndBackupClick" Padding="14,8" VerticalAlignment="Center"/>
+                                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                                <TextBlock Text="Kunci Kata Sandi Utama" FontSize="15" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Tambahkan layar pengunci saat Switchly dibuka agar orang lain yang meminjam PC ini tidak bisa mengakses sesi Anda."
+                                                           FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Sub-Page 3: Backup & Browser Import (1 Primary CTA) -->
+                                <StackPanel x:Name="SettingsPanelData" Visibility="Collapsed">
+                                    <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                            BorderThickness="1" CornerRadius="12" Padding="18,16" Margin="0,0,0,14">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}"
+                                                    Content="Buat / Pulihkan Cadangan" Click="OnOpenBackupDialogClick"
+                                                    Padding="14,8" VerticalAlignment="Center"/>
+                                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                                <TextBlock Text="Cadangan Terenkripsi (.snbak)" FontSize="15" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Ekspor profil, grup, dan Password Vault ke arsip terenkripsi AES-256-GCM untuk dicadangkan atau dipindah ke PC baru."
+                                                           FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+
+                                    <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                            BorderThickness="1" CornerRadius="12" Padding="18,16">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Content="Impor dari Chrome / Edge"
+                                                    Click="OnImportBrowserClick" Padding="14,8" VerticalAlignment="Center"/>
+                                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                                <TextBlock Text="Impor Bookmark &amp; Riwayat" FontSize="15" FontWeight="SemiBold"/>
+                                                <TextBlock Text="Impor bookmark, riwayat kunjungan, atau alamat tab terbuka secara baca-saja tanpa menyentuh browser asal."
+                                                           FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Sub-Page 4: Account & Licensing (1 Primary CTA) -->
+                                <StackPanel x:Name="SettingsPanelAccount" Visibility="Collapsed">
+                                    <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                            BorderThickness="1" CornerRadius="12" Padding="18,16">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}"
+                                                    Content="Kelola Akun &amp; Lisensi" Click="OnManageLicenseClick"
+                                                    Padding="14,8" VerticalAlignment="Center"/>
+                                            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="Status Paket" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                                    <Border Background="{DynamicResource AccentSoftBrush}" BorderBrush="{DynamicResource AccentBrush}"
+                                                            BorderThickness="1" CornerRadius="10" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                        <TextBlock x:Name="SettingsLicenseBadgeText" Text="Free Beta" FontSize="12" FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource AccentBrush}"/>
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock Text="Mode Free (maks. 5 profil) berjalan 100% lokal tanpa login. Masuk dengan email OTP untuk Trial Pro 7 hari gratis atau upgrade Pro (QRIS / Virtual Account)."
+                                                           FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Sub-Page 5: Keyboard Shortcuts & Privacy/About -->
+                                <StackPanel x:Name="SettingsPanelAbout" Visibility="Collapsed">
+                                    <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                            BorderThickness="1" CornerRadius="12" Padding="18,16" Margin="0,0,0,14">
+                                        <StackPanel>
+                                            <TextBlock Text="Pintasan Keyboard" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                            <TextBlock Text="• Pindah Profil Cepat:  Ctrl + Shift + K" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,5"/>
+                                            <TextBlock Text="• Ciutkan / Tampilkan Sidebar:  Ctrl + B" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,5"/>
+                                            <TextBlock Text="• Tab Baru / Tutup Tab / Pulihkan Tab:  Ctrl + T  /  Ctrl + W  /  Ctrl + Shift + T" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,5"/>
+                                            <TextBlock Text="• Pindah Tab Maju / Mundur:  Ctrl + Tab  /  Ctrl + Shift + Tab" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,5"/>
+                                            <TextBlock Text="• Fokus Kolom URL / Cari di Halaman:  Ctrl + L  /  Ctrl + F" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                            BorderThickness="1" CornerRadius="12" Padding="18,16">
+                                        <StackPanel>
+                                            <TextBlock Text="Privasi &amp; Tentang Switchly" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                            <TextBlock Text="{Binding AboutVersionLine}" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="• Mesin Browser: Chromium 156 (isolasi cookie &amp; penyimpanan penuh per profil)" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="• Telemetri: NONAKTIF (Local-first, log diagnostik lokal dengan redaksi rahasia)" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
                 </DockPanel>
 
             </Grid>

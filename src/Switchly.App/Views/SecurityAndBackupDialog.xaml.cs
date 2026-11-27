@@ -15,20 +15,38 @@ namespace Switchly.App.Views;
 /// <summary>Local Security (UI-010) and Manual Backup/Restore (UI-011) dialog.</summary>
 public partial class SecurityAndBackupDialog : Window
 {
+    private const int MinRecommendedMasterPasswordLength = 10;
+
     private readonly ILocalSecurityService _securityService;
     private readonly BrowserWindowCoordinator _windowCoordinator;
+    private readonly Guid? _initialProfileId;
+    private readonly string? _prefillOrigin;
     private CancellationTokenSource? _opCts;
+    private bool _isMasterPasswordRevealed;
+    private bool _syncingPasswordBoxes;
 
-    public SecurityAndBackupDialog()
+    public SecurityAndBackupDialog(
+        int initialTabIndex = 0,
+        Guid? initialProfileId = null,
+        string? prefillOrigin = null)
     {
         InitializeComponent();
 
         _securityService = App.Services.GetRequiredService<ILocalSecurityService>();
         _windowCoordinator = App.Services.GetRequiredService<BrowserWindowCoordinator>();
+        _initialProfileId = initialProfileId;
+        _prefillOrigin = prefillOrigin;
+        DialogTabs.SelectedIndex = Math.Clamp(initialTabIndex, 0, 2);
+
         Loaded += async (_, _) =>
         {
             RefreshSecurityStatus();
             await LoadVaultProfilesAsync();
+            if (!string.IsNullOrWhiteSpace(_prefillOrigin))
+            {
+                VaultOriginBox.Text = _prefillOrigin;
+                VaultUsernameBox.Focus();
+            }
         };
     }
 
@@ -57,10 +75,155 @@ public partial class SecurityAndBackupDialog : Window
         target.SetResourceReference(TextBlock.ForegroundProperty, resourceKey);
     }
 
+    private void OnToggleRevealMasterPasswordClick(object sender, RoutedEventArgs e)
+    {
+        _isMasterPasswordRevealed = !_isMasterPasswordRevealed;
+        _syncingPasswordBoxes = true;
+        try
+        {
+            if (_isMasterPasswordRevealed)
+            {
+                NewMasterPasswordVisibleBox.Text = NewMasterPasswordBox.Password;
+                ConfirmMasterPasswordVisibleBox.Text = ConfirmMasterPasswordBox.Password;
+                NewMasterPasswordBox.Visibility = Visibility.Collapsed;
+                ConfirmMasterPasswordBox.Visibility = Visibility.Collapsed;
+                NewMasterPasswordVisibleBox.Visibility = Visibility.Visible;
+                ConfirmMasterPasswordVisibleBox.Visibility = Visibility.Visible;
+                RevealPasswordLabel.Text = "Sembunyikan";
+            }
+            else
+            {
+                NewMasterPasswordBox.Password = NewMasterPasswordVisibleBox.Text;
+                ConfirmMasterPasswordBox.Password = ConfirmMasterPasswordVisibleBox.Text;
+                NewMasterPasswordVisibleBox.Visibility = Visibility.Collapsed;
+                ConfirmMasterPasswordVisibleBox.Visibility = Visibility.Collapsed;
+                NewMasterPasswordBox.Visibility = Visibility.Visible;
+                ConfirmMasterPasswordBox.Visibility = Visibility.Visible;
+                RevealPasswordLabel.Text = "Tampilkan";
+            }
+
+            var iconKey = _isMasterPasswordRevealed ? "IconEyeOff" : "IconEye";
+            if (System.Windows.Application.Current?.TryFindResource(iconKey) is System.Windows.Media.Geometry g)
+            {
+                RevealPasswordIcon.Data = g;
+            }
+        }
+        finally
+        {
+            _syncingPasswordBoxes = false;
+        }
+    }
+
+    private void OnMasterPasswordInputChanged(object sender, RoutedEventArgs e)
+    {
+        if (_syncingPasswordBoxes)
+        {
+            return;
+        }
+
+        UpdateMasterPasswordStrengthAndGate();
+    }
+
+    private void OnMasterPasswordVisibleChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_syncingPasswordBoxes)
+        {
+            return;
+        }
+
+        _syncingPasswordBoxes = true;
+        NewMasterPasswordBox.Password = NewMasterPasswordVisibleBox.Text;
+        _syncingPasswordBoxes = false;
+        UpdateMasterPasswordStrengthAndGate();
+    }
+
+    private void OnConfirmMasterPasswordVisibleChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_syncingPasswordBoxes)
+        {
+            return;
+        }
+
+        _syncingPasswordBoxes = true;
+        ConfirmMasterPasswordBox.Password = ConfirmMasterPasswordVisibleBox.Text;
+        _syncingPasswordBoxes = false;
+        UpdateMasterPasswordStrengthAndGate();
+    }
+
+    private void OnMasterAcknowledgeChanged(object sender, RoutedEventArgs e)
+        => UpdateMasterPasswordStrengthAndGate();
+
+    private void UpdateMasterPasswordStrengthAndGate()
+    {
+        var p1 = _isMasterPasswordRevealed ? NewMasterPasswordVisibleBox.Text : NewMasterPasswordBox.Password;
+        var len = p1.Length;
+        var classes = 0;
+        if (p1.Any(char.IsLower))
+        {
+            classes++;
+        }
+
+        if (p1.Any(char.IsUpper))
+        {
+            classes++;
+        }
+
+        if (p1.Any(char.IsDigit))
+        {
+            classes++;
+        }
+
+        if (p1.Any(ch => !char.IsLetterOrDigit(ch)))
+        {
+            classes++;
+        }
+
+        if (len == 0)
+        {
+            MasterStrengthBar.Value = 0;
+            MasterStrengthText.Text = "Minimal 10 karakter";
+            MasterStrengthText.SetResourceReference(TextBlock.ForegroundProperty, "TextMutedBrush");
+        }
+        else if (len < MinRecommendedMasterPasswordLength)
+        {
+            MasterStrengthBar.Value = 28;
+            MasterStrengthText.Text = $"Terlalu pendek ({len}/10)";
+            MasterStrengthText.SetResourceReference(TextBlock.ForegroundProperty, "DangerSoftTextBrush");
+        }
+        else if (len >= 14 && classes >= 3)
+        {
+            MasterStrengthBar.Value = 100;
+            MasterStrengthText.Text = "Sangat kuat";
+            MasterStrengthText.SetResourceReference(TextBlock.ForegroundProperty, "SuccessTextBrush");
+        }
+        else if (classes >= 2)
+        {
+            MasterStrengthBar.Value = 72;
+            MasterStrengthText.Text = "Kuat";
+            MasterStrengthText.SetResourceReference(TextBlock.ForegroundProperty, "SuccessTextBrush");
+        }
+        else
+        {
+            MasterStrengthBar.Value = 52;
+            MasterStrengthText.Text = "Cukup";
+            MasterStrengthText.SetResourceReference(TextBlock.ForegroundProperty, "WarningSoftTextBrush");
+        }
+
+        EnableMasterButton.IsEnabled =
+            len >= MinRecommendedMasterPasswordLength &&
+            MasterAcknowledgeCheck.IsChecked == true;
+    }
+
     private void OnEnableMasterPasswordClick(object sender, RoutedEventArgs e)
     {
-        var p1 = NewMasterPasswordBox.Password;
-        var p2 = ConfirmMasterPasswordBox.Password;
+        var p1 = _isMasterPasswordRevealed ? NewMasterPasswordVisibleBox.Text : NewMasterPasswordBox.Password;
+        var p2 = _isMasterPasswordRevealed ? ConfirmMasterPasswordVisibleBox.Text : ConfirmMasterPasswordBox.Password;
+        if (p1.Length < MinRecommendedMasterPasswordLength)
+        {
+            SetFeedback(SecurityFeedbackText, $"Kata sandi utama minimal {MinRecommendedMasterPasswordLength} karakter.", isError: true);
+            return;
+        }
+
         if (!string.Equals(p1, p2, StringComparison.Ordinal))
         {
             SetFeedback(SecurityFeedbackText, "Konfirmasi kata sandi utama tidak cocok.", isError: true);
@@ -72,6 +235,10 @@ public partial class SecurityAndBackupDialog : Window
             _securityService.EnableMasterPassword(p1);
             NewMasterPasswordBox.Clear();
             ConfirmMasterPasswordBox.Clear();
+            NewMasterPasswordVisibleBox.Clear();
+            ConfirmMasterPasswordVisibleBox.Clear();
+            MasterAcknowledgeCheck.IsChecked = false;
+            UpdateMasterPasswordStrengthAndGate();
             SetFeedback(SecurityFeedbackText, "Kunci kata sandi utama berhasil diaktifkan.");
             RefreshSecurityStatus();
         }
@@ -243,7 +410,9 @@ public partial class SecurityAndBackupDialog : Window
         var profileService = scope.ServiceProvider.GetRequiredService<IProfileService>();
         var profiles = await profileService.ListAsync(includeArchived: false);
         VaultProfileCombo.ItemsSource = profiles;
-        VaultProfileCombo.SelectedItem = profiles.FirstOrDefault();
+        VaultProfileCombo.SelectedItem = _initialProfileId.HasValue
+            ? profiles.FirstOrDefault(p => p.ProfileId == _initialProfileId.Value) ?? profiles.FirstOrDefault()
+            : profiles.FirstOrDefault();
     }
 
     private async void OnVaultProfileChanged(object sender, SelectionChangedEventArgs e)

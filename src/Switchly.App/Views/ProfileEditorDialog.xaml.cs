@@ -26,15 +26,17 @@ public partial class ProfileEditorDialog : Window
         "#D97706",
         "#E11D48",
         "#0891B2",
+        "#4F46E5",
+        "#EA580C",
     ];
 
-    private static int _nextPaletteIndex;
     private readonly List<GroupSelectionOption> _groupOptions = [];
 
     public ProfileEditorDialog(
         BrowserProfile? existing = null,
         IReadOnlyList<ProfileGroup>? availableManualGroups = null,
-        IReadOnlyCollection<Guid>? currentManualGroupIds = null)
+        IReadOnlyCollection<Guid>? currentManualGroupIds = null,
+        IReadOnlyCollection<string>? existingProfileColors = null)
     {
         InitializeComponent();
 
@@ -58,15 +60,23 @@ public partial class ProfileEditorDialog : Window
             Title = "Ubah Profil — Switchly";
             NameBox.Text = existing.Name;
             StartupUrlBox.Text = existing.StartupUrl ?? string.Empty;
-            ColorHexBox.Text = existing.ColorHex ?? "#3B82F6";
+            ColorHexBox.Text = existing.ColorHex ?? "#2563EB";
             FavoriteCheck.IsChecked = existing.IsFavorite;
             RestoreSessionCheck.IsChecked = existing.RestoreLastSession;
             PersistCookiesCheck.IsChecked = existing.PersistSessionCookies;
+
+            if (!string.IsNullOrWhiteSpace(existing.StartupUrl) ||
+                existing.IsFavorite ||
+                !existing.RestoreLastSession ||
+                !existing.PersistSessionCookies)
+            {
+                SetAdvancedExpanded(true);
+            }
         }
         else
         {
             Title = "Profil Baru — Switchly";
-            ColorHexBox.Text = DefaultAvatarPalette[_nextPaletteIndex++ % DefaultAvatarPalette.Length];
+            ColorHexBox.Text = PickDistinctPaletteColor(existingProfileColors);
         }
 
         UpdateLivePreview();
@@ -75,6 +85,40 @@ public partial class ProfileEditorDialog : Window
             NameBox.Focus();
             NameBox.SelectAll();
         };
+    }
+
+    private static string PickDistinctPaletteColor(IReadOnlyCollection<string>? existingColors)
+    {
+        if (existingColors is null || existingColors.Count == 0)
+        {
+            return DefaultAvatarPalette[0];
+        }
+
+        var counts = DefaultAvatarPalette.ToDictionary(c => c, _ => 0, StringComparer.OrdinalIgnoreCase);
+        foreach (var raw in existingColors)
+        {
+            if (!string.IsNullOrWhiteSpace(raw) && counts.TryGetValue(raw.Trim(), out var current))
+            {
+                counts[raw.Trim()] = current + 1;
+            }
+        }
+
+        return DefaultAvatarPalette
+            .OrderBy(c => counts[c])
+            .First();
+    }
+
+    private void OnToggleAdvancedClick(object sender, RoutedEventArgs e)
+        => SetAdvancedExpanded(AdvancedOptionsPanel.Visibility != Visibility.Visible);
+
+    private void SetAdvancedExpanded(bool expanded)
+    {
+        AdvancedOptionsPanel.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
+        var iconKey = expanded ? "IconChevronDown" : "IconChevronRight";
+        if (System.Windows.Application.Current?.TryFindResource(iconKey) is Geometry g)
+        {
+            AdvancedChevron.Data = g;
+        }
     }
 
     public string ProfileName { get; private set; } = string.Empty;

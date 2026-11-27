@@ -31,14 +31,29 @@
                     </StackPanel>
                 </DockPanel>
 
-                <StackPanel Margin="0,0,0,12">
+                <StackPanel Margin="0,0,0,14">
                     <TextBlock Text="Nama Profil *" FontWeight="SemiBold" Margin="0,0,0,5"/>
                     <TextBox x:Name="NameBox" MaxLength="80" TextChanged="OnNameChanged"
                              themes:TextBoxAssist.PlaceholderText="Contoh: Kerja Utama, Akun Klien A, Pribadi..."/>
                 </StackPanel>
 
-                <StackPanel Margin="0,0,0,12">
-                    <TextBlock Text="Grup (bisa pilih lebih dari satu)" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                <!-- Curated 8-Hue Identity Color Picker (Color = Profile Identity) -->
+                <StackPanel Margin="0,0,0,14">
+                    <TextBlock Text="Warna Identitas Profil" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                    <StackPanel x:Name="SwatchPanel" Orientation="Horizontal">
+                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#2563EB" Click="OnColorSwatchClick" Tag="#2563EB" ToolTip="Biru" AutomationProperties.Name="Warna Biru"/>
+                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#7C3AED" Click="OnColorSwatchClick" Tag="#7C3AED" ToolTip="Ungu" AutomationProperties.Name="Warna Ungu"/>
+                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#059669" Click="OnColorSwatchClick" Tag="#059669" ToolTip="Hijau" AutomationProperties.Name="Warna Hijau"/>
+                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#D97706" Click="OnColorSwatchClick" Tag="#D97706" ToolTip="Amber" AutomationProperties.Name="Warna Amber"/>
+                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#E11D48" Click="OnColorSwatchClick" Tag="#E11D48" ToolTip="Merah Mawar" AutomationProperties.Name="Warna Merah Mawar"/>
+                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#0891B2" Click="OnColorSwatchClick" Tag="#0891B2" ToolTip="Cyan" AutomationProperties.Name="Warna Cyan"/>
+                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#4F46E5" Click="OnColorSwatchClick" Tag="#4F46E5" ToolTip="Indigo" AutomationProperties.Name="Warna Indigo"/>
+                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Background="#EA580C" Click="OnColorSwatchClick" Tag="#EA580C" ToolTip="Oranye" AutomationProperties.Name="Warna Oranye"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,0,10">
+                    <TextBlock Text="Grup (opsional, bisa lebih dari satu)" FontWeight="SemiBold" Margin="0,0,0,5"/>
                     <Border Background="{DynamicResource BgInputBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
                             BorderThickness="1" CornerRadius="7" Padding="10,8" MaxHeight="96">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -63,32 +78,34 @@
                     </Border>
                 </StackPanel>
 
-                <StackPanel Margin="0,0,0,12">
-                    <TextBlock Text="URL Awal (opsional, http/https)" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                    <TextBox x:Name="StartupUrlBox"
-                             themes:TextBoxAssist.PlaceholderText="Kosongkan atau isi misal: https://chatgpt.com"/>
-                </StackPanel>
-
-                <!-- Curated 8-Color Swatch Picker + Hex Input -->
-                <StackPanel Margin="0,0,0,12">
-                    <TextBlock Text="Warna Label" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                    <StackPanel x:Name="SwatchPanel" Orientation="Horizontal" Margin="0,0,0,8">
-                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#3B82F6" Click="OnColorSwatchClick" Tag="#3B82F6" ToolTip="Biru" AutomationProperties.Name="Warna Biru"/>
-                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#6366F1" Click="OnColorSwatchClick" Tag="#6366F1" ToolTip="Indigo" AutomationProperties.Name="Warna Indigo"/>
-                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#8B5CF6" Click="OnColorSwatchClick" Tag="#8B5CF6" ToolTip="Ungu" AutomationProperties.Name="Warna Ungu"/>
-                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#EC4899" Click="OnColorSwatchClick" Tag="#EC4899" ToolTip="Merah Muda" AutomationProperties.Name="Warna Merah Muda"/>
-                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#EF4444" Click="OnColorSwatchClick" Tag="#EF4444" ToolTip="Merah" AutomationProperties.Name="Warna Merah"/>
-                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#F59E0B" Click="OnColorSwatchClick" Tag="#F59E0B" ToolTip="Kuning" AutomationProperties.Name="Warna Kuning"/>
-                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Margin="0,0,8,0" Background="#10B981" Click="OnColorSwatchClick" Tag="#10B981" ToolTip="Hijau" AutomationProperties.Name="Warna Hijau"/>
-                        <Button Style="{StaticResource ColorSwatchButtonStyle}" Background="#06B6D4" Click="OnColorSwatchClick" Tag="#06B6D4" ToolTip="Cyan" AutomationProperties.Name="Warna Cyan"/>
+                <!-- Progressive Disclosure: Advanced Options -->
+                <Button Style="{StaticResource GhostButtonStyle}" Click="OnToggleAdvancedClick"
+                        HorizontalAlignment="Left" Padding="6,5" Margin="0,2,0,6">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path x:Name="AdvancedChevron" Style="{StaticResource VectorIconStyle}"
+                              Data="{StaticResource IconChevronRight}" Width="12" Height="12" Margin="0,0,6,0"/>
+                        <TextBlock Text="Opsi lanjutan (halaman awal, favorit, sesi)" FontSize="12.5" FontWeight="Medium"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
                     </StackPanel>
-                    <TextBox x:Name="ColorHexBox" MaxLength="7" TextChanged="OnColorHexChanged"
-                             themes:TextBoxAssist.PlaceholderText="#3B82F6"/>
-                </StackPanel>
+                </Button>
 
-                <CheckBox x:Name="FavoriteCheck" Content="Tandai sebagai Favorit" Margin="0,2,0,8"/>
-                <CheckBox x:Name="RestoreSessionCheck" Content="Pulihkan sesi terakhir saat dibuka" IsChecked="True" Margin="0,0,0,8"/>
-                <CheckBox x:Name="PersistCookiesCheck" Content="Simpan session cookies antar-restart" IsChecked="True" Margin="0,0,0,8"/>
+                <Border x:Name="AdvancedOptionsPanel" Visibility="Collapsed"
+                        Background="{DynamicResource BgSurfaceBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBlock Text="Halaman Awal (opsional)" FontWeight="SemiBold" FontSize="12.5" Margin="0,0,0,4"/>
+                        <TextBox x:Name="StartupUrlBox" Margin="0,0,0,10"
+                                 themes:TextBoxAssist.PlaceholderText="Kosongkan atau isi misal: https://chatgpt.com"/>
+
+                        <TextBlock Text="Kode Warna Kustom (Hex)" FontWeight="SemiBold" FontSize="12.5" Margin="0,0,0,4"/>
+                        <TextBox x:Name="ColorHexBox" MaxLength="7" TextChanged="OnColorHexChanged" Margin="0,0,0,10"
+                                 themes:TextBoxAssist.PlaceholderText="#2563EB"/>
+
+                        <CheckBox x:Name="FavoriteCheck" Content="Tandai sebagai Favorit" Margin="0,2,0,8"/>
+                        <CheckBox x:Name="RestoreSessionCheck" Content="Buka kembali tab terakhir saat profil dibuka" IsChecked="True" Margin="0,0,0,8"/>
+                        <CheckBox x:Name="PersistCookiesCheck" Content="Tetap login setelah aplikasi ditutup" IsChecked="True"/>
+                    </StackPanel>
+                </Border>
 
                 <TextBlock x:Name="ErrorText" Foreground="{DynamicResource DangerSoftTextBrush}"
                            FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>

@@ -13,6 +13,13 @@ public interface IHistoryService
         bool retainQueryString = false,
         CancellationToken cancellationToken = default);
 
+    Task UpdateTitleAsync(
+        Guid profileId,
+        string url,
+        string title,
+        bool retainQueryString = false,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<HistoryEntry>> ListAsync(
         Guid profileId,
         string? searchText = null,

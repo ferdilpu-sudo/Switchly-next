@@ -20,7 +20,7 @@
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
                         <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Content="Buka"
                                 Click="OnOpenBookmarkClick" Padding="14,6" Margin="6,0,0,0"/>
-                        <Button DockPanel.Dock="Right" Style="{StaticResource DangerButtonStyle}" Content="Hapus"
+                        <Button x:Name="DeleteBookmarkButton" DockPanel.Dock="Right" Style="{StaticResource DangerOutlineButtonStyle}" Content="Hapus"
                                 Click="OnDeleteBookmarkClick" Padding="12,6" Margin="8,0,0,0"/>
                         <TextBox x:Name="BookmarkSearchBox" Style="{StaticResource PillTextBoxStyle}"
                                  themes:TextBoxAssist.PlaceholderText="Cari bookmark berdasarkan judul atau URL..."
@@ -43,19 +43,16 @@
                                 <DataTemplate>
                                     <StackPanel Margin="4,3">
                                         <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" LineHeight="18"/>
-                                        <TextBlock Text="{Binding Url}" FontSize="11.5" LineHeight="17" Padding="0,0,0,1"
+                                        <TextBlock Text="{Binding Url}" FontSize="12" LineHeight="17" Padding="0,0,0,1"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <TextBlock Text="Belum ada bookmark di profil ini. Klik ikon Bintang pada toolbar browser untuk menyimpan halaman."
-                                   Foreground="{DynamicResource TextMutedBrush}" FontSize="12.5" TextWrapping="Wrap"
-                                   TextAlignment="Center" Margin="32,0" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   IsHitTestVisible="False">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="32,0" IsHitTestVisible="False">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Items.Count, ElementName=BookmarksList}" Value="0">
@@ -63,8 +60,18 @@
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                            </StackPanel.Style>
+                            <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource AccentSoftBrush}"
+                                    HorizontalAlignment="Center" Margin="0,0,0,10">
+                                <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconStar}"
+                                      Stroke="{DynamicResource AccentBrush}" Width="20" Height="20"/>
+                            </Border>
+                            <TextBlock Text="Belum ada bookmark di profil ini" FontSize="14" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                            <TextBlock Text="Gunakan menu ⋯ → Simpan Bookmark pada halaman yang sering dibuka."
+                                       Foreground="{DynamicResource TextMutedBrush}" FontSize="12.5" TextWrapping="Wrap"
+                                       TextAlignment="Center" MaxWidth="360"/>
+                        </StackPanel>
                     </Grid>
                 </DockPanel>
             </TabItem>
@@ -75,7 +82,7 @@
                     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
                         <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Content="Buka"
                                 Click="OnOpenHistoryClick" Padding="14,6" Margin="6,0,0,0"/>
-                        <Button DockPanel.Dock="Right" Style="{StaticResource DangerButtonStyle}" Content="Hapus Semua"
+                        <Button x:Name="ClearHistoryButton" DockPanel.Dock="Right" Style="{StaticResource DangerOutlineButtonStyle}" Content="Hapus Semua"
                                 Click="OnClearHistoryClick" Padding="12,6" Margin="8,0,0,0"/>
                         <TextBox x:Name="HistorySearchBox" Style="{StaticResource PillTextBoxStyle}"
                                  themes:TextBoxAssist.PlaceholderText="Cari riwayat kunjungan profil ini..."
@@ -96,18 +103,16 @@
                                 <DataTemplate>
                                     <StackPanel Margin="4,3">
                                         <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" LineHeight="18"/>
-                                        <TextBlock Text="{Binding Url}" FontSize="11.5" LineHeight="17" Padding="0,0,0,1"
+                                        <TextBlock Text="{Binding Url}" FontSize="12" LineHeight="17" Padding="0,0,0,1"
                                                    Foreground="{DynamicResource TextSecondaryBrush}"
                                                    TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <TextBlock Text="Belum ada riwayat kunjungan di profil ini."
-                                   Foreground="{DynamicResource TextMutedBrush}" FontSize="12.5"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="32,0" IsHitTestVisible="False">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Items.Count, ElementName=HistoryList}" Value="0">
@@ -115,8 +120,18 @@
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                            </StackPanel.Style>
+                            <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource AccentSoftBrush}"
+                                    HorizontalAlignment="Center" Margin="0,0,0,10">
+                                <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconHistory}"
+                                      Stroke="{DynamicResource AccentBrush}" Width="20" Height="20"/>
+                            </Border>
+                            <TextBlock Text="Belum ada riwayat kunjungan" FontSize="14" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                            <TextBlock Text="Halaman web yang Anda kunjungi di profil ini akan tercatat secara terisolasi di sini."
+                                       Foreground="{DynamicResource TextMutedBrush}" FontSize="12.5" TextWrapping="Wrap"
+                                       TextAlignment="Center" MaxWidth="360"/>
+                        </StackPanel>
                     </Grid>
                 </DockPanel>
             </TabItem>
@@ -149,20 +164,18 @@
                                                  VerticalAlignment="Center" Margin="0,0,10,0"/>
                                         <StackPanel>
                                             <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" FontSize="13" LineHeight="18"/>
-                                            <TextBlock Text="{Binding StatusSummary}" FontSize="11.5" LineHeight="17"
+                                            <TextBlock Text="{Binding StatusSummary}" FontSize="12" LineHeight="17"
                                                        Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,0"/>
-                                            <TextBlock Text="{Binding TargetPath}" FontSize="11" LineHeight="16" Padding="0,0,0,1"
+                                            <TextBlock Text="{Binding TargetPath}" FontSize="12" LineHeight="16" Padding="0,0,0,1"
                                                        Foreground="{DynamicResource TextMutedBrush}" TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
                                     </DockPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <TextBlock Text="Belum ada riwayat unduhan di profil ini."
-                                   Foreground="{DynamicResource TextMutedBrush}" FontSize="12.5"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="32,0" IsHitTestVisible="False">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Items.Count, ElementName=DownloadsList}" Value="0">
@@ -170,8 +183,18 @@
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                            </StackPanel.Style>
+                            <Border Width="44" Height="44" CornerRadius="12" Background="{DynamicResource AccentSoftBrush}"
+                                    HorizontalAlignment="Center" Margin="0,0,0,10">
+                                <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconDownload}"
+                                      Stroke="{DynamicResource AccentBrush}" Width="20" Height="20"/>
+                            </Border>
+                            <TextBlock Text="Belum ada riwayat unduhan" FontSize="14" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                            <TextBlock Text="File yang diunduh pada sesi profil ini akan muncul di sini beserta lokasi simpannya."
+                                       Foreground="{DynamicResource TextMutedBrush}" FontSize="12.5" TextWrapping="Wrap"
+                                       TextAlignment="Center" MaxWidth="360"/>
+                        </StackPanel>
                     </Grid>
                 </DockPanel>
             </TabItem>

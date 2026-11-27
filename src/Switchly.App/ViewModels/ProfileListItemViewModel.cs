@@ -16,16 +16,22 @@ public sealed class ProfileListItemViewModel : ViewModelBase
         ProfileRuntimeState runtimeState,
         int openWindowCount,
         bool isCurrentlyDocked = false,
-        string? manualGroupName = null)
+        string? manualGroupName = null,
+        string? fullGroupNamesTooltip = null)
     {
         Profile = profile;
         _runtimeState = runtimeState;
         _openWindowCount = openWindowCount;
         _isCurrentlyDocked = isCurrentlyDocked;
         ManualGroupName = manualGroupName;
+        FullGroupTooltip = string.IsNullOrWhiteSpace(fullGroupNamesTooltip)
+            ? GroupBadgeLabel
+            : fullGroupNamesTooltip;
     }
 
     public string? ManualGroupName { get; }
+
+    public string FullGroupTooltip { get; }
 
     public bool HasManualGroup => !string.IsNullOrWhiteSpace(ManualGroupName);
 

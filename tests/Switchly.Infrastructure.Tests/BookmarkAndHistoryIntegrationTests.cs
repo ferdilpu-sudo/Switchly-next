@@ -64,6 +64,15 @@ public class BookmarkAndHistoryIntegrationTests
             Assert.Empty(await historyService.ListAsync(profileA.ProfileId));
             Assert.Single(await historyService.ListAsync(profileB.ProfileId));
 
+            // Placeholder "Tab Baru" title during initial AddressChanged is replaced cleanly when TitleChanged arrives without double-counting visits
+            var initialVisit = await historyService.RecordVisitAsync(profileA.ProfileId, "https://chatgpt.com/c/123", "Tab Baru");
+            Assert.NotEqual("Tab Baru", initialVisit.Title);
+            await historyService.UpdateTitleAsync(profileA.ProfileId, "https://chatgpt.com/c/123", "Rencana Proyek — ChatGPT");
+            var updatedHistory = await historyService.ListAsync(profileA.ProfileId);
+            Assert.Single(updatedHistory);
+            Assert.Equal("Rencana Proyek — ChatGPT", updatedHistory[0].Title);
+            Assert.Equal(1, updatedHistory[0].VisitCount);
+
             // Deleting Profile B cascades its bookmarks & history
             await profileService.DeleteAsync(profileB.ProfileId);
             Assert.Empty(await bookmarkService.ListAsync(profileB.ProfileId));

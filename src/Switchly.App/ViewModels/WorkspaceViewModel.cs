@@ -54,13 +54,13 @@ public sealed record ActiveWorkspaceItemViewModel(
         : ProfileName.Trim()[0].ToString().ToUpperInvariant();
 
     public string DisplayTitle => IsPopOut
-        ? $"{ProfileName} (Pop-out)"
+        ? $"{ProfileName} (Jendela Baru)"
         : string.IsNullOrWhiteSpace(WorkspaceGroupName)
             ? ProfileName
             : $"{WorkspaceGroupName}  •  {ProfileName}";
 
     public string Subtitle => IsPopOut
-        ? "Jendela Terpisah (Pop-out)"
+        ? "Jendela Terpisah"
         : string.IsNullOrWhiteSpace(WorkspaceGroupName)
             ? "Browser Umum"
             : $"Profil: {ProfileName}";
@@ -182,9 +182,10 @@ public sealed class WorkspaceViewModel : ViewModelBase
 
     private List<BrowserProfile> _allProfiles = [];
     private Dictionary<Guid, string> _profileManualGroupMap = [];
+    private Dictionary<Guid, string> _profileFullGroupTooltipMap = [];
     private WorkspaceSection _activeSection = WorkspaceSection.AllProfiles;
     private ProfileStatusFilter _statusFilter = ProfileStatusFilter.All;
-    private ProfileSortOrder _sortOrder = ProfileSortOrder.NameAsc;
+    private ProfileSortOrder _sortOrder = ProfileStatusFilterToDefaultSort();
     private ProfileGroup? _selectedGroup;
     private Guid? _activeDockedProfileId;
     private Guid? _lastFocusedProfileId;
@@ -197,7 +198,15 @@ public sealed class WorkspaceViewModel : ViewModelBase
     private string _footerRamSummary = "RAM: —";
     private bool _memoryWarningDismissed;
     private string _sectionTitle = "Semua Profil";
-    private string _sectionSubtitle = "Klik baris profil untuk membuka sesi browser terisolasi, atau tekan Ctrl+Shift+K untuk pindah cepat.";
+    private string _sectionSubtitle = "Klik baris profil untuk membuka sesi browser terisolasi.";
+
+    private static ProfileSortOrder ProfileStatusFilterToDefaultSort() => ProfileSortOrder.NameAsc;
+
+    public IReadOnlyCollection<string> GetUsedProfileColors()
+        => _allProfiles
+            .Where(p => !p.IsArchived && !string.IsNullOrWhiteSpace(p.ColorHex))
+            .Select(p => p.ColorHex!)
+            .ToList();
     private int _totalSavedCount;
     private int _activeProfileCount;
     private bool _isEmpty;
@@ -562,7 +571,7 @@ public sealed class WorkspaceViewModel : ViewModelBase
         }
     }
 
-    public string AutoSleepLabel => AutoSleepEnabled ? "Auto-Sleep 30m: ON" : "Auto-Sleep: OFF";
+    public string AutoSleepLabel => AutoSleepEnabled ? "Tidur Otomatis (30 mnt): Aktif" : "Tidur Otomatis: Nonaktif";
 
     public void ToggleAutoSleep()
     {
@@ -860,7 +869,7 @@ public sealed class WorkspaceViewModel : ViewModelBase
                 $"Menampilkan profil di grup '{group.Name}' — klik baris profil untuk membuka {group.DefaultUrl}.",
             WorkspaceSection.Group when group is not null =>
                 $"Menampilkan profil yang tergabung dalam grup '{group.Name}'.",
-            _ => "Klik baris profil untuk membuka sesi browser terisolasi, atau tekan Ctrl+Shift+K untuk pindah cepat.",
+            _ => "Klik baris profil untuk membuka sesi browser terisolasi.",
         };
 
         foreach (var item in ManualGroupItems)
@@ -1224,11 +1233,14 @@ public sealed class WorkspaceViewModel : ViewModelBase
             }
         }
 
+        _profileFullGroupTooltipMap = groupNamesByProfile.ToDictionary(
+            kvp => kvp.Key,
+            kvp => string.Join(", ", kvp.Value));
         _profileManualGroupMap = groupNamesByProfile.ToDictionary(
             kvp => kvp.Key,
-            kvp => kvp.Value.Count <= 2
-                ? string.Join(", ", kvp.Value)
-                : $"{kvp.Value[0]}, {kvp.Value[1]} +{kvp.Value.Count - 2}");
+            kvp => kvp.Value.Count == 1
+                ? kvp.Value[0]
+                : $"{kvp.Value[0]} +{kvp.Value.Count - 1}");
         OnPropertyChanged(nameof(HasWebsiteGroups));
         OnPropertyChanged(nameof(HasManualGroups));
     }
@@ -1271,7 +1283,8 @@ public sealed class WorkspaceViewModel : ViewModelBase
                 var windowCount = activeMap.TryGetValue(profile.ProfileId, out var c) ? c : 0;
                 var isDocked = _activeDockedProfileId.HasValue && profile.ProfileId == _activeDockedProfileId.Value;
                 _profileManualGroupMap.TryGetValue(profile.ProfileId, out var groupName);
-                return new ProfileListItemViewModel(profile, state, windowCount, isDocked, groupName);
+                _profileFullGroupTooltipMap.TryGetValue(profile.ProfileId, out var fullGroupsTooltip);
+                return new ProfileListItemViewModel(profile, state, windowCount, isDocked, groupName, fullGroupsTooltip);
             });
 
             items = _statusFilter switch

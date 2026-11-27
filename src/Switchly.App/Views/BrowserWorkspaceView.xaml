@@ -5,27 +5,44 @@
              Background="{DynamicResource BgAppBrush}"
              PreviewKeyDown="OnWorkspacePreviewKeyDown">
     <DockPanel>
-        <!-- Seamless Modern Tab Strip -->
+        <!-- Persistent 3px Profile Identity Accent Stripe ("Warna adalah identitas profil" — WCAG 1.4.1 paired with initial + name below) -->
+        <Border x:Name="ProfileColorStripe" DockPanel.Dock="Top" Height="3" Background="{DynamicResource AccentBrush}"/>
+
+        <!-- Row 1: Unified Profile Switcher + Browser Tab Strip (2-Row Browser Chrome Consolidation) -->
         <Border x:Name="TabStripBar" DockPanel.Dock="Top" Panel.ZIndex="2" ClipToBounds="False"
-                Background="{DynamicResource BgTabStripBrush}" Padding="8,7,8,0">
+                Background="{DynamicResource BgTabStripBrush}" Padding="8,6,8,0">
             <DockPanel ClipToBounds="False">
-                <Button x:Name="BackToDashboardButton" DockPanel.Dock="Left"
-                        Style="{StaticResource GhostButtonStyle}"
-                        Click="OnBackToDashboardClick"
-                        Padding="8,5" Margin="0,0,6,5" Visibility="Collapsed"
-                        ToolTip="Kembali ke daftar manajemen profil"
-                        AutomationProperties.Name="Kembali ke daftar profil">
-                    <StackPanel Orientation="Horizontal">
-                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconArrowLeft}" Width="13" Height="13" Margin="0,0,6,0"/>
-                        <TextBlock Text="Profil" FontSize="12.5" VerticalAlignment="Center"/>
-                    </StackPanel>
+                <!-- Sidebar Toggle (visible when docked inside MainWindow) -->
+                <Button x:Name="BrowserSidebarToggleButton" DockPanel.Dock="Left"
+                        Style="{StaticResource IconButtonStyle}"
+                        Click="OnToggleHostSidebarClick"
+                        Width="30" Height="30" MinWidth="30" Margin="0,0,6,5"
+                        Visibility="Collapsed"
+                        ToolTip="Ciutkan / Tampilkan Sidebar (Ctrl+B)"
+                        AutomationProperties.Name="Ciutkan atau tampilkan sidebar">
+                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconSidebar}" Width="15" Height="15"/>
                 </Button>
 
-                <Border x:Name="ProfileBadge" DockPanel.Dock="Left" CornerRadius="6"
-                        Padding="10,4" Margin="0,0,8,5" Background="{DynamicResource AccentBrush}">
-                    <TextBlock x:Name="ProfileNameText" Foreground="White" FontSize="12"
-                               FontWeight="SemiBold" VerticalAlignment="Center"/>
-                </Border>
+                <!-- Prominent Colored Profile Identity & Session Switcher Pill [● Inisial  Nama Profil ▾] -->
+                <Button x:Name="ProfileBadgeButton" DockPanel.Dock="Left"
+                        Style="{StaticResource GhostButtonStyle}"
+                        Click="OnProfileBadgeMenuClick"
+                        Padding="6,4,9,4" Margin="0,0,8,5"
+                        BorderThickness="1.5"
+                        ToolTip="Identitas profil aktif — klik untuk pindah sesi, kembali ke daftar profil, atau tutup sesi"
+                        AutomationProperties.Name="Menu profil aktif">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border x:Name="ProfileBadge" Width="20" Height="20" CornerRadius="6"
+                                Background="{DynamicResource AccentBrush}" Margin="0,0,7,0">
+                            <TextBlock x:Name="ProfileInitialText" Text="P" Foreground="White" FontSize="11.5"
+                                       FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock x:Name="ProfileNameText" FontSize="12.5" FontWeight="SemiBold"
+                                   MaxWidth="170" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                        <Path x:Name="ProfileMenuChevron" Style="{StaticResource VectorIconStyle}"
+                              Data="{StaticResource IconChevronDown}" Width="11" Height="11" Margin="6,0,0,0"/>
+                    </StackPanel>
+                </Button>
 
                 <Button DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}"
                         Click="OnNewTabClick" Margin="6,0,0,4"
@@ -60,7 +77,7 @@
                                 <DockPanel.ToolTip>
                                     <StackPanel MaxWidth="360">
                                         <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding Address}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding Address}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </DockPanel.ToolTip>
                                 <Ellipse DockPanel.Dock="Left" Width="6" Height="6" Fill="{DynamicResource AccentBrush}"
@@ -79,11 +96,11 @@
                                 <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}"
                                         Click="OnCloseTabClick" Tag="{Binding}"
                                         Width="22" Height="22" Padding="5" Margin="8,0,0,0"
-                                        ToolTip="Tutup tab (Ctrl+W / klik tengah)" AutomationProperties.Name="Tutup tab">
+                                        ToolTip="Tutup tab ini (Ctrl+W)" AutomationProperties.Name="Tutup tab">
                                     <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconClose}" Width="10" Height="10"/>
                                 </Button>
                                 <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"
-                                           VerticalAlignment="Center" FontSize="12"/>
+                                           VerticalAlignment="Center" FontSize="12.5"/>
                             </DockPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -91,7 +108,7 @@
             </DockPanel>
         </Border>
 
-        <!-- Modern Navigation Toolbar with Integrated HTTPS Omnibox -->
+        <!-- Row 2: Calm Navigation Toolbar (Omnibox Tinted by Profile Identity + Grouped Overflow Menu) -->
         <Border x:Name="NavigationToolbarBar" DockPanel.Dock="Top" Background="{DynamicResource BgTabActiveBrush}"
                 BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,1" Padding="8,6">
             <DockPanel>
@@ -111,26 +128,15 @@
                     </Button>
                 </StackPanel>
 
-                <!-- Right Action Icons -->
+                <!-- Right Primary Actions (Autofill + Downloads + Grouped ⋯ Menu) -->
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0">
-                    <Button Style="{StaticResource IconButtonStyle}" Click="OnAutofillPasswordClick" Margin="0,0,2,0"
-                            ToolTip="Isi otomatis username/password dari Password Vault profil ini"
-                            AutomationProperties.Name="Isi otomatis dari Password Vault">
+                    <Button x:Name="AutofillToolbarButton" Style="{StaticResource IconButtonStyle}" Click="OnAutofillPasswordClick" Margin="0,0,2,0"
+                            ToolTip="Isi otomatis sandi pada situs ini"
+                            AutomationProperties.Name="Isi otomatis sandi">
                         <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconKey}"/>
                     </Button>
-                    <Button Style="{StaticResource IconButtonStyle}" Click="OnBookmarkMenuClick"
-                            MouseRightButtonUp="OnBookmarkRightClick" Margin="0,0,2,0"
-                            ToolTip="Klik kiri: simpan bookmark cepat; klik kanan: buka pengelola bookmark"
-                            AutomationProperties.Name="Bookmark">
-                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconStar}"/>
-                    </Button>
-                    <Button Style="{StaticResource IconButtonStyle}" Click="OnShowHistoryClick" Margin="0,0,2,0"
-                            ToolTip="Lihat &amp; cari riwayat profil ini"
-                            AutomationProperties.Name="Riwayat">
-                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconHistory}"/>
-                    </Button>
                     <Button Style="{StaticResource IconButtonStyle}" Click="OnShowDownloadsClick" Margin="0,0,2,0"
-                            ToolTip="Unduhan profil ini (klik untuk buka panel unduhan cepat)"
+                            ToolTip="Unduhan profil ini"
                             AutomationProperties.Name="Unduhan">
                         <Grid>
                             <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconDownload}"/>
@@ -138,20 +144,26 @@
                                      HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-2,-2,0" Visibility="Collapsed"/>
                         </Grid>
                     </Button>
-                    <Button Style="{StaticResource IconButtonStyle}" Click="OnFindToggleClick" Margin="0,0,2,0"
-                            ToolTip="Cari teks di halaman (Ctrl+F)"
-                            AutomationProperties.Name="Cari di halaman">
-                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconSearch}"/>
-                    </Button>
-                    <Button Style="{StaticResource IconButtonStyle}" Click="OnNewWindowClick"
-                            ToolTip="Buka jendela terpisah (pop-out) dengan sesi profil yang sama"
-                            AutomationProperties.Name="Buka di jendela baru">
-                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconExternalLink}"/>
+                    <Button x:Name="BrowserMoreButton" Style="{StaticResource IconButtonStyle}" Click="OnBrowserMoreMenuClick"
+                            ToolTip="Menu browser (Bookmark, Riwayat, Cari di Halaman, Jendela Baru)"
+                            AutomationProperties.Name="Menu browser lainnya">
+                        <Button.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Simpan Halaman ke Bookmark" Click="OnBookmarkMenuClick"/>
+                                <MenuItem Header="Kelola Bookmark..." Click="OnManageBookmarksMenuClick"/>
+                                <MenuItem Header="Riwayat Kunjungan..." Click="OnShowHistoryClick"/>
+                                <MenuItem Header="Semua Unduhan..." Click="OnOpenFullDownloadsClick"/>
+                                <Separator/>
+                                <MenuItem Header="Cari di Halaman (Ctrl+F)" Click="OnFindToggleClick"/>
+                                <MenuItem Header="Buka di Jendela Baru" Click="OnNewWindowClick"/>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                        <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconMoreHorizontal}"/>
                     </Button>
                 </StackPanel>
 
-                <!-- Unified Modern Pill Omnibox (Security Lock + URL Input + Zoom Pill + Go) -->
-                <Border Background="{DynamicResource BgInputBrush}"
+                <!-- Unified Modern Pill Omnibox with Subtle Profile Color Identity Dot -->
+                <Border x:Name="OmniboxChromeBorder" Background="{DynamicResource BgInputBrush}"
                         CornerRadius="18" Height="36" Padding="10,0,4,0">
                     <Border.Style>
                         <Style TargetType="Border">
@@ -162,18 +174,22 @@
                                     <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                                    <Setter Property="BorderThickness" Value="1.5"/>
+                                    <Setter Property="BorderBrush" Value="{Binding Background, ElementName=ProfileColorStripe}"/>
+                                    <Setter Property="BorderThickness" Value="1.8"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
                     </Border.Style>
                     <DockPanel>
+                        <Ellipse x:Name="OmniboxProfileDot" DockPanel.Dock="Left" Width="7" Height="7"
+                                 Fill="{Binding Background, ElementName=ProfileColorStripe}"
+                                 VerticalAlignment="Center" Margin="1,0,7,0"
+                                 ToolTip="Warna identitas profil aktif"/>
                         <Path x:Name="SecurityIconPath" DockPanel.Dock="Left"
                               Data="{StaticResource IconGlobe}"
                               Stroke="{DynamicResource TextMutedBrush}"
                               StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                              Width="13" Height="13" Stretch="Uniform" VerticalAlignment="Center" Margin="2,0,8,0"
+                              Width="13" Height="13" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,8,0"
                               ToolTip="Status koneksi halaman"/>
 
                         <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}"
@@ -424,6 +440,75 @@
                         </StackPanel>
                     </ScrollViewer>
                 </DockPanel>
+            </Border>
+
+            <!-- Top-Right Modern Anchored Autofill Popover (replaces legacy Windows MessageBox — Heuristic #4) -->
+            <Border x:Name="AutofillFlyoutPanel"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Margin="12,8,12,12" Width="350" MaxHeight="360"
+                    Background="{DynamicResource BgSurfaceElevatedBrush}"
+                    BorderBrush="{DynamicResource BorderStrongBrush}"
+                    BorderThickness="1" CornerRadius="11" Padding="14,12"
+                    Visibility="Collapsed">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="20" ShadowDepth="6" Direction="270" Color="#000000" Opacity="0.22"/>
+                </Border.Effect>
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,8">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}" Width="26" Height="26" MinWidth="26"
+                                Click="OnCloseAutofillFlyoutClick" ToolTip="Tutup panel sandi" AutomationProperties.Name="Tutup panel sandi">
+                            <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconClose}" Width="11" Height="11"/>
+                        </Button>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconKey}"
+                                  Stroke="{DynamicResource AccentBrush}" Width="15" Height="15" Margin="0,0,7,0"/>
+                            <TextBlock Text="Isi Otomatis Sandi" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <TextBlock x:Name="AutofillSiteSubtitle" FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}" TextTrimming="CharacterEllipsis" Margin="0,0,0,10"/>
+
+                    <!-- Matching Credentials List -->
+                    <ItemsControl x:Name="AutofillMatchesList" Margin="0,0,0,8">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource GhostButtonStyle}"
+                                        Click="OnAutofillMatchItemClick" Tag="{Binding}"
+                                        HorizontalContentAlignment="Stretch" Padding="10,8" Margin="0,0,0,5"
+                                        BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1">
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Right" Text="Isi →" FontSize="12" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Username}" FontSize="13" FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding Origin}" FontSize="12"
+                                                       Foreground="{DynamicResource TextMutedBrush}" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Empty / Action State -->
+                    <TextBlock x:Name="AutofillEmptyHint"
+                               Text="Belum ada sandi tersimpan untuk situs ini pada profil aktif."
+                               FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}"
+                               TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                    <TextBlock x:Name="AutofillFeedbackText"
+                               FontSize="12" Foreground="{DynamicResource WarningSoftTextBrush}"
+                               TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,10"/>
+
+                    <UniformGrid Columns="2">
+                        <Button Style="{StaticResource PrimaryButtonStyle}" Content="+ Tambah Sandi"
+                                Click="OnAutofillAddCredentialClick" Padding="10,7" FontSize="12" Margin="0,0,4,0"/>
+                        <Button Content="Impor CSV"
+                                Click="OnAutofillImportCsvClick" Padding="10,7" FontSize="12" Margin="4,0,0,0"/>
+                    </UniformGrid>
+                </StackPanel>
             </Border>
 
             <!-- Top-Right Non-Blocking Feedback Toast Pill -->

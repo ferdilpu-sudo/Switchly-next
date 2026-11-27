@@ -60,15 +60,18 @@ public partial class BrowserWorkspaceView : UserControl
         _onAllTabsClosedCallback = onAllTabsClosedCallback;
         _onBackToDashboardCallback = onBackToDashboardCallback;
 
+        ProfileInitialText.Text = string.IsNullOrWhiteSpace(profile.Name)
+            ? "P"
+            : profile.Name.Trim()[0].ToString().ToUpperInvariant();
         ProfileNameText.Text = string.IsNullOrWhiteSpace(workspaceGroupName)
             ? profile.Name
             : $"{workspaceGroupName}  •  {profile.Name}";
         ApplyBadgeColor(profile.ColorHex);
-        // D14/D15: TopProfileStripBar in MainWindow already shows Profil, Aktivitas, and the active
-        // "Group • Profile" chip when docked, so hide duplicate tab-strip BackToDashboardButton and ProfileBadge
-        // in docked mode (keep ProfileBadge visible in standalone Pop-out BrowserWindow).
-        BackToDashboardButton.Visibility = Visibility.Collapsed;
-        ProfileBadge.Visibility = onBackToDashboardCallback is null ? Visibility.Visible : Visibility.Collapsed;
+        // 2-Row Browser Chrome: when docked inside MainWindow, show the sidebar toggle & interactive profile menu pill
+        // right inside TabStripBar so MainWindow does not need a separate 3rd chrome bar on top.
+        var isDocked = onBackToDashboardCallback is not null;
+        BrowserSidebarToggleButton.Visibility = isDocked ? Visibility.Visible : Visibility.Collapsed;
+        ProfileMenuChevron.Visibility = isDocked ? Visibility.Visible : Visibility.Collapsed;
         TabStrip.ItemsSource = _tabs;
         DownloadFlyoutList.ItemsSource = _recentDownloads;
 
@@ -177,9 +180,11 @@ public partial class BrowserWorkspaceView : UserControl
             }
 
             tab.Title = title;
+            _ = UpdateVisitTitleAsync(tab.Address, title);
             if (_activeTab == tab)
             {
                 ActiveTitleChanged?.Invoke($"{tab.Title} — {_profile.Name} | Switchly");
+                UpdateNavigationButtons();
             }
         });
         host.LoadingStateChanged += isLoading => Dispatcher.BeginInvoke(() =>
@@ -273,6 +278,7 @@ public partial class BrowserWorkspaceView : UserControl
 
         _isFullscreen = isFullscreen;
         var chromeVisibility = isFullscreen ? Visibility.Collapsed : Visibility.Visible;
+        ProfileColorStripe.Visibility = chromeVisibility;
         TabStripBar.Visibility = chromeVisibility;
         NavigationToolbarBar.Visibility = chromeVisibility;
         if (isFullscreen)
@@ -280,6 +286,7 @@ public partial class BrowserWorkspaceView : UserControl
             FindBar.Visibility = Visibility.Collapsed;
             HoverStatusBubble.Visibility = Visibility.Collapsed;
             DownloadFlyoutPanel.Visibility = Visibility.Collapsed;
+            AutofillFlyoutPanel.Visibility = Visibility.Collapsed;
         }
 
         FullscreenModeChanged?.Invoke(isFullscreen);
@@ -343,6 +350,7 @@ public partial class BrowserWorkspaceView : UserControl
         UpdateSecurityIcon(selected.Address);
         HoverStatusBubble.Visibility = Visibility.Collapsed;
         DownloadFlyoutPanel.Visibility = Visibility.Collapsed;
+        AutofillFlyoutPanel.Visibility = Visibility.Collapsed;
         CrashRecoveryBanner.Visibility = Visibility.Collapsed;
         ActiveTitleChanged?.Invoke($"{selected.Title} — {_profile.Name} | Switchly");
         UpdateNavigationButtons();
@@ -426,6 +434,27 @@ public partial class BrowserWorkspaceView : UserControl
         }
     }
 
+    private async Task UpdateVisitTitleAsync(string address, string title)
+    {
+        if (string.IsNullOrWhiteSpace(address) ||
+            string.IsNullOrWhiteSpace(title) ||
+            address.StartsWith("about:", StringComparison.OrdinalIgnoreCase) ||
+            address.StartsWith("chrome:", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        try
+        {
+            using var scope = App.Services.CreateScope();
+            var history = scope.ServiceProvider.GetRequiredService<IHistoryService>();
+            await history.UpdateTitleAsync(_profile.ProfileId, address, title);
+        }
+        catch
+        {
+        }
+    }
+
     private void UpdateNavigationButtons()
     {
         BackButton.IsEnabled = _activeTab?.Host.CanGoBack ?? false;
@@ -447,22 +476,102 @@ public partial class BrowserWorkspaceView : UserControl
 
     private void ApplyBadgeColor(string? colorHex)
     {
-        if (string.IsNullOrWhiteSpace(colorHex))
-        {
-            return;
-        }
-
+        var effectiveHex = string.IsNullOrWhiteSpace(colorHex) ? "#2563EB" : colorHex;
         try
         {
-            if (ColorConverter.ConvertFromString(colorHex) is Color color)
+            if (ColorConverter.ConvertFromString(effectiveHex) is Color color)
             {
-                ProfileBadge.Background = new SolidColorBrush(color);
+                var solid = new SolidColorBrush(color);
+                solid.Freeze();
+                ProfileColorStripe.Background = solid;
+                ProfileBadge.Background = solid;
+                var softTint = new SolidColorBrush(Color.FromArgb(0x24, color.R, color.G, color.B));
+                softTint.Freeze();
+                var borderTint = new SolidColorBrush(Color.FromArgb(0x88, color.R, color.G, color.B));
+                borderTint.Freeze();
+                ProfileBadgeButton.Background = softTint;
+                ProfileBadgeButton.BorderBrush = borderTint;
             }
         }
         catch
         {
         }
     }
+
+    private void OnToggleHostSidebarClick(object sender, RoutedEventArgs e)
+    {
+        if (Window.GetWindow(this) is MainWindow main)
+        {
+            main.ToggleSidebarFromBrowser();
+        }
+    }
+
+    private void OnProfileBadgeMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (_onBackToDashboardCallback is null || Window.GetWindow(this) is not MainWindow main)
+        {
+            return;
+        }
+
+        var menu = new ContextMenu();
+        var running = main.GetRunningWorkspaces();
+        if (running.Count > 0)
+        {
+            foreach (var ws in running)
+            {
+                var item = new MenuItem
+                {
+                    Header = ws.IsCurrent ? $"✓  {ws.DisplayTitle}" : $"    {ws.DisplayTitle}",
+                    FontWeight = ws.IsCurrent ? FontWeights.SemiBold : FontWeights.Normal,
+                };
+                var captured = ws;
+                item.Click += (_, _) => main.ActivateRunningWorkspace(captured);
+                menu.Items.Add(item);
+            }
+
+            menu.Items.Add(new Separator());
+        }
+
+        var switcherItem = new MenuItem { Header = "Pindah Profil Cepat (Ctrl+Shift+K)" };
+        switcherItem.Click += (_, _) => main.OpenProfileSwitcher();
+        menu.Items.Add(switcherItem);
+
+        var allProfilesItem = new MenuItem { Header = "Daftar Semua Profil" };
+        allProfilesItem.Click += (_, _) => _onBackToDashboardCallback.Invoke();
+        menu.Items.Add(allProfilesItem);
+
+        var newWinItem = new MenuItem { Header = "Buka Profil Ini di Jendela Baru" };
+        newWinItem.Click += async (_, _) => await _openNewWindowCallback(_profile);
+        menu.Items.Add(newWinItem);
+
+        menu.Items.Add(new Separator());
+
+        var closeSessionItem = new MenuItem
+        {
+            Header = $"Tutup Sesi '{_profile.Name}'",
+            FontWeight = FontWeights.SemiBold,
+        };
+        closeSessionItem.SetResourceReference(Control.ForegroundProperty, "DangerSoftTextBrush");
+        closeSessionItem.Click += async (_, _) => await main.CloseSingleProfileSessionAsync(_profile.ProfileId);
+        menu.Items.Add(closeSessionItem);
+
+        menu.PlacementTarget = ProfileBadgeButton;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.IsOpen = true;
+    }
+
+    private void OnBrowserMoreMenuClick(object sender, RoutedEventArgs e)
+    {
+        if (BrowserMoreButton.ContextMenu is not null)
+        {
+            BrowserMoreButton.ContextMenu.PlacementTarget = BrowserMoreButton;
+            BrowserMoreButton.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            BrowserMoreButton.ContextMenu.IsOpen = true;
+        }
+    }
+
+    private void OnManageBookmarksMenuClick(object sender, RoutedEventArgs e)
+        => OpenLibraryDialog(ProfileLibraryTab.Bookmarks);
 
     private void OnBackToDashboardClick(object sender, RoutedEventArgs e)
         => _onBackToDashboardCallback?.Invoke();
@@ -789,59 +898,110 @@ public partial class BrowserWorkspaceView : UserControl
 
     private async void OnAutofillPasswordClick(object sender, RoutedEventArgs e)
     {
-        if (_activeTab is null || string.IsNullOrWhiteSpace(_activeTab.Address))
+        if (AutofillFlyoutPanel.Visibility == Visibility.Visible)
+        {
+            AutofillFlyoutPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        DownloadFlyoutPanel.Visibility = Visibility.Collapsed;
+        AutofillFeedbackText.Visibility = Visibility.Collapsed;
+
+        var currentUrl = _activeTab?.Address;
+        var hostLabel = ExtractNormalizedHost(currentUrl);
+        AutofillSiteSubtitle.Text = string.IsNullOrEmpty(hostLabel)
+            ? $"Profil aktif: {_profile.Name}"
+            : $"Situs: {hostLabel}  •  Profil: {_profile.Name}";
+
+        try
+        {
+            using var scope = App.Services.CreateScope();
+            var vault = scope.ServiceProvider.GetRequiredService<IPasswordVaultService>();
+            var matches = string.IsNullOrWhiteSpace(currentUrl)
+                ? []
+                : await vault.FindMatchesForUrlAsync(_profile.ProfileId, currentUrl);
+
+            AutofillMatchesList.ItemsSource = matches;
+            AutofillMatchesList.Visibility = matches.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            AutofillEmptyHint.Visibility = matches.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            AutofillEmptyHint.Text = string.IsNullOrEmpty(hostLabel)
+                ? $"Buka halaman login terlebih dahulu, atau kelola sandi untuk profil '{_profile.Name}'."
+                : $"Belum ada sandi tersimpan untuk {hostLabel} pada profil '{_profile.Name}'.";
+            AutofillFlyoutPanel.Visibility = Visibility.Visible;
+        }
+        catch (Exception ex)
+        {
+            AutofillMatchesList.Visibility = Visibility.Collapsed;
+            AutofillEmptyHint.Visibility = Visibility.Collapsed;
+            AutofillFeedbackText.Text = $"Gagal membaca Password Vault: {ex.Message}";
+            AutofillFeedbackText.Visibility = Visibility.Visible;
+            AutofillFlyoutPanel.Visibility = Visibility.Visible;
+        }
+    }
+
+    private async void OnAutofillMatchItemClick(object sender, RoutedEventArgs e)
+    {
+        if (_activeTab is null || sender is not FrameworkElement { Tag: VaultCredentialMatch selected })
         {
             return;
         }
 
         try
         {
-            using var scope = App.Services.CreateScope();
-            var vault = scope.ServiceProvider.GetRequiredService<IPasswordVaultService>();
-            var matches = await vault.FindMatchesForUrlAsync(_profile.ProfileId, _activeTab.Address);
-
-            if (matches.Count == 0)
-            {
-                MessageBox.Show(
-                    "Tidak ada kredensial tersimpan di Password Vault profil ini untuk origin halaman saat ini.\n\nTambahkan atau impor CSV password lewat menu Keamanan & Backup → Password Vault.",
-                    "Autofill Password",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-                return;
-            }
-
-            VaultCredentialMatch? selected = matches[0];
-            if (matches.Count > 1)
-            {
-                var picker = new CredentialPickerDialog(matches) { Owner = Window.GetWindow(this) };
-                if (picker.ShowDialog() != true)
-                {
-                    return;
-                }
-
-                selected = picker.SelectedMatch;
-            }
-
-            if (selected is null)
-            {
-                return;
-            }
-
             var filled = await _activeTab.Host.FillLoginFormAsync(selected.Username, selected.Password, selected.Origin);
-            if (!filled)
+            if (filled)
             {
-                MessageBox.Show(
-                    "Kolom login/password yang terlihat tidak ditemukan di halaman saat ini. Pastikan halaman sudah memuat form login.",
-                    "Autofill Password",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                AutofillFlyoutPanel.Visibility = Visibility.Collapsed;
+                ShowToast($"Sandi {selected.Username} berhasil diisikan");
+            }
+            else
+            {
+                AutofillFeedbackText.Text = "Kolom email/sandi belum terlihat di halaman ini. Buka formulir login situs lalu klik ulang.";
+                AutofillFeedbackText.Visibility = Visibility.Visible;
             }
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Gagal mengisi kredensial: {ex.Message}", "Autofill Password", MessageBoxButton.OK, MessageBoxImage.Error);
+            AutofillFeedbackText.Text = $"Gagal mengisi formulir: {ex.Message}";
+            AutofillFeedbackText.Visibility = Visibility.Visible;
         }
     }
+
+    private void OnAutofillAddCredentialClick(object sender, RoutedEventArgs e)
+    {
+        AutofillFlyoutPanel.Visibility = Visibility.Collapsed;
+        string? prefillOrigin = null;
+        if (!string.IsNullOrWhiteSpace(_activeTab?.Address) &&
+            Uri.TryCreate(_activeTab.Address, UriKind.Absolute, out var uri) &&
+            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+        {
+            prefillOrigin = $"{uri.Scheme}://{uri.Authority}";
+        }
+
+        var dlg = new SecurityAndBackupDialog(
+            initialTabIndex: 2,
+            initialProfileId: _profile.ProfileId,
+            prefillOrigin: prefillOrigin)
+        {
+            Owner = Window.GetWindow(this),
+        };
+        dlg.ShowDialog();
+    }
+
+    private void OnAutofillImportCsvClick(object sender, RoutedEventArgs e)
+    {
+        AutofillFlyoutPanel.Visibility = Visibility.Collapsed;
+        var dlg = new SecurityAndBackupDialog(
+            initialTabIndex: 2,
+            initialProfileId: _profile.ProfileId)
+        {
+            Owner = Window.GetWindow(this),
+        };
+        dlg.ShowDialog();
+    }
+
+    private void OnCloseAutofillFlyoutClick(object sender, RoutedEventArgs e)
+        => AutofillFlyoutPanel.Visibility = Visibility.Collapsed;
 
     private async Task HandleDownloadUpdateAsync(DownloadUpdateEvent evt)
     {
@@ -959,6 +1119,12 @@ public partial class BrowserWorkspaceView : UserControl
             if (_isFullscreen)
             {
                 SetFullscreenMode(false);
+                e.Handled = true;
+                return;
+            }
+            if (AutofillFlyoutPanel.Visibility == Visibility.Visible)
+            {
+                AutofillFlyoutPanel.Visibility = Visibility.Collapsed;
                 e.Handled = true;
                 return;
             }

@@ -46,7 +46,9 @@ public partial class ProfileLibraryDialog : Window
         using var scope = App.Services.CreateScope();
         var service = scope.ServiceProvider.GetRequiredService<IBookmarkService>();
         var list = await service.ListAsync(_profileId, BookmarkSearchBox.Text);
-        BookmarksList.ItemsSource = list.Where(b => !string.IsNullOrWhiteSpace(b.Url)).ToList();
+        var items = list.Where(b => !string.IsNullOrWhiteSpace(b.Url)).ToList();
+        BookmarksList.ItemsSource = items;
+        DeleteBookmarkButton.IsEnabled = items.Count > 0;
     }
 
     private async Task RefreshHistoryAsync()
@@ -55,6 +57,7 @@ public partial class ProfileLibraryDialog : Window
         var service = scope.ServiceProvider.GetRequiredService<IHistoryService>();
         var list = await service.ListAsync(_profileId, HistorySearchBox.Text, limit: 200);
         HistoryList.ItemsSource = list;
+        ClearHistoryButton.IsEnabled = list.Count > 0;
     }
 
     private async Task RefreshDownloadsAsync()
@@ -103,6 +106,16 @@ public partial class ProfileLibraryDialog : Window
             return;
         }
 
+        var confirm = MessageBox.Show(
+            $"Hapus bookmark '{bookmark.Title}' dari profil ini?",
+            "Konfirmasi Hapus Bookmark",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+        if (confirm != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
         using var scope = App.Services.CreateScope();
         var service = scope.ServiceProvider.GetRequiredService<IBookmarkService>();
         await service.DeleteAsync(_profileId, bookmark.BookmarkId);
@@ -126,8 +139,14 @@ public partial class ProfileLibraryDialog : Window
 
     private async void OnClearHistoryClick(object sender, RoutedEventArgs e)
     {
+        var count = HistoryList.Items.Count;
+        if (count == 0)
+        {
+            return;
+        }
+
         var confirm = MessageBox.Show(
-            "Hapus seluruh riwayat kunjungan milik profil ini?",
+            $"Hapus seluruh riwayat kunjungan ({count} entri) milik profil ini?",
             "Konfirmasi Hapus Riwayat",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);

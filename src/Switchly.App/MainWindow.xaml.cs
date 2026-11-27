@@ -53,26 +53,9 @@ public partial class MainWindow : Window
         };
     }
 
-    private void OnToggleThemeClick(object sender, RoutedEventArgs e)
-    {
-        ThemeManager.ToggleTheme();
-        UpdateThemeToggleIcon();
-    }
-
     private void UpdateThemeToggleIcon()
     {
         var isDark = ThemeManager.CurrentTheme == AppTheme.Dark;
-        var iconKey = isDark ? "IconSun" : "IconMoon";
-        if (System.Windows.Application.Current?.TryFindResource(iconKey) is System.Windows.Media.Geometry geometry)
-        {
-            ThemeIconPath.Data = geometry;
-        }
-
-        ThemeLabelText.Text = isDark ? "Terang" : "Gelap";
-        ThemeToggleButton.ToolTip = isDark
-            ? "Beralih ke Mode Terang (Light)"
-            : "Beralih ke Mode Gelap (Dark)";
-
         if (SettingsLightThemeButton is not null && SettingsDarkThemeButton is not null)
         {
             var activeStyle = (Style)FindResource("NavButtonActiveStyle");
@@ -89,6 +72,13 @@ public partial class MainWindow : Window
         ActivityView.Visibility = panel == ActivityView ? Visibility.Visible : Visibility.Collapsed;
         SettingsView.Visibility = panel == SettingsView ? Visibility.Visible : Visibility.Collapsed;
 
+        // 2-Row Browser Chrome: hide TopProfileStripBar while browsing inside DockedBrowserHost
+        // because BrowserWorkspaceView Row 1 already integrates Sidebar Toggle + Colored Profile Switcher Pill.
+        if (!_isVideoFullscreen && TopProfileStripBar is not null)
+        {
+            TopProfileStripBar.Visibility = panel == DockedBrowserHost ? Visibility.Collapsed : Visibility.Visible;
+        }
+
         if (SidebarActivityButton is not null && SidebarSettingsButton is not null)
         {
             var activeStyle = (Style)FindResource("NavButtonActiveStyle");
@@ -96,6 +86,18 @@ public partial class MainWindow : Window
             SidebarActivityButton.Style = panel == ActivityView ? activeStyle : ghostStyle;
             SidebarSettingsButton.Style = panel == SettingsView ? activeStyle : ghostStyle;
         }
+    }
+
+    public void ToggleSidebarFromBrowser() => SetSidebarCollapsed(!_isSidebarCollapsed);
+
+    public IReadOnlyList<ActiveWorkspaceItemViewModel> GetRunningWorkspaces() => _viewModel.ActiveWorkspaces;
+
+    public void ActivateRunningWorkspace(ActiveWorkspaceItemViewModel item) => _viewModel.FocusActiveWorkspace(item);
+
+    public async Task CloseSingleProfileSessionAsync(Guid profileId)
+    {
+        await _viewModel.CloseProfileSessionAsync(profileId);
+        _viewModel.RefreshResourceUsage();
     }
 
     private void OnOpenActivityViewClick(object sender, RoutedEventArgs e)
@@ -236,6 +238,8 @@ public partial class MainWindow : Window
         var collapse = SidebarProfilesScroll.Visibility == Visibility.Visible;
         SidebarProfilesScroll.Visibility = collapse ? Visibility.Collapsed : Visibility.Visible;
         SidebarProfilesRow.Height = collapse ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
+        SidebarGroupsRow.Height = collapse ? new GridLength(1, GridUnitType.Star) : GridLength.Auto;
+        SidebarGroupsBody.MaxHeight = collapse ? double.PositiveInfinity : 180;
         if (System.Windows.Application.Current?.TryFindResource(collapse ? "IconChevronRight" : "IconChevronDown") is System.Windows.Media.Geometry g)
         {
             SidebarProfilesChevron.Data = g;
@@ -629,7 +633,7 @@ public partial class MainWindow : Window
         {
             SidebarPanel.Visibility = _isSidebarCollapsed ? Visibility.Collapsed : Visibility.Visible;
             SidebarColumn.Width = _isSidebarCollapsed ? new GridLength(0) : new GridLength(268);
-            TopProfileStripBar.Visibility = Visibility.Visible;
+            TopProfileStripBar.Visibility = DockedBrowserHost.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
             FooterStatusBar.Visibility = Visibility.Visible;
 
             WindowStyle = _savedWindowStyle;
@@ -689,7 +693,8 @@ public partial class MainWindow : Window
         var dialog = new ProfileEditorDialog(
             existing: null,
             availableManualGroups: _viewModel.ManualGroups.ToList(),
-            currentManualGroupIds: preselectedGroupIds)
+            currentManualGroupIds: preselectedGroupIds,
+            existingProfileColors: _viewModel.GetUsedProfileColors())
         {
             Owner = this,
         };
@@ -919,8 +924,50 @@ public partial class MainWindow : Window
 
     private void OnSecurityAndBackupClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new SecurityAndBackupDialog { Owner = this };
+        var dialog = new SecurityAndBackupDialog(initialTabIndex: 0) { Owner = this };
         dialog.ShowDialog();
+    }
+
+    private void OnOpenBackupDialogClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SecurityAndBackupDialog(initialTabIndex: 1) { Owner = this };
+        dialog.ShowDialog();
+    }
+
+    private void OnOpenVaultDialogClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new SecurityAndBackupDialog(initialTabIndex: 2) { Owner = this };
+        dialog.ShowDialog();
+    }
+
+    private void SelectSettingsSubSection(string sectionTag)
+    {
+        if (SettingsPanelGeneral is null)
+        {
+            return;
+        }
+
+        SettingsPanelGeneral.Visibility = sectionTag == "General" ? Visibility.Visible : Visibility.Collapsed;
+        SettingsPanelSecurity.Visibility = sectionTag == "Security" ? Visibility.Visible : Visibility.Collapsed;
+        SettingsPanelData.Visibility = sectionTag == "Data" ? Visibility.Visible : Visibility.Collapsed;
+        SettingsPanelAccount.Visibility = sectionTag == "Account" ? Visibility.Visible : Visibility.Collapsed;
+        SettingsPanelAbout.Visibility = sectionTag == "About" ? Visibility.Visible : Visibility.Collapsed;
+
+        var activeStyle = (Style)FindResource("NavButtonActiveStyle");
+        var normalStyle = (Style)FindResource("GhostButtonStyle");
+        SettingsNavGeneralButton.Style = sectionTag == "General" ? activeStyle : normalStyle;
+        SettingsNavSecurityButton.Style = sectionTag == "Security" ? activeStyle : normalStyle;
+        SettingsNavDataButton.Style = sectionTag == "Data" ? activeStyle : normalStyle;
+        SettingsNavAccountButton.Style = sectionTag == "Account" ? activeStyle : normalStyle;
+        SettingsNavAboutButton.Style = sectionTag == "About" ? activeStyle : normalStyle;
+    }
+
+    private void OnSettingsSubNavClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string tag })
+        {
+            SelectSettingsSubSection(tag);
+        }
     }
 
     private void OnImportForProfileClick(object sender, RoutedEventArgs e)

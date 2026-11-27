@@ -22,6 +22,7 @@ public sealed class HistoryService : IHistoryService
         CancellationToken cancellationToken = default)
     {
         var sanitizedUrl = UrlSanitizer.SanitizeHttpUrl(url, retainQueryString);
+        var meaningfulTitle = IsPlaceholderTitle(title) ? null : title;
         var now = _timeProvider.GetUtcNow();
         var existing = await _repository.FindByProfileAndUrlAsync(profileId, sanitizedUrl, cancellationToken);
 
@@ -30,9 +31,9 @@ public sealed class HistoryService : IHistoryService
             existing.VisitCount += 1;
             existing.VisitedAtUtc = now;
             existing.TransitionKind = transitionKind;
-            if (!string.IsNullOrWhiteSpace(title))
+            if (!string.IsNullOrWhiteSpace(meaningfulTitle))
             {
-                existing.Title = UrlSanitizer.NormalizeTitle(title, sanitizedUrl);
+                existing.Title = UrlSanitizer.NormalizeTitle(meaningfulTitle, sanitizedUrl);
             }
 
             await _repository.UpdateAsync(existing, cancellationToken);
@@ -44,7 +45,7 @@ public sealed class HistoryService : IHistoryService
             HistoryId = Guid.NewGuid(),
             ProfileId = profileId,
             Url = sanitizedUrl,
-            Title = string.IsNullOrWhiteSpace(title) ? null : UrlSanitizer.NormalizeTitle(title, sanitizedUrl),
+            Title = UrlSanitizer.NormalizeTitle(meaningfulTitle, sanitizedUrl),
             VisitedAtUtc = now,
             VisitCount = 1,
             TransitionKind = transitionKind,
@@ -52,6 +53,46 @@ public sealed class HistoryService : IHistoryService
 
         await _repository.AddAsync(entry, cancellationToken);
         return entry;
+    }
+
+    public async Task UpdateTitleAsync(
+        Guid profileId,
+        string url,
+        string title,
+        bool retainQueryString = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (IsPlaceholderTitle(title))
+        {
+            return;
+        }
+
+        var sanitizedUrl = UrlSanitizer.SanitizeHttpUrl(url, retainQueryString);
+        var existing = await _repository.FindByProfileAndUrlAsync(profileId, sanitizedUrl, cancellationToken);
+        if (existing is null)
+        {
+            return;
+        }
+
+        var normalized = UrlSanitizer.NormalizeTitle(title, sanitizedUrl);
+        if (!string.Equals(existing.Title, normalized, StringComparison.Ordinal))
+        {
+            existing.Title = normalized;
+            await _repository.UpdateAsync(existing, cancellationToken);
+        }
+    }
+
+    private static bool IsPlaceholderTitle(string? title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            return true;
+        }
+
+        var trimmed = title.Trim();
+        return string.Equals(trimmed, "Tab Baru", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(trimmed, "New Tab", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(trimmed, "about:blank", StringComparison.OrdinalIgnoreCase);
     }
 
     public Task<IReadOnlyList<HistoryEntry>> ListAsync(
