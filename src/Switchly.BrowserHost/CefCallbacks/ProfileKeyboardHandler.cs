@@ -70,6 +70,7 @@ internal sealed class ProfileKeyboardHandler : IKeyboardHandler
             VkK when shift => BrowserShortcutCommand.QuickSearch,
             VkR when !shift => BrowserShortcutCommand.Reload,
             VkTab when !shift => BrowserShortcutCommand.NextTab,
+            VkTab when shift => BrowserShortcutCommand.PreviousTab,
             VkOemPlus or VkAdd => BrowserShortcutCommand.ZoomIn,
             VkOemMinus or VkSubtract => BrowserShortcutCommand.ZoomOut,
             Vk0 when !shift => BrowserShortcutCommand.ResetZoom,

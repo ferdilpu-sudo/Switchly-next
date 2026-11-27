@@ -40,6 +40,16 @@
                                    Foreground="{DynamicResource TextPrimaryBrush}"/>
                         <Border Background="{DynamicResource AccentSoftBrush}" CornerRadius="5" Padding="6,2"
                                 Margin="7,0,0,0" VerticalAlignment="Center">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsPreReleaseBuild}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
                             <TextBlock Text="BETA" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}"/>
                         </Border>
                     </StackPanel>
@@ -109,235 +119,265 @@
                     </UniformGrid>
                 </DockPanel>
 
-                <!-- Unified Smooth Scroll Area: Profiles + Groups (Stable Position — Active Sessions Live in Top Strip & Activity) -->
-                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel>
-                        <!-- Quick Profile Switcher with Active Highlight & Group Subtitle -->
-                        <DockPanel Margin="4,0,2,6">
+                <!-- Independent Scroll Sections: PROFIL (Top, Elastic) + GRUP (Pinned Bottom, Always Reachable at Scale) -->
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Name="SidebarProfilesRow" Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Section 1: PROFIL -->
+                    <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                        <DockPanel DockPanel.Dock="Top" Margin="2,0,2,6">
                             <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}"
                                     Click="OnNewProfileClick" Padding="5,3"
                                     ToolTip="Buat profil baru" AutomationProperties.Name="Buat profil baru">
                                 <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconPlus}"
                                       Stroke="{DynamicResource TextSecondaryBrush}" Width="13" Height="13"/>
                             </Button>
-                            <TextBlock Text="PROFIL" FontSize="11.5" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Click="OnToggleSidebarProfilesSectionClick"
+                                    HorizontalAlignment="Left" Padding="4,3"
+                                    ToolTip="Ciutkan / tampilkan daftar profil">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Path x:Name="SidebarProfilesChevron" Style="{StaticResource VectorIconStyle}"
+                                          Data="{StaticResource IconChevronDown}" Stroke="{DynamicResource TextMutedBrush}"
+                                          Width="11" Height="11" Margin="0,0,5,0"/>
+                                    <TextBlock Text="PROFIL" FontSize="11.5" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                         </DockPanel>
 
-                        <ItemsControl ItemsSource="{Binding VisibleProfiles}" Margin="0,0,0,16">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Button Click="OnOpenProfileClick" Tag="{Binding}" HorizontalContentAlignment="Stretch"
-                                            Padding="8,7" Margin="0,0,0,3" Cursor="Hand">
-                                        <Button.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem Header="Buka di Workspace (Terintegrasi)" Click="OnOpenProfileClick" Tag="{Binding}"/>
-                                                <MenuItem Header="Buka di Jendela Baru (Pop-out)" Click="OnOpenNewWindowClick" Tag="{Binding}"/>
-                                                <MenuItem Header="Tutup Sesi" Click="OnCloseSessionClick" Tag="{Binding}" IsEnabled="{Binding IsActive}"/>
-                                                <Separator/>
-                                                <MenuItem Header="Ubah Profil &amp; Atur Grup" Click="OnEditProfileClick" Tag="{Binding}"/>
-                                                <MenuItem Header="Favorit / Hapus Favorit" Click="OnToggleFavoriteClick" Tag="{Binding}"/>
-                                                <MenuItem Header="Duplikat Konfigurasi (Tanpa Sesi)" Click="OnDuplicateProfileClick" Tag="{Binding}"/>
-                                                <MenuItem Header="Impor dari Chrome/Edge..." Click="OnImportForProfileClick" Tag="{Binding}"/>
-                                                <MenuItem Header="Arsipkan / Pulihkan" Click="OnToggleArchiveClick" Tag="{Binding}"/>
-                                                <Separator/>
-                                                <MenuItem Header="Hapus Profil" Click="OnDeleteProfileClick" Tag="{Binding}"/>
-                                            </ContextMenu>
-                                        </Button.ContextMenu>
-                                        <Button.Style>
-                                            <Style TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsCurrentlyDocked}" Value="True">
-                                                        <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
-                                                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                                                        <Setter Property="BorderThickness" Value="1"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                        <DockPanel>
-                                            <Border DockPanel.Dock="Left" Width="28" Height="28" CornerRadius="8"
-                                                    Background="{Binding ColorHex}" Margin="0,0,10,0" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding InitialLetter}" Foreground="White" FontSize="12.5" FontWeight="Bold"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
-                                            <Button DockPanel.Dock="Right" Click="OnCloseSessionClick" Tag="{Binding}"
-                                                    Width="26" Height="26" Padding="6" Margin="4,0,0,0"
-                                                    ToolTip="Tutup sesi profil ini untuk menghemat RAM"
-                                                    AutomationProperties.Name="Tutup sesi profil">
-                                                <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
-                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Button.Style>
-                                                <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconClose}" Width="10" Height="10"/>
-                                            </Button>
-                                            <Ellipse DockPanel.Dock="Right" Width="7" Height="7" Fill="{Binding StatusColor}"
-                                                     VerticalAlignment="Center" Margin="6,0,2,0"/>
-                                            <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"
-                                                           FontSize="12.5" FontWeight="SemiBold" LineHeight="17"/>
-                                                <TextBlock Text="{Binding GroupBadgeLabel}" TextTrimming="CharacterEllipsis"
-                                                           FontSize="11" LineHeight="16" Padding="0,0,0,1"
-                                                           Foreground="{DynamicResource TextMutedBrush}"/>
-                                            </StackPanel>
-                                        </DockPanel>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                        <ScrollViewer x:Name="SidebarProfilesScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding VisibleProfiles}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Click="OnOpenProfileClick" Tag="{Binding}" HorizontalContentAlignment="Stretch"
+                                                Padding="8,7" Margin="0,0,0,3" Cursor="Hand">
+                                            <Button.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="Buka di Workspace (Terintegrasi)" Click="OnOpenProfileClick" Tag="{Binding}"/>
+                                                    <MenuItem Header="Buka di Jendela Baru (Pop-out)" Click="OnOpenNewWindowClick" Tag="{Binding}"/>
+                                                    <MenuItem Header="Tutup Sesi" Click="OnCloseSessionClick" Tag="{Binding}" IsEnabled="{Binding IsActive}"/>
+                                                    <Separator/>
+                                                    <MenuItem Header="Ubah Profil &amp; Atur Grup" Click="OnEditProfileClick" Tag="{Binding}"/>
+                                                    <MenuItem Header="Favorit / Hapus Favorit" Click="OnToggleFavoriteClick" Tag="{Binding}"/>
+                                                    <MenuItem Header="Duplikat Konfigurasi (Tanpa Sesi)" Click="OnDuplicateProfileClick" Tag="{Binding}"/>
+                                                    <MenuItem Header="Impor dari Chrome/Edge..." Click="OnImportForProfileClick" Tag="{Binding}"/>
+                                                    <MenuItem Header="Arsipkan / Pulihkan" Click="OnToggleArchiveClick" Tag="{Binding}"/>
+                                                    <Separator/>
+                                                    <MenuItem Header="Hapus Profil" Click="OnDeleteProfileClick" Tag="{Binding}"/>
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsCurrentlyDocked}" Value="True">
+                                                            <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+                                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                            <Setter Property="BorderThickness" Value="1"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                            <DockPanel>
+                                                <Border DockPanel.Dock="Left" Width="28" Height="28" CornerRadius="8"
+                                                        Background="{Binding ColorHex}" Margin="0,0,10,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding InitialLetter}" Foreground="White" FontSize="12.5" FontWeight="Bold"
+                                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <Button DockPanel.Dock="Right" Click="OnCloseSessionClick" Tag="{Binding}"
+                                                        Width="26" Height="26" Padding="6" Margin="4,0,0,0"
+                                                        ToolTip="Tutup sesi profil ini untuk menghemat RAM"
+                                                        AutomationProperties.Name="Tutup sesi profil">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconClose}" Width="10" Height="10"/>
+                                                </Button>
+                                                <Ellipse DockPanel.Dock="Right" Width="7" Height="7" Fill="{Binding StatusColor}"
+                                                         VerticalAlignment="Center" Margin="6,0,2,0"/>
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"
+                                                               FontSize="12.5" FontWeight="SemiBold" LineHeight="17"/>
+                                                    <TextBlock Text="{Binding GroupBadgeLabel}" TextTrimming="CharacterEllipsis"
+                                                               FontSize="11" LineHeight="16" Padding="0,0,0,1"
+                                                               Foreground="{DynamicResource TextMutedBrush}"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </DockPanel>
 
-                        <!-- Folder Groups (Manual Groups Only — D9) -->
-                        <DockPanel Margin="4,0,2,6">
+                    <!-- Section 2: GRUP (Pinned & Keyboard-Accessible) -->
+                    <DockPanel Grid.Row="1">
+                        <Separator DockPanel.Dock="Top" Margin="0,0,0,8"/>
+                        <DockPanel DockPanel.Dock="Top" Margin="2,0,2,6">
                             <Button DockPanel.Dock="Right" Style="{StaticResource GhostButtonStyle}"
                                     Click="OnCreateGroupClick" Padding="5,3"
-                                    ToolTip="Buat grup / workspace web baru"
+                                    ToolTip="Buat grup baru"
                                     AutomationProperties.Name="Buat folder grup baru">
                                 <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconPlus}"
                                       Stroke="{DynamicResource TextSecondaryBrush}" Width="13" Height="13"/>
                             </Button>
-                            <TextBlock Text="GRUP" FontSize="11.5" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
+                            <Button Style="{StaticResource GhostButtonStyle}" Click="OnToggleSidebarGroupsSectionClick"
+                                    HorizontalAlignment="Left" Padding="4,3"
+                                    ToolTip="Ciutkan / tampilkan daftar grup">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Path x:Name="SidebarGroupsChevron" Style="{StaticResource VectorIconStyle}"
+                                          Data="{StaticResource IconChevronDown}" Stroke="{DynamicResource TextMutedBrush}"
+                                          Width="11" Height="11" Margin="0,0,5,0"/>
+                                    <TextBlock Text="GRUP" FontSize="11.5" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextMutedBrush}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
                         </DockPanel>
 
-                        <TextBlock Text="Belum ada grup. Buat grup (mis. Kerja, Pribadi) lalu pilih di menu Ubah Profil."
-                                   FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap"
-                                   Margin="4,0,4,8">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding HasManualGroups}" Value="True">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
+                        <ScrollViewer x:Name="SidebarGroupsBody" MaxHeight="200"
+                                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel>
+                                <TextBlock Text="Belum ada grup. Buat grup (mis. Kerja, Pribadi) lalu pilih di menu Ubah Profil."
+                                           FontSize="11.5" Foreground="{DynamicResource TextMutedBrush}" TextWrapping="Wrap"
+                                           Margin="4,0,4,8">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasManualGroups}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
 
-                        <ItemsControl ItemsSource="{Binding ManualGroupItems}" Margin="0,0,0,8">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border CornerRadius="8" Margin="0,0,0,4" BorderThickness="1"
-                                            Cursor="Hand" MouseLeftButtonUp="OnGroupRowMouseUp" Tag="{Binding}">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="Transparent"/>
-                                                <Setter Property="BorderBrush" Value="Transparent"/>
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="{DynamicResource BgHoverBrush}"/>
-                                                    </Trigger>
-                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                        <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
-                                                        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <Border.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem Header="Buka Grup Ini" Click="OnCategoryChipClick" Tag="{Binding}"/>
-                                                <MenuItem Header="Ubah Grup &amp; URL..." Click="OnRenameManualGroupClick" Tag="{Binding}"/>
-                                                <MenuItem Header="Tutup Semua Sesi Grup Ini" Click="OnCloseGroupSessionsClick" Tag="{Binding}"/>
-                                                <Separator/>
-                                                <MenuItem Header="Hapus Grup" Click="OnDeleteManualGroupClick" Tag="{Binding}"
-                                                          Foreground="{DynamicResource DangerSoftTextBrush}" FontWeight="SemiBold"/>
-                                            </ContextMenu>
-                                        </Border.ContextMenu>
-                                        <DockPanel Margin="8,6,6,6">
-                                            <!-- Right: Member Count Pill + More Menu -->
-                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
-                                                <Border Background="{DynamicResource BgAppBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
-                                                        BorderThickness="1" CornerRadius="9" Padding="6,1" Margin="0,0,4,0" VerticalAlignment="Center"
-                                                        ToolTip="Jumlah profil di grup ini">
-                                                    <TextBlock Text="{Binding MemberCount}" FontSize="10.5" FontWeight="SemiBold"
-                                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                                </Border>
-                                                <Button Style="{StaticResource GhostButtonStyle}"
-                                                        Click="OnGroupChipMoreClick" Tag="{Binding}"
-                                                        Width="26" Height="26" Padding="5"
-                                                        ToolTip="Opsi grup (Ubah URL, Tutup Sesi, Hapus)"
-                                                        AutomationProperties.Name="Opsi grup">
-                                                    <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconMoreHorizontal}" Width="12" Height="12"/>
-                                                </Button>
-                                            </StackPanel>
-
-                                            <!-- Left: Website Favicon Thumbnail or Web Workspace (Globe) / Folder Icon Badge -->
-                                            <Border DockPanel.Dock="Left" Width="28" Height="28" CornerRadius="7"
-                                                    Margin="0,0,9,0" VerticalAlignment="Center" BorderThickness="1">
-                                                <Border.Style>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="{DynamicResource BgAppBrush}"/>
-                                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                <ItemsControl ItemsSource="{Binding ManualGroupItems}" Margin="0,0,0,4">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Click="OnCategoryChipClick" Tag="{Binding}"
+                                                    HorizontalContentAlignment="Stretch"
+                                                    Padding="8,6,6,6" Margin="0,0,0,4" Cursor="Hand">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource GhostButtonStyle}">
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsWebWorkspace}" Value="True">
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                                 <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding HasFavicon}" Value="True">
-                                                                <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}"/>
-                                                                <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+                                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                                                <Setter Property="BorderThickness" Value="1"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
-                                                </Border.Style>
-                                                <Grid>
-                                                    <Image Source="{Binding Favicon}" Width="18" Height="18"
-                                                           RenderOptions.BitmapScalingMode="HighQuality"
-                                                           HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <Image.Style>
-                                                            <Style TargetType="Image">
-                                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding HasFavicon}" Value="True">
-                                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Image.Style>
-                                                    </Image>
-                                                    <Path Width="14" Height="14" Stretch="Uniform" StrokeThickness="1.8"
-                                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                                                          HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <Path.Style>
-                                                            <Style TargetType="Path">
-                                                                <Setter Property="Data" Value="{StaticResource IconFolder}"/>
-                                                                <Setter Property="Stroke" Value="{DynamicResource TextSecondaryBrush}"/>
-                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                </Button.Style>
+                                                <Button.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="Buka Grup Ini" Click="OnCategoryChipClick" Tag="{Binding}"/>
+                                                        <MenuItem Header="Ubah Grup &amp; URL..." Click="OnRenameManualGroupClick" Tag="{Binding}"/>
+                                                        <MenuItem Header="Tutup Semua Sesi Grup Ini" Click="OnCloseGroupSessionsClick" Tag="{Binding}"/>
+                                                        <Separator/>
+                                                        <MenuItem Header="Hapus Grup" Click="OnDeleteManualGroupClick" Tag="{Binding}"
+                                                                  Foreground="{DynamicResource DangerSoftTextBrush}" FontWeight="SemiBold"/>
+                                                    </ContextMenu>
+                                                </Button.ContextMenu>
+                                                <DockPanel>
+                                                    <!-- Right: Member Count Pill + More Menu -->
+                                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
+                                                        <Border Background="{DynamicResource BgAppBrush}" BorderBrush="{DynamicResource BorderSubtleBrush}"
+                                                                BorderThickness="1" CornerRadius="9" Padding="6,1" Margin="0,0,4,0" VerticalAlignment="Center"
+                                                                ToolTip="Jumlah profil di grup ini">
+                                                            <TextBlock Text="{Binding MemberCount}" FontSize="10.5" FontWeight="SemiBold"
+                                                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                                        </Border>
+                                                        <Button Style="{StaticResource GhostButtonStyle}"
+                                                                Click="OnGroupChipMoreClick" Tag="{Binding}"
+                                                                Width="26" Height="26" Padding="5"
+                                                                ToolTip="Opsi grup (Ubah URL, Tutup Sesi, Hapus)"
+                                                                AutomationProperties.Name="Opsi grup">
+                                                            <Path Style="{StaticResource VectorIconStyle}" Data="{StaticResource IconMoreHorizontal}" Width="12" Height="12"/>
+                                                        </Button>
+                                                    </StackPanel>
+
+                                                    <!-- Left: Website Favicon Thumbnail or Web Workspace (Globe) / Folder Icon Badge -->
+                                                    <Border DockPanel.Dock="Left" Width="28" Height="28" CornerRadius="7"
+                                                            Margin="0,0,9,0" VerticalAlignment="Center" BorderThickness="1">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="{DynamicResource BgAppBrush}"/>
+                                                                <Setter Property="BorderBrush" Value="Transparent"/>
                                                                 <Style.Triggers>
                                                                     <DataTrigger Binding="{Binding IsWebWorkspace}" Value="True">
-                                                                        <Setter Property="Data" Value="{StaticResource IconGlobe}"/>
-                                                                        <Setter Property="Stroke" Value="{DynamicResource AccentBrush}"/>
+                                                                        <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
                                                                     </DataTrigger>
                                                                     <DataTrigger Binding="{Binding HasFavicon}" Value="True">
-                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        <Setter Property="Background" Value="{DynamicResource BgSurfaceBrush}"/>
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
                                                                     </DataTrigger>
                                                                 </Style.Triggers>
                                                             </Style>
-                                                        </Path.Style>
-                                                    </Path>
-                                                </Grid>
-                                            </Border>
+                                                        </Border.Style>
+                                                        <Grid>
+                                                            <Image Source="{Binding Favicon}" Width="18" Height="18"
+                                                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <Image.Style>
+                                                                    <Style TargetType="Image">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding HasFavicon}" Value="True">
+                                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Image.Style>
+                                                            </Image>
+                                                            <Path Width="14" Height="14" Stretch="Uniform" StrokeThickness="1.8"
+                                                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                                                                  HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <Path.Style>
+                                                                    <Style TargetType="Path">
+                                                                        <Setter Property="Data" Value="{StaticResource IconFolder}"/>
+                                                                        <Setter Property="Stroke" Value="{DynamicResource TextSecondaryBrush}"/>
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsWebWorkspace}" Value="True">
+                                                                                <Setter Property="Data" Value="{StaticResource IconGlobe}"/>
+                                                                                <Setter Property="Stroke" Value="{DynamicResource AccentBrush}"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding HasFavicon}" Value="True">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Path.Style>
+                                                            </Path>
+                                                        </Grid>
+                                                    </Border>
 
-                                            <!-- Center: Group Name + Domain Subtitle -->
-                                            <StackPanel VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold" LineHeight="17"
-                                                           Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Text="{Binding DomainSubtitle}" FontSize="11" LineHeight="16" Padding="0,0,0,1"
-                                                           Foreground="{DynamicResource TextMutedBrush}" TextTrimming="CharacterEllipsis"/>
-                                            </StackPanel>
-                                        </DockPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </ScrollViewer>
+                                                    <!-- Center: Group Name + Domain Subtitle -->
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold" LineHeight="17"
+                                                                   Foreground="{DynamicResource TextPrimaryBrush}" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{Binding DomainSubtitle}" FontSize="11" LineHeight="16" Padding="0,0,0,1"
+                                                                   Foreground="{DynamicResource TextMutedBrush}" TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </DockPanel>
+                </Grid>
             </DockPanel>
         </Border>
 
@@ -580,7 +620,7 @@
                                 Click="OnToggleAutoSleepClick" Padding="8,3" FontSize="11.5" Margin="0,0,10,0"
                                 Foreground="{DynamicResource TextSecondaryBrush}"
                                 ToolTip="Otomatis tidurkan profil latar belakang yang tidak dipakai selama 30 menit (klik untuk ON/OFF)"/>
-                        <TextBlock Text="v0.9.0-beta.1" VerticalAlignment="Center"
+                        <TextBlock Text="{Binding AppVersionDisplay}" VerticalAlignment="Center"
                                    Foreground="{DynamicResource TextMutedBrush}" FontSize="11.5"/>
                     </StackPanel>
                 </Grid>
@@ -1012,7 +1052,7 @@
                             </Border>
                             <TextBlock Text="Tidak ada sesi browser yang sedang berjalan." FontSize="16" FontWeight="SemiBold"
                                        HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                            <TextBlock Text="Profil tersimpan tidak menjalankan proses CEF sampai Anda membukanya. RAM tetap bersih dan ringan."
+                            <TextBlock Text="Profil tersimpan tidak menjalankan proses browser sampai Anda membukanya. RAM tetap bersih dan ringan."
                                        Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,16"/>
                             <Button Style="{StaticResource PrimaryButtonStyle}" Content="Buka Daftar Profil"
                                     Click="OnAllProfilesClick" Padding="18,9" HorizontalAlignment="Center"/>
@@ -1048,6 +1088,9 @@
                                                                         <Style.Triggers>
                                                                             <DataTrigger Binding="{Binding IsCurrent}" Value="True">
                                                                                 <Setter Property="Text" Value="Tampil"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding IsPopOut}" Value="True">
+                                                                                <Setter Property="Text" Value="Pop-out"/>
                                                                             </DataTrigger>
                                                                         </Style.Triggers>
                                                                     </Style>
@@ -1181,10 +1224,10 @@
                                 <StackPanel>
                                     <TextBlock Text="Privasi &amp; Tentang Switchly" FontSize="15" FontWeight="SemiBold"
                                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,0,0,8"/>
-                                    <TextBlock Text="• Versi: Switchly v0.9.0-beta.1 (Beta Gratis — Tanpa Registrasi)" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{Binding AboutVersionLine}" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                                     <TextBlock Text="• Mesin Browser: Chromium 156 (isolasi cookie &amp; penyimpanan penuh per profil)" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
                                     <TextBlock Text="• Telemetri: NONAKTIF (Local-first, log diagnostik lokal dengan redaksi rahasia)" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,4"/>
-                                    <TextBlock Text="• Pintasan Keyboard: Ctrl+Shift+K (Pindah Profil), Ctrl+B (Sidebar), Ctrl+T/W/L/F/Tab" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    <TextBlock Text="• Pintasan Keyboard: Ctrl+Shift+K (Pindah Profil), Ctrl+B (Sidebar), Ctrl+T/W/L/F, Ctrl+Tab / Ctrl+Shift+Tab" FontSize="12.5" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                 </StackPanel>
                             </Border>
                         </StackPanel>
@@ -1203,6 +1246,9 @@
                     BorderBrush="{DynamicResource BorderStrongBrush}" BorderThickness="1"
                     CornerRadius="12" Padding="0"
                     MouseDown="OnProfileSwitcherCardMouseDown">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="24" ShadowDepth="8" Direction="270" Color="#000000" Opacity="0.28"/>
+                </Border.Effect>
                 <DockPanel>
                     <!-- Search Header -->
                     <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource BorderSubtleBrush}"

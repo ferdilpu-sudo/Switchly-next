@@ -70,6 +70,11 @@ public partial class ProfileEditorDialog : Window
         }
 
         UpdateLivePreview();
+        Loaded += (_, _) =>
+        {
+            NameBox.Focus();
+            NameBox.SelectAll();
+        };
     }
 
     public string ProfileName { get; private set; } = string.Empty;
@@ -111,9 +116,9 @@ public partial class ProfileEditorDialog : Window
             ? "P"
             : trimmed[0].ToString().ToUpperInvariant();
 
+        var rawHex = ColorHexBox.Text.Trim();
         try
         {
-            var rawHex = ColorHexBox.Text.Trim();
             if (rawHex.Length == 7 && rawHex.StartsWith('#'))
             {
                 var color = (Color)ColorConverter.ConvertFromString(rawHex);
@@ -123,6 +128,34 @@ public partial class ProfileEditorDialog : Window
         catch
         {
             // Ignore transient invalid hex while user is typing.
+        }
+
+        if (SwatchPanel is not null)
+        {
+            foreach (var child in SwatchPanel.Children)
+            {
+                if (child is Button btn && btn.Tag is string swatchHex)
+                {
+                    var isMatch = string.Equals(swatchHex, rawHex, StringComparison.OrdinalIgnoreCase);
+                    btn.Content = isMatch
+                        ? new TextBlock
+                        {
+                            Text = "✓",
+                            Foreground = Brushes.White,
+                            FontWeight = FontWeights.Bold,
+                            FontSize = 13,
+                        }
+                        : null;
+                    if (isMatch)
+                    {
+                        btn.SetResourceReference(BorderBrushProperty, "TextPrimaryBrush");
+                    }
+                    else
+                    {
+                        btn.BorderBrush = Brushes.Transparent;
+                    }
+                }
+            }
         }
     }
 

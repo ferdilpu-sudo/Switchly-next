@@ -924,6 +924,10 @@ public partial class BrowserWorkspaceView : UserControl
                 var next = (_tabs.IndexOf(_activeTab) + 1) % _tabs.Count;
                 TabStrip.SelectedItem = _tabs[next];
                 break;
+            case BrowserShortcutCommand.PreviousTab when _tabs.Count > 1 && _activeTab is not null:
+                var prev = (_tabs.IndexOf(_activeTab) - 1 + _tabs.Count) % _tabs.Count;
+                TabStrip.SelectedItem = _tabs[prev];
+                break;
             case BrowserShortcutCommand.ZoomIn:
                 _activeTab?.Host.ZoomIn();
                 break;
@@ -986,6 +990,17 @@ public partial class BrowserWorkspaceView : UserControl
             {
                 e.Handled = true;
                 await ExecuteShortcutAsync(BrowserShortcutCommand.ReopenClosedTab);
+            }
+
+            return;
+        }
+
+        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.Tab)
+        {
+            if (_tabs.Count > 1 && _activeTab is not null)
+            {
+                e.Handled = true;
+                await ExecuteShortcutAsync(BrowserShortcutCommand.PreviousTab);
             }
 
             return;

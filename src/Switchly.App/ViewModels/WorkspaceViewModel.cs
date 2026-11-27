@@ -45,19 +45,25 @@ public sealed record ActiveWorkspaceItemViewModel(
     string ProfileName,
     string? WorkspaceGroupName,
     string ColorHex,
-    bool IsCurrent)
+    bool IsCurrent,
+    bool IsPopOut = false,
+    Guid? PopOutWindowId = null)
 {
     public string InitialLetter => string.IsNullOrWhiteSpace(ProfileName)
         ? "?"
         : ProfileName.Trim()[0].ToString().ToUpperInvariant();
 
-    public string DisplayTitle => string.IsNullOrWhiteSpace(WorkspaceGroupName)
-        ? ProfileName
-        : $"{WorkspaceGroupName}  •  {ProfileName}";
+    public string DisplayTitle => IsPopOut
+        ? $"{ProfileName} (Pop-out)"
+        : string.IsNullOrWhiteSpace(WorkspaceGroupName)
+            ? ProfileName
+            : $"{WorkspaceGroupName}  •  {ProfileName}";
 
-    public string Subtitle => string.IsNullOrWhiteSpace(WorkspaceGroupName)
-        ? "Browser Umum"
-        : $"Profil: {ProfileName}";
+    public string Subtitle => IsPopOut
+        ? "Jendela Terpisah (Pop-out)"
+        : string.IsNullOrWhiteSpace(WorkspaceGroupName)
+            ? "Browser Umum"
+            : $"Profil: {ProfileName}";
 }
 
 public sealed record ActiveWorkspaceGroupViewModel(
@@ -414,10 +420,25 @@ public sealed class WorkspaceViewModel : ViewModelBase
     }
 
     public void FocusActiveWorkspace(ActiveWorkspaceItemViewModel item)
-        => _windowCoordinator.FocusDockedWorkspace(item.ProfileId, item.WorkspaceGroupId);
+    {
+        if (item.IsPopOut)
+        {
+            _windowCoordinator.FocusPopoutWindow(item.ProfileId, item.PopOutWindowId);
+            return;
+        }
+
+        _windowCoordinator.FocusDockedWorkspace(item.ProfileId, item.WorkspaceGroupId);
+    }
 
     public async Task CloseActiveWorkspaceAsync(ActiveWorkspaceItemViewModel item)
     {
+        if (item.IsPopOut)
+        {
+            _windowCoordinator.ClosePopoutWindow(item.ProfileId, item.PopOutWindowId);
+            RefreshResourceUsage();
+            return;
+        }
+
         await _windowCoordinator.CloseDockedWorkspaceAsync(item.ProfileId, item.WorkspaceGroupId);
         RefreshResourceUsage();
     }
@@ -442,7 +463,9 @@ public sealed class WorkspaceViewModel : ViewModelBase
                     info.ProfileName,
                     info.WorkspaceGroupName,
                     info.ColorHex,
-                    info.IsCurrent))
+                    info.IsCurrent,
+                    info.IsPopOut,
+                    info.PopOutWindowId))
                 .ToList();
 
             foreach (var item in items)
@@ -502,6 +525,30 @@ public sealed class WorkspaceViewModel : ViewModelBase
     public int ActiveProfileCount => _activeProfileCount;
 
     public int TotalSavedProfileCount => _totalSavedCount;
+
+    public string AppVersion { get; } = ResolveAppVersion();
+
+    public string AppVersionDisplay => $"v{AppVersion}";
+
+    public bool IsPreReleaseBuild => AppVersion.Contains('-', StringComparison.Ordinal);
+
+    public string AboutVersionLine => IsPreReleaseBuild
+        ? $"• Versi: Switchly v{AppVersion} (Prarilis Beta)"
+        : $"• Versi: Switchly v{AppVersion}";
+
+    private static string ResolveAppVersion()
+    {
+        var raw = System.Reflection.CustomAttributeExtensions
+            .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(typeof(WorkspaceViewModel).Assembly)
+            ?.InformationalVersion;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return typeof(WorkspaceViewModel).Assembly.GetName().Version?.ToString(3) ?? "2.0.0";
+        }
+
+        var plusIdx = raw.IndexOf('+');
+        return plusIdx > 0 ? raw[..plusIdx] : raw;
+    }
 
     public bool AutoSleepEnabled
     {

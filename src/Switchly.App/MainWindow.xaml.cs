@@ -231,6 +231,27 @@ public partial class MainWindow : Window
     private void OnToggleSidebarClick(object sender, RoutedEventArgs e)
         => SetSidebarCollapsed(!_isSidebarCollapsed);
 
+    private void OnToggleSidebarProfilesSectionClick(object sender, RoutedEventArgs e)
+    {
+        var collapse = SidebarProfilesScroll.Visibility == Visibility.Visible;
+        SidebarProfilesScroll.Visibility = collapse ? Visibility.Collapsed : Visibility.Visible;
+        SidebarProfilesRow.Height = collapse ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
+        if (System.Windows.Application.Current?.TryFindResource(collapse ? "IconChevronRight" : "IconChevronDown") is System.Windows.Media.Geometry g)
+        {
+            SidebarProfilesChevron.Data = g;
+        }
+    }
+
+    private void OnToggleSidebarGroupsSectionClick(object sender, RoutedEventArgs e)
+    {
+        var collapse = SidebarGroupsBody.Visibility == Visibility.Visible;
+        SidebarGroupsBody.Visibility = collapse ? Visibility.Collapsed : Visibility.Visible;
+        if (System.Windows.Application.Current?.TryFindResource(collapse ? "IconChevronRight" : "IconChevronDown") is System.Windows.Media.Geometry g)
+        {
+            SidebarGroupsChevron.Data = g;
+        }
+    }
+
     private void OnOpenProfileSwitcherClick(object sender, RoutedEventArgs e)
         => OpenProfileSwitcher();
 
@@ -373,10 +394,10 @@ public partial class MainWindow : Window
         DependencyObject? current = button;
         while (current is not null)
         {
-            if (current is Border border && border.ContextMenu is not null)
+            if (current is FrameworkElement fe && fe.ContextMenu is not null)
             {
-                border.ContextMenu.PlacementTarget = button;
-                border.ContextMenu.IsOpen = true;
+                fe.ContextMenu.PlacementTarget = button;
+                fe.ContextMenu.IsOpen = true;
                 return;
             }
 

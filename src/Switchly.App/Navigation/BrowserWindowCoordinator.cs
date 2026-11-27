@@ -15,7 +15,9 @@ public sealed record DockedWorkspaceInfo(
     string ProfileName,
     string? WorkspaceGroupName,
     string ColorHex,
-    bool IsCurrent);
+    bool IsCurrent,
+    bool IsPopOut = false,
+    Guid? PopOutWindowId = null);
 
 /// <summary>
 /// Coordinates Hybrid Workspace sessions (D7, D11):
@@ -53,13 +55,63 @@ public sealed class BrowserWindowCoordinator
 
     public IReadOnlyList<DockedWorkspaceInfo> GetOpenDockedWorkspaces()
     {
-        return _dockedWorkspaces.Select(kvp => new DockedWorkspaceInfo(
+        var items = _dockedWorkspaces.Select(kvp => new DockedWorkspaceInfo(
             ProfileId: kvp.Key.ProfileId,
             WorkspaceGroupId: kvp.Key.GroupId,
             ProfileName: kvp.Value.ProfileName,
             WorkspaceGroupName: kvp.Value.WorkspaceGroupName,
             ColorHex: kvp.Value.ProfileColorHex,
-            IsCurrent: _activeDockedKey == kvp.Key)).ToList();
+            IsCurrent: _activeDockedKey == kvp.Key,
+            IsPopOut: false,
+            PopOutWindowId: null)).ToList();
+
+        foreach (var (profileId, windows) in _openWindows)
+        {
+            foreach (var win in windows)
+            {
+                items.Add(new DockedWorkspaceInfo(
+                    ProfileId: profileId,
+                    WorkspaceGroupId: null,
+                    ProfileName: win.ProfileName,
+                    WorkspaceGroupName: null,
+                    ColorHex: win.ProfileColorHex,
+                    IsCurrent: false,
+                    IsPopOut: true,
+                    PopOutWindowId: win.WindowId));
+            }
+        }
+
+        return items;
+    }
+
+    public void FocusPopoutWindow(Guid profileId, Guid? windowId)
+    {
+        if (!_openWindows.TryGetValue(profileId, out var windows) || windows.Count == 0)
+        {
+            return;
+        }
+
+        var target = (windowId.HasValue ? windows.FirstOrDefault(w => w.WindowId == windowId.Value) : null)
+            ?? windows[0];
+        if (target.WindowState == WindowState.Minimized)
+        {
+            target.WindowState = WindowState.Normal;
+        }
+
+        target.Activate();
+        target.Focus();
+    }
+
+    public void ClosePopoutWindow(Guid profileId, Guid? windowId)
+    {
+        if (!_openWindows.TryGetValue(profileId, out var windows) || windows.Count == 0)
+        {
+            return;
+        }
+
+        var target = (windowId.HasValue ? windows.FirstOrDefault(w => w.WindowId == windowId.Value) : null)
+            ?? windows[0];
+        target.Close();
     }
 
     public void FocusDockedWorkspace(Guid profileId, Guid? workspaceGroupId)
@@ -203,6 +255,7 @@ public sealed class BrowserWindowCoordinator
 
         list.Add(window);
         window.Show();
+        DockedWorkspacesChanged?.Invoke();
 
         for (var i = 1; i < urlsToOpen.Count; i++)
         {
@@ -350,6 +403,7 @@ public sealed class BrowserWindowCoordinator
             }
         }
 
+        DockedWorkspacesChanged?.Invoke();
         _ = CloseProfileIfNoRemainingSurfaceAsync(profileId);
     }
 

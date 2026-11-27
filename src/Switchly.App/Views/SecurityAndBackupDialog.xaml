@@ -169,7 +169,7 @@
                             <PasswordBox x:Name="VaultPasswordBox"/>
                         </DockPanel>
 
-                        <TextBlock x:Name="VaultFeedbackText" FontSize="12" Foreground="{DynamicResource SuccessTextBrush}"
+                        <TextBlock x:Name="VaultFeedbackText" FontSize="12"
                                    TextWrapping="Wrap" Margin="0,0,0,12"/>
 
                         <!-- Saved Credentials List (Origin & Username only — NEVER displays plaintext password) -->

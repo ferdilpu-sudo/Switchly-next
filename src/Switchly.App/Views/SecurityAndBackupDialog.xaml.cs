@@ -46,13 +46,24 @@ public partial class SecurityAndBackupDialog : Window
         DisableMasterPasswordPanel.Visibility = status.IsMasterPasswordEnabled ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    private static void SetFeedback(TextBlock target, string message, bool isError = false, bool isNeutral = false)
+    {
+        target.Text = message;
+        var resourceKey = isError
+            ? "DangerSoftTextBrush"
+            : isNeutral
+                ? "TextSecondaryBrush"
+                : "SuccessTextBrush";
+        target.SetResourceReference(TextBlock.ForegroundProperty, resourceKey);
+    }
+
     private void OnEnableMasterPasswordClick(object sender, RoutedEventArgs e)
     {
         var p1 = NewMasterPasswordBox.Password;
         var p2 = ConfirmMasterPasswordBox.Password;
         if (!string.Equals(p1, p2, StringComparison.Ordinal))
         {
-            SecurityFeedbackText.Text = "Konfirmasi kata sandi utama tidak cocok.";
+            SetFeedback(SecurityFeedbackText, "Konfirmasi kata sandi utama tidak cocok.", isError: true);
             return;
         }
 
@@ -61,12 +72,12 @@ public partial class SecurityAndBackupDialog : Window
             _securityService.EnableMasterPassword(p1);
             NewMasterPasswordBox.Clear();
             ConfirmMasterPasswordBox.Clear();
-            SecurityFeedbackText.Text = "Kunci kata sandi utama berhasil diaktifkan.";
+            SetFeedback(SecurityFeedbackText, "Kunci kata sandi utama berhasil diaktifkan.");
             RefreshSecurityStatus();
         }
         catch (Exception ex)
         {
-            SecurityFeedbackText.Text = ex.Message;
+            SetFeedback(SecurityFeedbackText, ex.Message, isError: true);
         }
     }
 
@@ -76,12 +87,12 @@ public partial class SecurityAndBackupDialog : Window
         if (_securityService.DisableMasterPassword(current))
         {
             CurrentMasterPasswordBox.Clear();
-            SecurityFeedbackText.Text = "Kunci kata sandi utama dinonaktifkan.";
+            SetFeedback(SecurityFeedbackText, "Kunci kata sandi utama dinonaktifkan.");
             RefreshSecurityStatus();
         }
         else
         {
-            SecurityFeedbackText.Text = "Kata sandi utama saat ini salah.";
+            SetFeedback(SecurityFeedbackText, "Kata sandi utama saat ini salah.", isError: true);
             CurrentMasterPasswordBox.Clear();
         }
     }
@@ -92,13 +103,13 @@ public partial class SecurityAndBackupDialog : Window
         var confirm = BackupPassphraseConfirmBox.Password;
         if (string.IsNullOrEmpty(pass) || pass.Length < 8)
         {
-            BackupStatusText.Text = "Passphrase minimal 8 karakter.";
+            SetFeedback(BackupStatusText, "Passphrase minimal 8 karakter.", isError: true);
             return;
         }
 
         if (!string.Equals(pass, confirm, StringComparison.Ordinal))
         {
-            BackupStatusText.Text = "Konfirmasi passphrase tidak cocok.";
+            SetFeedback(BackupStatusText, "Konfirmasi passphrase tidak cocok.", isError: true);
             return;
         }
 
@@ -125,8 +136,9 @@ public partial class SecurityAndBackupDialog : Window
             {
                 BackupPassphraseBox.Clear();
                 BackupPassphraseConfirmBox.Clear();
-                BackupStatusText.Text =
-                    $"Backup berhasil dibuat ({result.ProfileCount} profil, {result.ArchiveSizeBytes / 1024.0:F1} KB).";
+                SetFeedback(
+                    BackupStatusText,
+                    $"Backup berhasil dibuat ({result.ProfileCount} profil, {result.ArchiveSizeBytes / 1024.0:F1} KB).");
             });
         });
     }
@@ -156,12 +168,12 @@ public partial class SecurityAndBackupDialog : Window
                 $"Perkiraan ukuran data: {manifest.EstimatedPlaintextBytes / 1024.0:F1} KB\n" +
                 "Catatan: Cookies/sesi login tidak dibawa lintas komputer (Anda perlu login ulang).";
             RestorePreviewCard.Visibility = Visibility.Visible;
-            BackupStatusText.Text = string.Empty;
+            SetFeedback(BackupStatusText, string.Empty, isNeutral: true);
         }
         catch (Exception ex)
         {
             RestorePreviewCard.Visibility = Visibility.Collapsed;
-            BackupStatusText.Text = $"Arsip tidak dapat dibaca: {ex.Message}";
+            SetFeedback(BackupStatusText, $"Arsip tidak dapat dibaca: {ex.Message}", isError: true);
         }
     }
 
@@ -171,13 +183,13 @@ public partial class SecurityAndBackupDialog : Window
         var pass = RestorePassphraseBox.Password;
         if (string.IsNullOrWhiteSpace(archivePath))
         {
-            BackupStatusText.Text = "Pilih file arsip .snbak terlebih dahulu.";
+            SetFeedback(BackupStatusText, "Pilih file arsip .snbak terlebih dahulu.", isError: true);
             return;
         }
 
         if (string.IsNullOrEmpty(pass))
         {
-            BackupStatusText.Text = "Masukkan passphrase arsip backup.";
+            SetFeedback(BackupStatusText, "Masukkan passphrase arsip backup.", isError: true);
             return;
         }
 
@@ -199,8 +211,9 @@ public partial class SecurityAndBackupDialog : Window
             Dispatcher.Invoke(() =>
             {
                 RestorePassphraseBox.Clear();
-                BackupStatusText.Text =
-                    $"Staging selesai ({staged.ExtractedFileCount} file terverifikasi). Aplikasi perlu dimulai ulang untuk menyelesaikan pemulihan.";
+                SetFeedback(
+                    BackupStatusText,
+                    $"Staging selesai ({staged.ExtractedFileCount} file terverifikasi). Aplikasi perlu dimulai ulang untuk menyelesaikan pemulihan.");
 
                 var restart = MessageBox.Show(
                     "Pemulihan telah diverifikasi dan siap diterapkan. Mulai ulang Switchly sekarang?",
@@ -253,7 +266,7 @@ public partial class SecurityAndBackupDialog : Window
         }
         catch (Exception ex)
         {
-            VaultFeedbackText.Text = $"Gagal memuat Password Vault: {ex.Message}";
+            SetFeedback(VaultFeedbackText, $"Gagal memuat Password Vault: {ex.Message}", isError: true);
         }
     }
 
@@ -261,7 +274,7 @@ public partial class SecurityAndBackupDialog : Window
     {
         if (VaultProfileCombo.SelectedItem is not BrowserProfile profile)
         {
-            VaultFeedbackText.Text = "Pilih profil Switchly terlebih dahulu.";
+            SetFeedback(VaultFeedbackText, "Pilih profil Switchly terlebih dahulu.", isError: true);
             return;
         }
 
@@ -291,12 +304,12 @@ public partial class SecurityAndBackupDialog : Window
                 sb.Append(" " + string.Join(" ", result.RedactedWarnings));
             }
 
-            VaultFeedbackText.Text = sb.ToString();
+            SetFeedback(VaultFeedbackText, sb.ToString());
             await RefreshVaultCredentialsAsync();
         }
         catch (Exception ex)
         {
-            VaultFeedbackText.Text = $"Impor CSV gagal: {ex.Message}";
+            SetFeedback(VaultFeedbackText, $"Impor CSV gagal: {ex.Message}", isError: true);
         }
     }
 
@@ -304,7 +317,7 @@ public partial class SecurityAndBackupDialog : Window
     {
         if (VaultProfileCombo.SelectedItem is not BrowserProfile profile)
         {
-            VaultFeedbackText.Text = "Pilih profil Switchly terlebih dahulu.";
+            SetFeedback(VaultFeedbackText, "Pilih profil Switchly terlebih dahulu.", isError: true);
             return;
         }
 
@@ -320,12 +333,12 @@ public partial class SecurityAndBackupDialog : Window
             VaultOriginBox.Clear();
             VaultUsernameBox.Clear();
             VaultPasswordBox.Clear();
-            VaultFeedbackText.Text = "Kredensial berhasil disimpan terenkripsi ke Password Vault.";
+            SetFeedback(VaultFeedbackText, "Kredensial berhasil disimpan terenkripsi ke Password Vault.");
             await RefreshVaultCredentialsAsync();
         }
         catch (Exception ex)
         {
-            VaultFeedbackText.Text = ex.Message;
+            SetFeedback(VaultFeedbackText, ex.Message, isError: true);
         }
     }
 
@@ -340,7 +353,7 @@ public partial class SecurityAndBackupDialog : Window
         using var scope = App.Services.CreateScope();
         var vault = scope.ServiceProvider.GetRequiredService<IPasswordVaultService>();
         await vault.DeleteAsync(profile.ProfileId, summary.CredentialId);
-        VaultFeedbackText.Text = $"Kredensial untuk {summary.Origin} dihapus.";
+        SetFeedback(VaultFeedbackText, $"Kredensial untuk {summary.Origin} dihapus.", isNeutral: true);
         await RefreshVaultCredentialsAsync();
     }
 
@@ -357,7 +370,7 @@ public partial class SecurityAndBackupDialog : Window
         var progress = new Progress<BackupProgress>(p =>
         {
             OperationProgressBar.Value = Math.Clamp(p.Fraction, 0, 1);
-            BackupStatusText.Text = p.Stage;
+            SetFeedback(BackupStatusText, p.Stage, isNeutral: true);
         });
 
         try
@@ -366,11 +379,11 @@ public partial class SecurityAndBackupDialog : Window
         }
         catch (OperationCanceledException)
         {
-            BackupStatusText.Text = "Operasi dibatalkan. File sementara dibersihkan.";
+            SetFeedback(BackupStatusText, "Operasi dibatalkan. File sementara dibersihkan.", isNeutral: true);
         }
         catch (Exception ex)
         {
-            BackupStatusText.Text = $"Gagal: {ex.Message}";
+            SetFeedback(BackupStatusText, $"Gagal: {ex.Message}", isError: true);
         }
         finally
         {

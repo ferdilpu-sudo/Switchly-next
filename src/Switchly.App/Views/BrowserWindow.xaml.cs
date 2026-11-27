@@ -80,6 +80,10 @@ public partial class BrowserWindow : Window
 
     public Guid ProfileId => Workspace.ProfileId;
 
+    public string ProfileName => Workspace.ProfileName;
+
+    public string ProfileColorHex => Workspace.ProfileColorHex;
+
     public Guid WindowId => Workspace.WindowId;
 
     public IReadOnlyList<TabSnapshotInput> CaptureOpenTabs() => Workspace.CaptureOpenTabs();

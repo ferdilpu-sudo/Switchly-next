@@ -57,6 +57,7 @@
                 </DockPanel>
 
                 <ComboBox x:Name="SourceProfileCombo" Margin="0,0,0,4" Padding="10,6"
+                          SelectionChanged="OnImportInputsChanged"
                           AutomationProperties.Name="Pilih profil browser sumber">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
@@ -71,6 +72,7 @@
                 <!-- Step 2: Target Switchly Profile -->
                 <TextBlock Text="2. Pilih Profil Tujuan di Switchly" FontWeight="SemiBold" Margin="0,12,0,6"/>
                 <ComboBox x:Name="TargetProfileCombo" Margin="0,0,0,12" Padding="10,6"
+                          SelectionChanged="OnImportInputsChanged"
                           AutomationProperties.Name="Pilih profil tujuan Switchly">
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
@@ -82,9 +84,12 @@
                 <!-- Step 3: Categories -->
                 <TextBlock Text="3. Pilih Kategori Data" FontWeight="SemiBold" Margin="0,2,0,8"/>
                 <StackPanel Margin="4,0,0,12">
-                    <CheckBox x:Name="BookmarksCheck" Content="Bookmark (termasuk struktur folder)" IsChecked="True" Margin="0,0,0,6"/>
-                    <CheckBox x:Name="HistoryCheck" Content="Riwayat Kunjungan (tutup Chrome/Edge jika database terkunci)" IsChecked="True" Margin="0,0,0,6"/>
-                    <CheckBox x:Name="OpenTabsCheck" Content="Tab Terbuka (URL saja, format SNSS)" IsChecked="False"/>
+                    <CheckBox x:Name="BookmarksCheck" Content="Bookmark (termasuk struktur folder)" IsChecked="True"
+                              Click="OnImportInputsChanged" Margin="0,0,0,6"/>
+                    <CheckBox x:Name="HistoryCheck" Content="Riwayat Kunjungan (tutup Chrome/Edge jika database terkunci)" IsChecked="True"
+                              Click="OnImportInputsChanged" Margin="0,0,0,6"/>
+                    <CheckBox x:Name="OpenTabsCheck" Content="Tab Terbuka (hanya alamat URL)" IsChecked="False"
+                              Click="OnImportInputsChanged"/>
                 </StackPanel>
 
                 <!-- Step 4: Locked DB / Status / Preview & Result -->

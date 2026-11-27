@@ -8,6 +8,7 @@ public enum BrowserShortcutCommand
     FocusAddressBar,
     Reload,
     NextTab,
+    PreviousTab,
     ZoomIn,
     ZoomOut,
     ResetZoom,

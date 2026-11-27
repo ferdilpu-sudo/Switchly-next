@@ -15,6 +15,7 @@ public partial class ImportWizardDialog : Window
 {
     private readonly Guid? _preselectedTargetProfileId;
     private bool _isBusy;
+    private bool _hasFreshPreview;
 
     public ImportWizardDialog(Guid? preselectedTargetProfileId = null)
     {
@@ -41,6 +42,8 @@ public partial class ImportWizardDialog : Window
         {
             TargetProfileCombo.SelectedItem = profiles.FirstOrDefault();
         }
+
+        InvalidatePreview();
     }
 
     private void OnBrowserFilterChanged(object sender, RoutedEventArgs e)
@@ -51,6 +54,16 @@ public partial class ImportWizardDialog : Window
         }
 
         LoadDetectedProfiles();
+    }
+
+    private void OnImportInputsChanged(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded || _isBusy)
+        {
+            return;
+        }
+
+        InvalidatePreview();
     }
 
     private void OnRefreshSourcesClick(object sender, RoutedEventArgs e)
@@ -64,6 +77,12 @@ public partial class ImportWizardDialog : Window
         SourceProfileCombo.ItemsSource = detected;
         SourceProfileCombo.SelectedItem = detected.FirstOrDefault();
         SourceEmptyHint.Visibility = detected.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        InvalidatePreview();
+    }
+
+    private void InvalidatePreview()
+    {
+        _hasFreshPreview = false;
         ExecuteButton.IsEnabled = false;
         SummaryCard.Visibility = Visibility.Collapsed;
         LockedWarningBanner.Visibility = Visibility.Collapsed;
@@ -112,6 +131,7 @@ public partial class ImportWizardDialog : Window
             SummaryBodyText.Text = sb.ToString().TrimEnd();
             WarningsList.ItemsSource = preview.Warnings;
             SummaryCard.Visibility = Visibility.Visible;
+            _hasFreshPreview = true;
             ExecuteButton.IsEnabled = true;
         }
         catch (Exception ex)
@@ -168,6 +188,7 @@ public partial class ImportWizardDialog : Window
             SummaryBodyText.Text = sb.ToString().TrimEnd();
             WarningsList.ItemsSource = result.Warnings;
             SummaryCard.Visibility = Visibility.Visible;
+            _hasFreshPreview = false;
         }
         catch (Exception ex)
         {
@@ -225,7 +246,7 @@ public partial class ImportWizardDialog : Window
     {
         _isBusy = isBusy;
         PreviewButton.IsEnabled = !isBusy;
-        ExecuteButton.IsEnabled = !isBusy && SummaryCard.Visibility == Visibility.Visible;
+        ExecuteButton.IsEnabled = !isBusy && _hasFreshPreview && SummaryCard.Visibility == Visibility.Visible;
         BusyStatusText.Text = statusMessage;
         BusyStatusText.Visibility = isBusy ? Visibility.Visible : Visibility.Collapsed;
     }
