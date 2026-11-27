@@ -74,6 +74,40 @@ public sealed class OtpService(
         return DisposableDomains.Contains(domain);
     }
 
+    /// <summary>
+    /// Canonicalizes email aliases (+tags on all domains, dots and googlemail.com on Gmail)
+    /// to prevent claiming multiple 7-day trials with the same inbox (#5).
+    /// </summary>
+    public static string CanonicalizeForTrialCheck(string normalizedEmail)
+    {
+        var at = normalizedEmail.LastIndexOf('@');
+        if (at <= 0 || at == normalizedEmail.Length - 1)
+        {
+            return normalizedEmail;
+        }
+
+        var local = normalizedEmail[..at];
+        var domain = normalizedEmail[(at + 1)..];
+
+        if (string.Equals(domain, "googlemail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            domain = "gmail.com";
+        }
+
+        var plusIdx = local.IndexOf('+');
+        if (plusIdx > 0)
+        {
+            local = local[..plusIdx];
+        }
+
+        if (string.Equals(domain, "gmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            local = local.Replace(".", string.Empty, StringComparison.Ordinal);
+        }
+
+        return $"{local}@{domain}";
+    }
+
     public async Task<OtpRequestResult> RequestOtpAsync(string? rawEmail, CancellationToken ct)
     {
         if (!TryNormalizeEmail(rawEmail, out var email))
@@ -167,9 +201,14 @@ public sealed class OtpService(
             return new OtpVerifyResult(false, ErrorMessage: "Kode OTP sudah kedaluwarsa atau belum diminta.");
         }
 
-        if (latestChallenge.Attempts >= _options.OtpMaxAttempts)
+        // Atomically claim one attempt in SQL BEFORE comparing the hash to defeat ReadCommitted parallel brute-force (#1).
+        var attemptUpdated = await db.OtpChallenges
+            .Where(x => x.Id == latestChallenge.Id && x.ConsumedAtUtc == null && x.Attempts < _options.OtpMaxAttempts)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Attempts, x => x.Attempts + 1), ct);
+
+        if (attemptUpdated == 0)
         {
-            return new OtpVerifyResult(false, ErrorMessage: "Batas percobaan OTP terlampaui. Minta kode baru.");
+            return new OtpVerifyResult(false, ErrorMessage: "Batas percobaan OTP terlampaui atau kode sudah dipakai. Minta kode baru.");
         }
 
         var expectedHash = HashSecret($"{email}:{code.Trim()}", _options.TokenHashPepper);
@@ -177,13 +216,20 @@ public sealed class OtpService(
         var expectedBytes = Encoding.UTF8.GetBytes(expectedHash);
         if (!CryptographicOperations.FixedTimeEquals(actualBytes, expectedBytes))
         {
-            latestChallenge.Attempts++;
-            await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
             return new OtpVerifyResult(false, ErrorMessage: "Kode OTP salah.");
         }
 
-        latestChallenge.ConsumedAtUtc = now;
+        // Atomically mark challenge consumed so parallel replay of a valid OTP can succeed at most once (#1).
+        var consumed = await db.OtpChallenges
+            .Where(x => x.Id == latestChallenge.Id && x.ConsumedAtUtc == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.ConsumedAtUtc, now), ct);
+
+        if (consumed == 0)
+        {
+            await tx.RollbackAsync(ct);
+            return new OtpVerifyResult(false, ErrorMessage: "Kode OTP sudah digunakan.");
+        }
 
         var account = await db.Accounts
             .Include(a => a.Licenses)
@@ -248,7 +294,11 @@ public sealed class OtpService(
                 s => s.TokenHash == hash && s.RevokedAtUtc == null,
                 ct);
 
-        return session is not null && session.ExpiresAtUtc > now ? session : null;
+        return session is not null
+            && session.ExpiresAtUtc > now
+            && string.Equals(session.Account.Status, "active", StringComparison.OrdinalIgnoreCase)
+            ? session
+            : null;
     }
 
     public static string HashSecret(string input, string pepper)

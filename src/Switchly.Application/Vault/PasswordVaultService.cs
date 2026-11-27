@@ -83,11 +83,18 @@ public sealed class PasswordVaultService : IPasswordVaultService
             VaultCredential? matchingExisting = null;
             foreach (var candidate in existingForOrigin)
             {
-                var decrypted = DecryptPayload(candidate, key);
-                if (string.Equals(decrypted.Username, cleanUser, StringComparison.OrdinalIgnoreCase))
+                try
                 {
-                    matchingExisting = candidate;
-                    break;
+                    var decrypted = DecryptPayload(candidate, key);
+                    if (string.Equals(decrypted.Username, cleanUser, StringComparison.OrdinalIgnoreCase))
+                    {
+                        matchingExisting = candidate;
+                        break;
+                    }
+                }
+                catch (CryptographicException)
+                {
+                    // Skip individual unreadable row so adding a new credential is never blocked (#10).
                 }
             }
 

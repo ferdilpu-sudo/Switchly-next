@@ -40,6 +40,9 @@ builder.Services.AddOptions<MidtransOptions>()
 builder.Services.AddOptions<EmailOptions>()
     .Bind(builder.Configuration.GetSection(EmailOptions.SectionName))
     .Validate(
+        o => !builder.Environment.IsProduction() || !string.Equals(o.Provider, "Console", StringComparison.OrdinalIgnoreCase),
+        "Email:Provider=Console is forbidden in Production; configure Resend.")
+    .Validate(
         o => !string.Equals(o.Provider, "Resend", StringComparison.OrdinalIgnoreCase) || !string.IsNullOrWhiteSpace(o.ResendApiKey),
         "Email:ResendApiKey is required when Email:Provider=Resend.")
     .ValidateOnStart();

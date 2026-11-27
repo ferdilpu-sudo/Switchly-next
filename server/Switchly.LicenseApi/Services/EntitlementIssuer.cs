@@ -71,6 +71,18 @@ public sealed class EntitlementIssuer(
             return new TrialStartResult(false, ErrorMessage: "Perangkat ini sudah pernah menggunakan Trial Pro 7 hari.");
         }
 
+        // Prevent Gmail dot/plus-alias abuse from claiming multiple 7-day trials with the same inbox (#5).
+        var canonicalEmail = OtpService.CanonicalizeForTrialCheck(freshAccount.EmailNormalized);
+        var claimedEmails = await db.Accounts
+            .Where(a => a.TrialClaimedAtUtc != null)
+            .Select(a => a.EmailNormalized)
+            .ToListAsync(ct);
+
+        if (claimedEmails.Any(e => string.Equals(OtpService.CanonicalizeForTrialCheck(e), canonicalEmail, StringComparison.OrdinalIgnoreCase)))
+        {
+            return new TrialStartResult(false, ErrorMessage: "Alamat email (atau alias) ini sudah pernah menggunakan Trial Pro 7 hari.");
+        }
+
         // Verify device slot BEFORE marking trial claimed so MaxDevices failure never burns the user's one-time trial (S1-03).
         var allDevices = await db.DeviceActivations
             .Where(d => d.AccountId == freshAccount.Id)
@@ -243,7 +255,8 @@ public sealed class EntitlementIssuer(
             maxProfiles = null;
             expiresAt = null;
             updatesUntil = activePerpetual.UpdatesUntilUtc;
-            offlineGraceUntil = now.AddYears(100);
+            // 60-day rolling offline grace (auto-extended on every online refresh) so chargeback revocations propagate (#4b).
+            offlineGraceUntil = now.AddDays(60);
         }
         else if (activeSubscription is not null)
         {

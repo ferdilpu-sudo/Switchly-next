@@ -463,8 +463,9 @@ public sealed class PortableBackupRestoreService : IBackupRestoreService
                 continue;
             }
 
-            // Strict path traversal & ADS defense (TEST-013, testing.md §6)
-            if (entry.FullName.Contains("..", StringComparison.Ordinal) ||
+            // Strict segment-based path traversal & ADS defense (allows valid filenames like "file..txt" while blocking ".." segments, #14)
+            var rawSegments = entry.FullName.Split(['/', '\\'], StringSplitOptions.None);
+            if (rawSegments.Any(s => s == "..") ||
                 entry.FullName.Contains(':', StringComparison.Ordinal) ||
                 entry.FullName.StartsWith('/') ||
                 entry.FullName.StartsWith('\\'))

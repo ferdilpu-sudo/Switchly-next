@@ -118,9 +118,10 @@ public static class ApiEndpoints
                 return Results.Unauthorized();
             }
 
+            // Always bind trial claims to the authenticated session's verified DeviceHash (#5).
             var result = await issuer.StartTrialAsync(
                 session.Account,
-                dto?.DeviceHash,
+                session.DeviceHash,
                 dto?.DeviceLabel ?? "Windows PC",
                 ct);
 
@@ -146,9 +147,10 @@ public static class ApiEndpoints
                 return Results.Unauthorized();
             }
 
+            // Always bind entitlement refresh to the authenticated session's verified DeviceHash (#5).
             var issued = await issuer.IssueForDeviceAsync(
                 session.Account,
-                dto?.DeviceHash,
+                session.DeviceHash,
                 dto?.DeviceLabel ?? "Windows PC",
                 ct);
 

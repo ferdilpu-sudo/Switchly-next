@@ -286,8 +286,17 @@ public sealed class HttpLicenseApiClient : ILicenseApiClient, IDisposable
         }
     }
 
+    // Compile-time pinned GA trust anchor (#6). Populate EmbeddedPublicKeyBase64 and set
+    // EmbeddedEnforceCommercialLimits = true when cutting the commercial GA release.
+    private const string EmbeddedApiBaseUrl = "https://api.switchly.site";
+    private const string EmbeddedPublicKeyBase64 = "";
+    private const bool EmbeddedEnforceCommercialLimits = false;
+
     public static LicenseClientConfig LoadConfigFromDiskOrEnvironment(string dataDirectory)
     {
+#if DEBUG
+        // Allow local/staging overrides only in DEBUG builds so Release builds cannot have their
+        // Ed25519 trust anchor or enforcement flag tampered via %LOCALAPPDATA% or env vars (#6).
         var envUrl = Environment.GetEnvironmentVariable("SWITCHLY_LICENSE_API_URL");
         var envPub = Environment.GetEnvironmentVariable("SWITCHLY_ED25519_PUBLIC_KEY");
         var envEnforce = string.Equals(
@@ -319,13 +328,14 @@ public sealed class HttpLicenseApiClient : ILicenseApiClient, IDisposable
                 // Ignore malformed optional local config and remain in Free Beta mode.
             }
         }
+#endif
 
-        return new LicenseClientConfig(string.Empty, string.Empty, false);
+        return new LicenseClientConfig(EmbeddedApiBaseUrl, EmbeddedPublicKeyBase64, EmbeddedEnforceCommercialLimits);
     }
 
-    private Task<HttpResponseMessage> PostJsonAsync(string path, object body, string? bearerToken, CancellationToken ct)
+    private async Task<HttpResponseMessage> PostJsonAsync(string path, object body, string? bearerToken, CancellationToken ct)
     {
-        var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}{path}")
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}{path}")
         {
             Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json"),
         };
@@ -335,7 +345,7 @@ public sealed class HttpLicenseApiClient : ILicenseApiClient, IDisposable
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
         }
 
-        return _httpClient.SendAsync(req, ct);
+        return await _httpClient.SendAsync(req, ct).ConfigureAwait(false);
     }
 
     private static string? ExtractString(string json, string propertyName)

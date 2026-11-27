@@ -134,6 +134,48 @@ public sealed class LicenseApiTests : IDisposable
         // Different account on the SAME device is rejected (anti-abuse)
         var secondSameDevice = await issuer.StartTrialAsync(acct2, "device-hash-A", "Laptop-1", CancellationToken.None);
         Assert.False(secondSameDevice.Succeeded);
+
+        // Gmail +alias / dot alias on a DIFFERENT device is also rejected (#5)
+        var gmail1 = new Account { EmailNormalized = "ferdi.dev@gmail.com" };
+        var gmailAlias = new Account { EmailNormalized = "ferdidev+trial2@googlemail.com" };
+        _db.Accounts.AddRange(gmail1, gmailAlias);
+        await _db.SaveChangesAsync();
+
+        var gmailFirst = await issuer.StartTrialAsync(gmail1, "device-hash-C", "Laptop-3", CancellationToken.None);
+        Assert.True(gmailFirst.Succeeded);
+        var gmailSecond = await issuer.StartTrialAsync(gmailAlias, "device-hash-D", "Laptop-4", CancellationToken.None);
+        Assert.False(gmailSecond.Succeeded);
+    }
+
+    [Fact]
+    public async Task OtpService_RejectsSuspendedAccountSession_AndEnforcesAtomicAttemptLimit()
+    {
+        var sender = new CapturingEmailSender();
+        var otp = new OtpService(_db, sender, _apiOptions, TimeProvider.System);
+
+        Assert.True((await otp.RequestOtpAsync("member@example.com", CancellationToken.None)).Succeeded);
+        var ok = await otp.VerifyOtpAsync("member@example.com", sender.LastCode!, "dev-9", CancellationToken.None);
+        Assert.True(ok.Succeeded);
+
+        // Active session validates cleanly
+        Assert.NotNull(await otp.ValidateSessionAsync(ok.SessionToken!, CancellationToken.None));
+
+        // Suspended account invalidates existing session immediately (#2b)
+        ok.Account!.Status = "suspended";
+        await _db.SaveChangesAsync();
+        Assert.Null(await otp.ValidateSessionAsync(ok.SessionToken!, CancellationToken.None));
+
+        // Atomic attempt limit rejects after 5 wrong guesses (#1)
+        Assert.True((await otp.RequestOtpAsync("brute@example.com", CancellationToken.None)).Succeeded);
+        var realCode = sender.LastCode!;
+        var wrongCode = realCode == "000000" ? "111111" : "000000";
+        for (var i = 0; i < 5; i++)
+        {
+            Assert.False((await otp.VerifyOtpAsync("brute@example.com", wrongCode, "dev-10", CancellationToken.None)).Succeeded);
+        }
+
+        // 6th attempt with the REAL code must now fail because all 5 attempts were atomically consumed
+        Assert.False((await otp.VerifyOtpAsync("brute@example.com", realCode, "dev-10", CancellationToken.None)).Succeeded);
     }
 
     [Fact]

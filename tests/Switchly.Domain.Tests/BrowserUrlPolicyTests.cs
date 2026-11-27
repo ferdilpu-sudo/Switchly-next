@@ -59,6 +59,17 @@ public sealed class BrowserUrlPolicyTests
     }
 
     [Theory]
+    [InlineData("python: sort list")]
+    [InlineData("site:github.com switchly")]
+    [InlineData("re: meeting notes")]
+    public void ResolveAddressBarInput_AllowsSearchPhrasesContainingColons(string query)
+    {
+        var resolved = BrowserUrlPolicy.ResolveAddressBarInput(query);
+        Assert.NotNull(resolved);
+        Assert.StartsWith("https://www.google.com/search?q=", resolved, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("https://example.com/file.pdf", true)]
     [InlineData("blob:https://flow.google.com/1234", true)]
     [InlineData("data:text/plain;base64,SGk=", true)]

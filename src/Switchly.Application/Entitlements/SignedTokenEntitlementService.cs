@@ -84,15 +84,20 @@ public sealed class SignedTokenEntitlementService : IFeatureEntitlementService
         switch (tierKey)
         {
             case "pro_perpetual":
-                return new EntitlementSnapshot(
-                    ActiveTier: SubscriptionTier.ProPerpetual,
-                    RequiresAccount: true,
-                    MaxProfiles: payload.MaxProfiles,
-                    IsOfflineReady: true,
-                    DisplayBadge: "Pro (Perpetual)",
-                    ExpiresAtUtc: null,
-                    UpdatesUntilUtc: payload.UpdatesUntilUtc,
-                    NeedsOnlineRefresh: false);
+                if (now <= payload.OfflineGraceUntilUtc)
+                {
+                    return new EntitlementSnapshot(
+                        ActiveTier: SubscriptionTier.ProPerpetual,
+                        RequiresAccount: true,
+                        MaxProfiles: payload.MaxProfiles,
+                        IsOfflineReady: true,
+                        DisplayBadge: "Pro (Perpetual)",
+                        ExpiresAtUtc: null,
+                        UpdatesUntilUtc: payload.UpdatesUntilUtc,
+                        NeedsOnlineRefresh: needsRefresh);
+                }
+
+                return CreateFreeSnapshot(needsOnlineRefresh: true);
 
             case "pro_subscription":
                 if (payload.ExpiresAtUtc is not null

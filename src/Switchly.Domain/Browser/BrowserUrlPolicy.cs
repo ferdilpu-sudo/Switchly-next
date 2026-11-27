@@ -65,12 +65,19 @@ public static class BrowserUrlPolicy
             || string.Equals(uri.Scheme, "data", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static readonly HashSet<string> BlockedNonWebSchemes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "file", "javascript", "vbscript", "data", "blob",
+        "chrome", "chrome-extension", "chrome-untrusted", "edge", "devtools",
+        "view-source", "about", "ftp", "ws", "wss", "mailto", "tel", "ms-settings",
+    };
+
     /// <summary>
     /// Resolves user input from the Address Bar:
     /// - Blocks dangerous/internal schemes (file:, chrome:, javascript:, data:, etc.) by returning null.
     /// - Accepts explicit http/https URLs and about:blank.
     /// - Converts bare hostnames (e.g. chatgpt.com, localhost:3000) to https:// (or http:// for localhost).
-    /// - Converts plain search phrases to a Google search URL.
+    /// - Converts plain search phrases (including colons like "python: sort list" or "site:github.com switchly") to Google search.
     /// </summary>
     public static string? ResolveAddressBarInput(string? rawInput)
     {
@@ -85,35 +92,39 @@ public static class BrowserUrlPolicy
             return BlankUrl;
         }
 
-        // Reject explicit dangerous/non-web schemes (including "javascript:..." without "://").
+        var hasWhitespace = trimmed.Any(char.IsWhiteSpace);
+
+        // Explicit scheme:// URLs: allow only http:// and https://; block all other scheme:// inputs.
+        var schemeSepIdx = trimmed.IndexOf("://", StringComparison.Ordinal);
+        if (schemeSepIdx > 0 && !hasWhitespace)
+        {
+            if (Uri.TryCreate(trimmed, UriKind.Absolute, out var explicitUri)
+                && (string.Equals(explicitUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(explicitUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+            {
+                return explicitUri.AbsoluteUri;
+            }
+
+            return null;
+        }
+
+        // Colon schemes without "://" (e.g. javascript:alert(1), file:..., data:..., about:config):
+        // block known dangerous/browser schemes, while allowing search queries like "python: sort list" or "site:reddit.com switchly".
         var colonIndex = trimmed.IndexOf(':');
         if (colonIndex > 0)
         {
             var beforeColon = trimmed[..colonIndex];
-            var isSchemePrefix = beforeColon.All(c => char.IsLetterOrDigit(c) || c is '+' or '-' or '.');
-            var looksLikeHostPort = trimmed.Contains("://", StringComparison.Ordinal) == false
-                && (beforeColon.Contains('.') || string.Equals(beforeColon, "localhost", StringComparison.OrdinalIgnoreCase));
-
-            if (isSchemePrefix && !looksLikeHostPort)
+            if (BlockedNonWebSchemes.Contains(beforeColon))
             {
-                if (Uri.TryCreate(trimmed, UriKind.Absolute, out var explicitUri)
-                    && (string.Equals(explicitUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(explicitUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
-                {
-                    return explicitUri.AbsoluteUri;
-                }
-
-                // Blocked scheme (file:, chrome:, javascript:, data:, etc.)
                 return null;
             }
         }
 
-        var hasWhitespace = trimmed.Any(char.IsWhiteSpace);
         var isLocalhost = trimmed.Equals("localhost", StringComparison.OrdinalIgnoreCase)
             || trimmed.StartsWith("localhost:", StringComparison.OrdinalIgnoreCase)
             || trimmed.StartsWith("localhost/", StringComparison.OrdinalIgnoreCase);
 
-        if (!hasWhitespace && (isLocalhost || trimmed.Contains('.')))
+        if (!hasWhitespace && (isLocalhost || (trimmed.Contains('.') && colonIndex < 0) || (colonIndex > 0 && trimmed[..colonIndex].Contains('.'))))
         {
             var scheme = isLocalhost ? "http://" : "https://";
             var candidate = scheme + trimmed;
